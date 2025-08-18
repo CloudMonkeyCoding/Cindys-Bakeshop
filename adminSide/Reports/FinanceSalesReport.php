@@ -12,6 +12,23 @@
   <?php
   $activePage = 'reports';
   include '../sidebar.php';
+  require_once '../../PHP/db_connect.php';
+
+  $stmt = $pdo->query("
+      SELECT t.Transaction_ID, o.Order_ID, o.Order_Date,
+             u.Name AS Customer, IFNULL(SUM(oi.Subtotal), 0) AS Product_Total,
+             t.Amount_Paid, t.Payment_Method, t.Payment_Status,
+             t.Payment_Date, t.Reference_Number
+      FROM `Transaction` t
+      JOIN `Order` o ON t.Order_ID = o.Order_ID
+      LEFT JOIN `User` u ON o.User_ID = u.User_ID
+      LEFT JOIN `Order_Item` oi ON o.Order_ID = oi.Order_ID
+      GROUP BY t.Transaction_ID, o.Order_ID, o.Order_Date, u.Name,
+               t.Amount_Paid, t.Payment_Method, t.Payment_Status,
+               t.Payment_Date, t.Reference_Number
+      ORDER BY o.Order_Date DESC
+  ");
+  $reportData = $stmt->fetchAll();
   ?>
 
   <!-- Main Content -->
@@ -60,43 +77,7 @@
       <canvas id="salesChart"></canvas>
     </div>
 
-    <!-- Sales Table -->
-    <table id="salesTable">
-      <thead>
-        <tr>
-          <th>Order ID</th>
-          <th>Date</th>
-          <th>Customer</th>
-          <th>Product Total</th>
-          <th>Shipping</th>
-          <th>Total Paid</th>
-          <th>Payment Method</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>ORD-1025</td>
-          <td>2025-06-01</td>
-          <td>Maria Santos</td>
-          <td>₱850.00</td>
-          <td>₱50.00</td>
-          <td>₱900.00</td>
-          <td>COD</td>
-        </tr>
-        <tr>
-          <td>ORD-1026</td>
-          <td>2025-06-02</td>
-          <td>Juan Dela Cruz</td>
-          <td>₱700.00</td>
-          <td>₱100.00</td>
-          <td>₱800.00</td>
-          <td>GCash</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <!-- Finance Section -->
-    <h2 class="px-6 py-4 text-xl font-semibold">Finance Transaction Records</h2>
+    <h2 class="px-6 py-4 text-xl font-semibold">Finance & Sales Records</h2>
     <div class="chart-section">
       <div class="chart-wrapper">
         <canvas id="barChart"></canvas>
@@ -106,54 +87,36 @@
       </div>
     </div>
 
-    <div class="filter-row">
-      <input type="text" placeholder="Search Order ID" />
-      <select>
-        <option>All Status</option>
-        <option>Paid</option>
-        <option>Pending</option>
-        <option>Failed</option>
-      </select>
-      <select id="paymentFilter">
-        <option value="All">All Payment Methods</option>
-        <option value="GCash">GCash</option>
-        <option value="COD">COD</option>
-      </select>
-      <input type="date" /> to <input type="date" />
-      <button class="export-btn">Export CSV</button>
-    </div>
-
-    <table>
+    <table id="reportTable">
       <thead>
         <tr>
           <th>Transaction ID</th>
           <th>Order ID</th>
+          <th>Date</th>
+          <th>Customer</th>
+          <th>Product Total</th>
+          <th>Amount Paid</th>
           <th>Payment Method</th>
           <th>Status</th>
           <th>Payment Date</th>
-          <th>Amount Paid</th>
           <th>Reference Number</th>
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td>TXN-0001</td>
-          <td>ORD-1025</td>
-          <td>COD</td>
-          <td>Paid</td>
-          <td>2025-06-23</td>
-          <td>₱250.00</td>
-          <td>--</td>
-        </tr>
-        <tr>
-          <td>TXN-0003</td>
-          <td>ORD-1027</td>
-          <td>GCash</td>
-          <td>Pending</td>
-          <td>2025-06-23</td>
-          <td>₱800.00</td>
-          <td>GC987654321</td>
-        </tr>
+        <?php foreach ($reportData as $row): ?>
+          <tr>
+            <td><?php echo htmlspecialchars($row['Transaction_ID']); ?></td>
+            <td><?php echo htmlspecialchars($row['Order_ID']); ?></td>
+            <td><?php echo htmlspecialchars($row['Order_Date']); ?></td>
+            <td><?php echo htmlspecialchars($row['Customer'] ?? ''); ?></td>
+            <td>₱<?php echo number_format($row['Product_Total'], 2); ?></td>
+            <td>₱<?php echo number_format($row['Amount_Paid'], 2); ?></td>
+            <td><?php echo htmlspecialchars($row['Payment_Method']); ?></td>
+            <td><?php echo htmlspecialchars($row['Payment_Status']); ?></td>
+            <td><?php echo htmlspecialchars($row['Payment_Date']); ?></td>
+            <td><?php echo htmlspecialchars($row['Reference_Number'] ?? '--'); ?></td>
+          </tr>
+        <?php endforeach; ?>
       </tbody>
     </table>
   </main>
@@ -219,7 +182,7 @@
     }
 
     function exportTableToCSV() {
-      const table = document.getElementById("salesTable");
+      const table = document.getElementById("reportTable");
       let csv = [];
       for (let row of table.rows) {
         let cols = Array.from(row.cells).map(cell => sanitizeCSVCell(cell.innerText.trim()));
@@ -228,7 +191,7 @@
       const csvContent = "data:text/csv;charset=utf-8," + csv.join("\n");
       const link = document.createElement("a");
       link.setAttribute("href", csvContent);
-      link.setAttribute("download", "sales_report.csv");
+      link.setAttribute("download", "finance_sales_report.csv");
       link.click();
     }
 
