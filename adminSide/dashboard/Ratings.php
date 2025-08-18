@@ -9,13 +9,15 @@ function renderStars($rating) {
     return str_repeat('★', $full) . ($half ? '½' : '') . str_repeat('☆', $empty);
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_rating_id'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_rating_id']) && $pdo) {
     deleteProductRatingById($pdo, $_POST['delete_rating_id']);
     header('Location: Ratings.php');
     exit();
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ! $pdo) {
+    error_log('Database connection failed in Ratings.php');
 }
 
-$ratings = getAllProductRatings($pdo);
+$ratings = $pdo ? getAllProductRatings($pdo) : [];
 $activePage = 'ratings';
 ?>
 <!DOCTYPE html>

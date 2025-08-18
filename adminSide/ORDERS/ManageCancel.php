@@ -18,14 +18,19 @@
     require_once '../../PHP/order_cancellation_functions.php';
 
     // Handle status updates
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['cancel_id'])) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['cancel_id']) && $pdo) {
         $newStatus = $_POST['action'] === 'approve' ? 'Approved' : 'Rejected';
         updateOrderCancellationStatus($pdo, (int)$_POST['cancel_id'], $newStatus);
         header('Location: ManageCancel.php');
         exit;
     }
 
-    $cancellations = getAllOrderCancellations($pdo);
+    $cancellations = [];
+    if ($pdo) {
+        $cancellations = getAllOrderCancellations($pdo);
+    } else {
+        error_log('Database connection failed in ManageCancel.php');
+    }
     ?>
 
     <!-- Main Content -->

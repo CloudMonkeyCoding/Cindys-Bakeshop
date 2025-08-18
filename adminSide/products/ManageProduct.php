@@ -12,7 +12,12 @@
   $activePage = 'products';
   require '../../PHP/db_connect.php';
   require '../../PHP/product_functions.php';
-  $products = getAllProducts($pdo);
+  $products = [];
+  if ($pdo) {
+      $products = getAllProducts($pdo);
+  } else {
+      error_log('Database connection failed in ManageProduct.php');
+  }
   include '../sidebar.php';
   ?>
 

@@ -20,7 +20,12 @@
     require_once '../../PHP/order_item_functions.php';
     require_once '../../PHP/user_functions.php';
 
-    $orders = getAllOrders($pdo);
+    $orders = [];
+    if ($pdo) {
+        $orders = getAllOrders($pdo);
+    } else {
+        error_log('Database connection failed in ManageOrders.php');
+    }
     ?>
 
     <!-- Main Content -->
@@ -67,10 +72,10 @@
             </thead>
             <tbody id="orderTable">
             <?php foreach ($orders as $order):
-              $user = getUserById($pdo, $order['User_ID']);
-              $items = getOrderItemsByOrderId($pdo, $order['Order_ID']);
+              $user = $pdo ? getUserById($pdo, $order['User_ID']) : null;
+              $items = $pdo ? getOrderItemsByOrderId($pdo, $order['Order_ID']) : [];
               $itemCount = count($items);
-              $total = calculateOrderTotal($pdo, $order['Order_ID']);
+              $total = $pdo ? calculateOrderTotal($pdo, $order['Order_ID']) : 0;
               $status = strtolower($order['Status']);
               $statusClass = '';
               if ($status === 'pending') { $statusClass = 'text-yellow-500'; }

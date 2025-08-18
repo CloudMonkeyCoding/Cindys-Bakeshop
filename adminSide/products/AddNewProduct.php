@@ -21,8 +21,13 @@
           $quantity = $_POST['quantity'] ?? 0;
           $imageFile = $_FILES['image'] ?? null;
 
-          addProduct($pdo, $name, $description, $price, $quantity, $category, $imageFile);
-          $message = 'Product added successfully.';
+          if ($pdo) {
+              addProduct($pdo, $name, $description, $price, $quantity, $category, $imageFile);
+              $message = 'Product added successfully.';
+          } else {
+              $message = 'Database connection failed.';
+              error_log('Database connection failed in AddNewProduct.php');
+          }
       }
 
       $activePage = 'products';

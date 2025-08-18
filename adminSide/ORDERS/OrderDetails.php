@@ -21,21 +21,21 @@
     require_once '../../PHP/product_functions.php';
 
     $orderId = isset($_GET['order_id']) ? (int)$_GET['order_id'] : 0;
-    $order = getOrderById($pdo, $orderId);
+    $order = $pdo ? getOrderById($pdo, $orderId) : null;
     if (!$order) {
         echo '<main class="flex-1 p-6">Order not found.</main>';
         exit;
     }
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status'])) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status']) && $pdo) {
         updateOrderStatus($pdo, $orderId, $_POST['status']);
         $order['Status'] = $_POST['status'];
         $message = 'Order status updated.';
     }
 
-    $user = getUserById($pdo, $order['User_ID']);
-    $items = getOrderItemsByOrderId($pdo, $orderId);
-    $total = calculateOrderTotal($pdo, $orderId);
+    $user = $pdo ? getUserById($pdo, $order['User_ID']) : null;
+    $items = $pdo ? getOrderItemsByOrderId($pdo, $orderId) : [];
+    $total = $pdo ? calculateOrderTotal($pdo, $orderId) : 0;
     ?>
 
     <!-- Main Content -->

@@ -14,21 +14,26 @@
   include '../sidebar.php';
   require_once '../../PHP/db_connect.php';
 
-  $stmt = $pdo->query("
-      SELECT t.Transaction_ID, o.Order_ID, o.Order_Date,
-             u.Name AS Customer, IFNULL(SUM(oi.Subtotal), 0) AS Product_Total,
-             t.Amount_Paid, t.Payment_Method, t.Payment_Status,
-             t.Payment_Date, t.Reference_Number
-      FROM `Transaction` t
-      JOIN `Order` o ON t.Order_ID = o.Order_ID
-      LEFT JOIN `User` u ON o.User_ID = u.User_ID
-      LEFT JOIN `Order_Item` oi ON o.Order_ID = oi.Order_ID
-      GROUP BY t.Transaction_ID, o.Order_ID, o.Order_Date, u.Name,
+    $reportData = [];
+    if ($pdo) {
+        $stmt = $pdo->query("
+        SELECT t.Transaction_ID, o.Order_ID, o.Order_Date,
+               u.Name AS Customer, IFNULL(SUM(oi.Subtotal), 0) AS Product_Total,
                t.Amount_Paid, t.Payment_Method, t.Payment_Status,
                t.Payment_Date, t.Reference_Number
-      ORDER BY o.Order_Date DESC
-  ");
-  $reportData = $stmt->fetchAll();
+        FROM `Transaction` t
+        JOIN `Order` o ON t.Order_ID = o.Order_ID
+        LEFT JOIN `User` u ON o.User_ID = u.User_ID
+        LEFT JOIN `Order_Item` oi ON o.Order_ID = oi.Order_ID
+        GROUP BY t.Transaction_ID, o.Order_ID, o.Order_Date, u.Name,
+                 t.Amount_Paid, t.Payment_Method, t.Payment_Status,
+                 t.Payment_Date, t.Reference_Number
+        ORDER BY o.Order_Date DESC
+    ");
+        $reportData = $stmt->fetchAll();
+    } else {
+        error_log('Database connection failed in FinanceSalesReport.php');
+    }
   ?>
 
   <!-- Main Content -->

@@ -14,7 +14,12 @@
   require_once '../../PHP/db_connect.php';
   require_once '../../PHP/inventory_functions.php';
 
-  $inventoryRows = getInventoryWithProducts($pdo);
+  $inventoryRows = [];
+  if ($pdo) {
+      $inventoryRows = getInventoryWithProducts($pdo);
+  } else {
+      error_log('Database connection failed in InventoryReport.php');
+  }
   $inventoryData = [];
   foreach ($inventoryRows as $row) {
       $category = $row['Category'] ?? 'Uncategorized';
