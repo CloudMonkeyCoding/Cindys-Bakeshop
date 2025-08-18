@@ -1,5 +1,10 @@
 <?php
 require_once 'db_connect.php';
+if (!$pdo) {
+    http_response_code(500);
+    echo 'Database connection failed';
+    exit;
+}
 require_once 'order_functions.php';
 require_once 'order_item_functions.php';
 require_once 'user_functions.php';

@@ -134,6 +134,11 @@ function countProducts($pdo) {
 // Allows this file to handle update, delete, and list operations via AJAX.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     require_once __DIR__ . '/db_connect.php';
+    if (!$pdo) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+        exit;
+    }
     header('Content-Type: application/json');
 
     switch ($_POST['action']) {

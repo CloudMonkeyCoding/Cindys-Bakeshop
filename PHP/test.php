@@ -1,5 +1,8 @@
 <?php
 require 'db_connect.php';
+if (!$pdo) {
+    die('Database connection failed');
+}
 require 'user_functions.php';
 
 $message = "";
