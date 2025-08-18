@@ -33,13 +33,11 @@ $activePage = $activePage ?? '';
     <div class="menu">
       <a href="javascript:void(0)" onclick="toggleMenu(this)" class="flex items-center gap-2 p-2 rounded sidebar-link">📈 Reports</a>
       <div class="submenu hidden ml-6 space-y-1">
-        <a href="../Reports/SalesReport.php" class="block p-2 hover:bg-gray-100 rounded">Sales Report</a>
+        <a href="../Reports/FinanceSalesReport.php" class="block p-2 hover:bg-gray-100 rounded">Finance & Sales Report</a>
         <a href="../Reports/InventoryReport.php" class="block p-2 hover:bg-gray-100 rounded">Inventory Report</a>
       </div>
     </div>
-
-    <a href="../dashboard/finance.php" class="flex items-center gap-2 p-2 rounded sidebar-link">💰 Finance</a>
-  </nav>
+    </nav>
 </aside>
 
 <script>

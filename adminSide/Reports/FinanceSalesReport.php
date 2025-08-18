@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sales Report - Admin</title>
+  <title>Finance & Sales Report - Admin</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="../css/admin.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
-<body class="sales-report flex h-screen overflow-hidden">
+<body class="sales-report finance-page flex h-screen overflow-hidden">
   <?php
   $activePage = 'reports';
   include '../sidebar.php';
@@ -17,7 +17,7 @@
   <!-- Main Content -->
   <main class="main flex-1 overflow-y-auto">
     <div class="header-bar">
-      <h1>Sales Report</h1>
+      <h1>Finance & Sales Report</h1>
       <div class="flex items-center gap-4">
         <div class="relative">
           <button onclick="toggleNotificationDropdown()" class="relative focus:outline-none">
@@ -34,9 +34,9 @@
         <img src="https://i.imgur.com/1Q2Z1ZL.png" alt="User" class="h-10 w-10 rounded-full border border-gray-300" />
       </div>
     </div>
-    <p class="px-6 py-2 text-sm text-gray-700">Overview of store sales performance</p>
+    <p class="px-6 py-2 text-sm text-gray-700">Overview of store sales and finance performance</p>
 
-    <!-- Filter -->
+    <!-- Sales Filter -->
     <div class="filter-bar">
       <select>
         <option>Today</option>
@@ -47,20 +47,20 @@
       <button class="export-btn" onclick="exportTableToCSV()">Export CSV</button>
     </div>
 
-    <!-- Summary Cards -->
+    <!-- Sales Summary Cards -->
     <div class="summary-cards">
       <div class="card"><h3>Total Sales</h3><p>₱4,572.84</p></div>
       <div class="card"><h3>Total Orders</h3><p>25</p></div>
       <div class="card"><h3>Shipping Fees</h3><p>₱4,000</p></div>
     </div>
 
-    <!-- Chart -->
+    <!-- Sales Chart -->
     <div class="chart-container">
       <h3>Monthly Sales Chart</h3>
       <canvas id="salesChart"></canvas>
     </div>
 
-    <!-- Table -->
+    <!-- Sales Table -->
     <table id="salesTable">
       <thead>
         <tr>
@@ -91,6 +91,68 @@
           <td>₱100.00</td>
           <td>₱800.00</td>
           <td>GCash</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Finance Section -->
+    <h2 class="px-6 py-4 text-xl font-semibold">Finance Transaction Records</h2>
+    <div class="chart-section">
+      <div class="chart-wrapper">
+        <canvas id="barChart"></canvas>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="pieChart"></canvas>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <input type="text" placeholder="Search Order ID" />
+      <select>
+        <option>All Status</option>
+        <option>Paid</option>
+        <option>Pending</option>
+        <option>Failed</option>
+      </select>
+      <select id="paymentFilter">
+        <option value="All">All Payment Methods</option>
+        <option value="GCash">GCash</option>
+        <option value="COD">COD</option>
+      </select>
+      <input type="date" /> to <input type="date" />
+      <button class="export-btn">Export CSV</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Transaction ID</th>
+          <th>Order ID</th>
+          <th>Payment Method</th>
+          <th>Status</th>
+          <th>Payment Date</th>
+          <th>Amount Paid</th>
+          <th>Reference Number</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>TXN-0001</td>
+          <td>ORD-1025</td>
+          <td>COD</td>
+          <td>Paid</td>
+          <td>2025-06-23</td>
+          <td>₱250.00</td>
+          <td>--</td>
+        </tr>
+        <tr>
+          <td>TXN-0003</td>
+          <td>ORD-1027</td>
+          <td>GCash</td>
+          <td>Pending</td>
+          <td>2025-06-23</td>
+          <td>₱800.00</td>
+          <td>GC987654321</td>
         </tr>
       </tbody>
     </table>
@@ -169,6 +231,45 @@
       link.setAttribute("download", "sales_report.csv");
       link.click();
     }
+
+    const barCtx = document.getElementById("barChart").getContext("2d");
+    new Chart(barCtx, {
+      type: "bar",
+      data: {
+        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+        datasets: [
+          {
+            label: "Monthly Total Sales (₱)",
+            data: [1200, 1900, 3000, 2500, 3200, 2800],
+            backgroundColor: "#007bff",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+        },
+      },
+    });
+
+    const pieCtx = document.getElementById("pieChart").getContext("2d");
+    new Chart(pieCtx, {
+      type: "pie",
+      data: {
+        labels: ["COD", "GCash"],
+        datasets: [
+          {
+            label: "Payment Method Breakdown",
+            data: [1, 2],
+            backgroundColor: ["#ffce56", "#36a2eb"],
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+      },
+    });
   </script>
 </body>
 </html>
