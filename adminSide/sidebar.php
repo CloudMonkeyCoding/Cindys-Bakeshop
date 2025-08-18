@@ -15,7 +15,6 @@ $activePage = $activePage ?? '';
       <div class="submenu hidden ml-6 space-y-1">
         <a href="../ORDERS/ManageOrders.php" class="block p-2 hover:bg-gray-100 rounded">Manage Orders</a>
         <a href="../ORDERS/ManageCancel.php" class="block p-2 hover:bg-gray-100 rounded">Manage Cancellations</a>
-        <a href="../ORDERS/ManageRefund.php" class="block p-2 hover:bg-gray-100 rounded">Manage Refunds</a>
       </div>
     </div>
 

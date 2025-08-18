@@ -52,7 +52,6 @@
       <div class="card"><h3>Total Sales</h3><p>₱4,572.84</p></div>
       <div class="card"><h3>Total Orders</h3><p>25</p></div>
       <div class="card"><h3>Shipping Fees</h3><p>₱4,000</p></div>
-      <div class="card"><h3>Refunded</h3><p>₱3,900</p></div>
     </div>
 
     <!-- Chart -->

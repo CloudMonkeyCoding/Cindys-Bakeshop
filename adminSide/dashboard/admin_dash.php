@@ -41,10 +41,6 @@
           <div class="font-semibold text-gray-800">Orders </div>
           <div class="text-lg font-bold">25</div>
         </a>
-        <a href="../ORDERS/ManageRefund.php" class="text-center hover:underline">
-          <div class="font-semibold text-gray-800">Refund</div>
-          <div class="text-lg font-bold">0</div>
-        </a>
         <a href="../Reports/InventoryReport.php" class="text-center hover:underline">
           <div class="font-semibold text-gray-800">Low Stock</div>
           <div class="text-red-600 font-bold text-lg">19</div>

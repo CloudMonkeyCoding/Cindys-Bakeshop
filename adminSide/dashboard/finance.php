@@ -34,7 +34,6 @@
           <option>All Status</option>
           <option>Paid</option>
           <option>Pending</option>
-          <option>Refunded</option>
           <option>Failed</option>
         </select>
         <select id="paymentFilter">
@@ -68,15 +67,6 @@
             <td>2025-06-23</td>
             <td>₱250.00</td>
             <td>--</td>
-          </tr>
-          <tr>
-            <td>TXN-0002</td>
-            <td>ORD-1026</td>
-            <td>GCash</td>
-            <td>Refunded</td>
-            <td>2025-06-23</td>
-            <td>₱900.00</td>
-            <td>GC123456789</td>
           </tr>
           <tr>
             <td>TXN-0003</td>
