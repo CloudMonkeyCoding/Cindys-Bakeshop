@@ -1,3 +1,9 @@
+<?php
+session_start();
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,12 +23,20 @@
     require_once '../../PHP/db_connect.php';
     require_once '../../PHP/order_cancellation_functions.php';
 
-    // Handle status updates
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['cancel_id']) && $pdo) {
-        $newStatus = $_POST['action'] === 'approve' ? 'Approved' : 'Rejected';
-        updateOrderCancellationStatus($pdo, (int)$_POST['cancel_id'], $newStatus);
-        header('Location: ManageCancel.php');
-        exit;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $pdo) {
+        $token = filter_input(INPUT_POST, 'csrf_token', FILTER_SANITIZE_SPECIAL_CHARS);
+        if (!hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
+            error_log('CSRF token mismatch in ManageCancel.php');
+        } else {
+            $action = filter_input(INPUT_POST, 'action', FILTER_SANITIZE_SPECIAL_CHARS);
+            $cancelId = filter_input(INPUT_POST, 'cancel_id', FILTER_VALIDATE_INT);
+            if ($action && $cancelId !== false) {
+                $newStatus = $action === 'approve' ? 'Approved' : 'Rejected';
+                updateOrderCancellationStatus($pdo, $cancelId, $newStatus);
+                header('Location: ManageCancel.php');
+                exit;
+            }
+        }
     }
 
     $cancellations = [];
@@ -89,11 +103,13 @@
                 <td>
                 <?php if ($status === 'pending'): ?>
                   <form method="post" style="display:inline">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <input type="hidden" name="cancel_id" value="<?= $cancel['Cancellation_ID']; ?>">
                     <input type="hidden" name="action" value="approve">
                     <button type="submit" class="text-green-600 text-xs">Approve</button>
                   </form>
                   <form method="post" style="display:inline">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <input type="hidden" name="cancel_id" value="<?= $cancel['Cancellation_ID']; ?>">
                     <input type="hidden" name="action" value="reject">
                     <button type="submit" class="text-red-600 text-xs ml-2">Reject</button>
