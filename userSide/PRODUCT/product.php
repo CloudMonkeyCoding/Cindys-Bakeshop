@@ -2,14 +2,29 @@
 require_once __DIR__ . '/../../PHP/db_connect.php';
 require_once __DIR__ . '/../../PHP/product_functions.php';
 
-$id = $_GET['id'] ?? null;
-$product = null;
-if ($pdo && $id !== null) {
-    $product = getProductById($pdo, $id);
+$id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+if ($id === null || $id === false) {
+    http_response_code(400);
+    echo 'Missing or invalid product ID.';
+    exit;
 }
-if (!$product) {
-    http_response_code(404);
-    echo "Product not found";
+
+if (!$pdo) {
+    http_response_code(500);
+    echo 'Database connection not available.';
+    exit;
+}
+
+try {
+    $product = getProductById($pdo, $id);
+    if (!$product) {
+        http_response_code(404);
+        echo "Product with ID {$id} not found.";
+        exit;
+    }
+} catch (PDOException $e) {
+    http_response_code(500);
+    echo 'Error fetching product: ' . htmlspecialchars($e->getMessage());
     exit;
 }
 ?>
