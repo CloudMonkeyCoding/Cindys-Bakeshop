@@ -26,6 +26,7 @@ if (!$product) {
   <?php endif; ?>
   <p><?= htmlspecialchars($product['Description'] ?? '') ?></p>
   <p>Price: ₱<?= htmlspecialchars($product['Price'] ?? '') ?></p>
+  <p>Category: <?= htmlspecialchars($product['Category'] ?? '') ?></p>
   <p>Stock: <?= htmlspecialchars($product['Stock_Quantity'] ?? '') ?></p>
   <div>
     <label for="qty">Qty:</label>

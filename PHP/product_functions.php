@@ -7,7 +7,7 @@ function addProduct($pdo, $name, $description, $price, $stock_quantity, $categor
     }
 
     $stmt = $pdo->prepare("
-        INSERT INTO Product (Name, Description, Price, Stock_Quantity, Category, Image_Path)
+        INSERT INTO product (Name, Description, Price, Stock_Quantity, Category, Image_Path)
         VALUES (:name, :description, :price, :stock_quantity, :category, :image_path)
     ");
     $stmt->execute([
@@ -23,13 +23,13 @@ function addProduct($pdo, $name, $description, $price, $stock_quantity, $categor
 
 // 2) Get all products
 function getAllProducts($pdo) {
-    $stmt = $pdo->query("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path FROM Product");
+    $stmt = $pdo->query("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path FROM product");
     return $stmt->fetchAll();
 }
 
 // 3) Get a product by ID
 function getProductById($pdo, $productId) {
-    $stmt = $pdo->prepare("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path FROM Product WHERE Product_ID = :product_id");
+    $stmt = $pdo->prepare("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path FROM product WHERE Product_ID = :product_id");
     $stmt->execute([':product_id' => $productId]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
@@ -41,7 +41,7 @@ function updateProductById($pdo, $productId, $name, $description, $price, $stock
         $imageName = processImageUpload($imageFile);
     }
 
-    $sql = "UPDATE Product SET Name = :name, Description = :description, Price = :price, Stock_Quantity = :stock_quantity, Category = :category";
+    $sql = "UPDATE product SET Name = :name, Description = :description, Price = :price, Stock_Quantity = :stock_quantity, Category = :category";
     if ($imageName !== null) {
         $sql .= ", Image_Path = :image_path";
     }
@@ -95,7 +95,7 @@ function processImageUpload($imageFile) {
 
 // 5) Delete product by ID
 function deleteProductById($pdo, $productId) {
-    $stmt = $pdo->prepare("DELETE FROM Product WHERE Product_ID = :product_id");
+    $stmt = $pdo->prepare("DELETE FROM product WHERE Product_ID = :product_id");
     $stmt->execute([':product_id' => $productId]);
     return $stmt->rowCount();
 }
@@ -103,7 +103,7 @@ function deleteProductById($pdo, $productId) {
 // 6) Search products by name or category
 function searchProducts($pdo, $keyword) {
     $stmt = $pdo->prepare("
-        SELECT * FROM Product
+        SELECT * FROM product
         WHERE Name LIKE :kw OR Category LIKE :kw
     ");
     $stmt->execute([':kw' => "%$keyword%"]);
@@ -113,7 +113,7 @@ function searchProducts($pdo, $keyword) {
 // 7) Adjust stock quantity (+/-)
 function adjustProductStock($pdo, $productId, $quantityChange) {
     $stmt = $pdo->prepare("
-        UPDATE Product
+        UPDATE product
         SET Stock_Quantity = Stock_Quantity + :quantity_change
         WHERE Product_ID = :product_id
     ");
@@ -126,7 +126,7 @@ function adjustProductStock($pdo, $productId, $quantityChange) {
 
 // 8) Count total products (optional)
 function countProducts($pdo) {
-    $stmt = $pdo->query("SELECT COUNT(*) FROM Product");
+    $stmt = $pdo->query("SELECT COUNT(*) FROM product");
     return $stmt->fetchColumn();
 }
 
