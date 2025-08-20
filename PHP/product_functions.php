@@ -27,6 +27,13 @@ function getAllProducts($pdo) {
     return $stmt->fetchAll();
 }
 
+// 2a) Get products by category
+function getProductsByCategory($pdo, $category) {
+    $stmt = $pdo->prepare("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path FROM product WHERE Category = :category");
+    $stmt->execute([':category' => $category]);
+    return $stmt->fetchAll();
+}
+
 // 3) Get a product by ID
 function getProductById($pdo, $productId) {
     $stmt = $pdo->prepare("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path FROM product WHERE Product_ID = :product_id");

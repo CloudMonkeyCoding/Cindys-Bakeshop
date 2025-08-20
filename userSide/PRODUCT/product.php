@@ -30,7 +30,7 @@ try {
 
 $category = $product['Category'] ?? '';
 $categoryLower = strtolower($category);
-$backLink = $categoryLower . '.html';
+$backLink = $categoryLower . '.php';
 $searchPlaceholder = 'Search ' . $categoryLower . '...';
 
 switch ($categoryLower) {
