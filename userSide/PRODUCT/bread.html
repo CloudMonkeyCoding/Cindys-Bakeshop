@@ -121,8 +121,7 @@
     </div>
 
     <div class="products-grid">
-      <div class="product-card" onclick="goToProduct('breads/btry.html')
-">
+        <div class="product-card" onclick="goToProduct(1)">
         <img src="../Images/bread/bread1.png" alt="Taisan Soft Cake">
         <div class="product-name">TAISAN SOFT CAKE</div>
         <div class="price-stock">Price: ₱100.00<br>Stock: 20</div>
@@ -131,7 +130,7 @@
         <button class="buy-btn">Buy Now</button>
       </div>
       </div>
-      <div class="product-card" onclick="goToProduct('breads/b2.html')">
+        <div class="product-card" onclick="goToProduct(2)">
         <img src="../Images/bread/bread2.png" alt="Ubeng Ube Loaf">
         <div class="product-name">UBENG UBE LOAF</div>
         <div class="price-stock">Price: ₱85.00<br>Stock: 20</div>
@@ -140,7 +139,7 @@
         <button class="buy-btn">Buy Now</button>
       </div>
       </div>
-      <div class="product-card" onclick="goToProduct('breads/b3.html')">
+        <div class="product-card" onclick="goToProduct(3)">
         <img src="../Images/bread/bread3.png" alt="Pandecoconut">
         <div class="product-name">PANDECOCONUT</div>
         <div class="price-stock">Price: ₱100.00<br>Stock: 20</div>
@@ -149,7 +148,7 @@
         <button class="buy-btn">Buy Now</button>
       </div>
       </div>
-      <div class="product-card" onclick="goToProduct('breads/b4.html')">
+        <div class="product-card" onclick="goToProduct(4)">
         <img src="../Images/bread/bread4.png" alt="Pande Espana">
         <div class="product-name">PANDE ESPANA</div>
         <div class="price-stock">Price: ₱100.00<br>Stock: 20</div>
@@ -158,7 +157,7 @@
         <button class="buy-btn">Buy Now</button>
       </div>
       </div>
-      <div class="product-card" onclick="goToProduct('breads/b5.html')">
+        <div class="product-card" onclick="goToProduct(5)">
         <img src="../Images/bread/bread5.png" alt="Ube Cheese Pandesal">
         <div class="product-name">UBE CHEESE PANDESAL</div>
         <div class="price-stock">Price: ₱120.00<br>Stock: 20</div>
@@ -167,7 +166,7 @@
         <button class="buy-btn">Buy Now</button>
       </div>
       </div>
-      <div class="product-card" onclick="goToProduct('breads/b6.html')">
+        <div class="product-card" onclick="goToProduct(6)">
         <img src="../Images/bread/bread6.png" alt="Mamon Cup">
         <div class="product-name">MAMON CUP</div>
         <div class="price-stock">Price: ₱35.00<br>Stock: 20</div>
@@ -176,7 +175,7 @@
         <button class="buy-btn">Buy Now</button>
       </div>
       </div>
-      <div class="product-card" onclick="goToProduct('breads/b7.html')">
+        <div class="product-card" onclick="goToProduct(7)">
         <img src="../Images/bread/bread7.png" alt="Treats Choco">
         <div class="product-name">DELIGHTFUL TREATS CHOCO CRINKLES</div>
         <div class="price-stock">Price: ₱100.00<br>Stock: 20</div>
@@ -185,7 +184,7 @@
         <button class="buy-btn">Buy Now</button>
       </div>
       </div>
-      <div class="product-card" onclick="goToProduct('breads/b8.html')">
+        <div class="product-card" onclick="goToProduct(8)">
         <img src="../Images/bread/bread8.png" alt="Pinoy Tasty">
         <div class="product-name">PINOY TASTY</div>
         <div class="price-stock">Price: ₱95.00<br>Stock: 20</div>
@@ -194,7 +193,7 @@
         <button class="buy-btn">Buy Now</button>
       </div>
       </div>
-      <div class="product-card" onclick="goToProduct('breads/b9.html')">
+        <div class="product-card" onclick="goToProduct(9)">
         <img src="../Images/bread/bread9.png" alt="Jumbo Loaf">
         <div class="product-name">JUMBO SANDWICH LOAF</div>
         <div class="price-stock">Price: ₱89.00<br>Stock: 20</div>
@@ -203,7 +202,7 @@
         <button class="buy-btn">Buy Now</button>
       </div>
       </div>
-      <div class="product-card" onclick="goToProduct('breads/b10.html')">
+        <div class="product-card" onclick="goToProduct(10)">
         <img src="../Images/bread/bread10.png" alt="Wheat Bread">
         <div class="product-name">WHEAT BREAD</div>
         <div class="price-stock">Price: ₱70.00<br>Stock: 10</div>
@@ -212,7 +211,7 @@
         <button class="buy-btn">Buy Now</button>
       </div>
       </div>
-      <div class="product-card" onclick="goToProduct('breads/b11.html')">
+        <div class="product-card" onclick="goToProduct(11)">
         <img src="../Images/bread/bread11.png" alt="Pinoy Pandesal">
         <div class="product-name">PINOY PANDESAL</div>
         <div class="price-stock">Price: ₱70.00<br>Stock: 10</div>
@@ -246,8 +245,8 @@
       noResults.style.display = matches === 0 ? 'block' : 'none';
     });
 
-    function goToProduct(filename) {
-      window.location.href = filename;
+    function goToProduct(id) {
+      window.location.href = `product.php?id=${id}`;
     }
   </script>
 </body>
