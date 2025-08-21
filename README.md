@@ -32,6 +32,16 @@ deliveries while administrators manage the catalogue and fulfilment.
    Adjust the credentials or database name as needed.
 3. Update `PHP/db_connect.php` with your database credentials.
 
+### Running MySQL as a Service (Windows/XAMPP)
+To avoid manually launching the XAMPP control panel each time:
+
+1. Open the XAMPP Control Panel.
+2. Check the **Svc** box next to **MySQL** (and Apache if desired) and confirm
+   the service installation.
+3. MySQL will now start automatically on boot. You can manage it from the
+   Control Panel, the Windows *Services* applet (`services.msc`), or with
+   `net start mysql` / `net stop mysql`.
+
 ## Running Locally
 Place the repository inside your web server's document root or start a local
 development server:
