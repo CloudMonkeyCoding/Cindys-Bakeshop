@@ -3,52 +3,42 @@ session_start();
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
-?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Manage Cancellations</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="../css/admin.css">
-</head>
-<body>
-  <div class="flex h-screen overflow-hidden">
 
-    <?php
-    $activePage = 'orders';
-    include '../sidebar.php';
+$activePage = 'orders';
+require_once '../../PHP/db_connect.php';
+require_once '../../PHP/order_cancellation_functions.php';
 
-    require_once '../../PHP/db_connect.php';
-    require_once '../../PHP/order_cancellation_functions.php';
-
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $pdo) {
-        $token = filter_input(INPUT_POST, 'csrf_token', FILTER_SANITIZE_SPECIAL_CHARS);
-        if (!hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
-            error_log('CSRF token mismatch in ManageCancel.php');
-        } else {
-            $action = filter_input(INPUT_POST, 'action', FILTER_SANITIZE_SPECIAL_CHARS);
-            $cancelId = filter_input(INPUT_POST, 'cancel_id', FILTER_VALIDATE_INT);
-            if ($action && $cancelId !== false) {
-                $newStatus = $action === 'approve' ? 'Approved' : 'Rejected';
-                updateOrderCancellationStatus($pdo, $cancelId, $newStatus);
-                header('Location: ManageCancel.php');
-                exit;
-            }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $pdo) {
+    $token = filter_input(INPUT_POST, 'csrf_token', FILTER_SANITIZE_SPECIAL_CHARS);
+    if (!hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
+        error_log('CSRF token mismatch in ManageCancel.php');
+    } else {
+        $action = filter_input(INPUT_POST, 'action', FILTER_SANITIZE_SPECIAL_CHARS);
+        $cancelId = filter_input(INPUT_POST, 'cancel_id', FILTER_VALIDATE_INT);
+        if ($action && $cancelId !== false) {
+            $newStatus = $action === 'approve' ? 'Approved' : 'Rejected';
+            updateOrderCancellationStatus($pdo, $cancelId, $newStatus);
+            header('Location: ManageCancel.php');
+            exit;
         }
     }
+}
 
-    $cancellations = [];
-    if ($pdo) {
-        $cancellations = getAllOrderCancellations($pdo);
-    } else {
-        error_log('Database connection failed in ManageCancel.php');
-    }
-    ?>
+$cancellations = [];
+if ($pdo) {
+    $cancellations = getAllOrderCancellations($pdo);
+} else {
+    error_log('Database connection failed in ManageCancel.php');
+}
 
-    <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto">
+$pageTitle = 'Manage Cancellations';
+include '../header.php';
+?>
+<div class="flex h-screen overflow-hidden">
+  <?php include $prefix . 'sidebar.php'; ?>
+
+  <!-- Main Content -->
+  <main class="flex-1 overflow-y-auto">
       <div class="header-bar">
         <h1>Cancellations</h1>
         <div class="flex gap-4 items-center">

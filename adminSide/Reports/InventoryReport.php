@@ -1,31 +1,26 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Inventory Report</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="../css/admin.css">
-</head>
-<body class="inventory-report flex h-screen overflow-hidden">
-  <?php
-  $activePage = 'reports';
-  include '../sidebar.php';
-  require_once '../../PHP/db_connect.php';
-  require_once '../../PHP/inventory_functions.php';
+<?php
+$activePage = 'reports';
+require_once '../../PHP/db_connect.php';
+require_once '../../PHP/inventory_functions.php';
 
-  $inventoryRows = [];
-  if ($pdo) {
-      $inventoryRows = getInventoryWithProducts($pdo);
-  } else {
-      error_log('Database connection failed in InventoryReport.php');
-  }
-  $inventoryData = [];
-  foreach ($inventoryRows as $row) {
-      $category = $row['Category'] ?? 'Uncategorized';
-      $inventoryData[$category][] = [$row['Name'], (int)$row['Stock_Quantity']];
-  }
-  ?>
+$inventoryRows = [];
+if ($pdo) {
+    $inventoryRows = getInventoryWithProducts($pdo);
+} else {
+    error_log('Database connection failed in InventoryReport.php');
+}
+$inventoryData = [];
+foreach ($inventoryRows as $row) {
+    $category = $row['Category'] ?? 'Uncategorized';
+    $inventoryData[$category][] = [$row['Name'], (int)$row['Stock_Quantity']];
+}
+
+$pageTitle = 'Inventory Report';
+$bodyClass = 'inventory-report';
+include '../header.php';
+?>
+<div class="flex h-screen overflow-hidden">
+  <?php include $prefix . 'sidebar.php'; ?>
 
   <!-- Main -->
   <main class="main flex-1 overflow-y-auto">

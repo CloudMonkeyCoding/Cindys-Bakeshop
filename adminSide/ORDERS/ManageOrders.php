@@ -1,35 +1,25 @@
+<?php
+$activePage = 'orders';
+require_once '../../PHP/db_connect.php';
+require_once '../../PHP/order_functions.php';
+require_once '../../PHP/order_item_functions.php';
+require_once '../../PHP/user_functions.php';
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Manage Orders</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="../css/admin.css">
-</head>
-<body>
-  <div class="flex h-screen overflow-hidden">
-    
-    <?php
-    $activePage = 'orders';
-    include '../sidebar.php';
+$orders = [];
+if ($pdo) {
+    $orders = getAllOrders($pdo);
+} else {
+    error_log('Database connection failed in ManageOrders.php');
+}
 
-    require_once '../../PHP/db_connect.php';
-    require_once '../../PHP/order_functions.php';
-    require_once '../../PHP/order_item_functions.php';
-    require_once '../../PHP/user_functions.php';
+$pageTitle = 'Manage Orders';
+include '../header.php';
+?>
+<div class="flex h-screen overflow-hidden">
+  <?php include $prefix . 'sidebar.php'; ?>
 
-    $orders = [];
-    if ($pdo) {
-        $orders = getAllOrders($pdo);
-    } else {
-        error_log('Database connection failed in ManageOrders.php');
-    }
-    ?>
-
-    <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto">
+  <!-- Main Content -->
+  <main class="flex-1 overflow-y-auto">
       <div class="header-bar">
         <h1>Orders</h1>
         <div class="flex gap-4 items-center">

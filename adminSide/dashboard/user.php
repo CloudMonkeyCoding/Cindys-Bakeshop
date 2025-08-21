@@ -1,19 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Users - Cindy’s Bakeshop</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="../css/admin.css">
-</head>
-
-  <body class="users-page">
-  <div class="flex h-screen overflow-hidden">
-    <?php
-    $activePage = 'users';
-    include '../sidebar.php';
-    ?>
-    <main class="flex-1 overflow-y-auto">
+<?php
+$activePage = 'users';
+$pageTitle = 'Users - Cindy’s Bakeshop';
+$bodyClass = 'users-page';
+include '../header.php';
+?>
+<div class="flex h-screen overflow-hidden">
+  <?php include $prefix . 'sidebar.php'; ?>
+  <main class="flex-1 overflow-y-auto">
       <div class="header-bar">
         <h1>Users</h1>
         <div class="flex gap-4 items-center">

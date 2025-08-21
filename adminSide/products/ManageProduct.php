@@ -1,25 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Manage Products</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="../css/admin.css">
-</head>
-<body class="manage-product flex h-screen overflow-hidden">
-  <?php
-  $activePage = 'products';
-  require '../../PHP/db_connect.php';
-  require '../../PHP/product_functions.php';
-  $products = [];
-  if ($pdo) {
-      $products = getAllProducts($pdo);
-  } else {
-      error_log('Database connection failed in ManageProduct.php');
-  }
-  include '../sidebar.php';
-  ?>
+<?php
+$activePage = 'products';
+require '../../PHP/db_connect.php';
+require '../../PHP/product_functions.php';
+$products = [];
+if ($pdo) {
+    $products = getAllProducts($pdo);
+} else {
+    error_log('Database connection failed in ManageProduct.php');
+}
+$pageTitle = 'Manage Products';
+$bodyClass = 'manage-product flex h-screen overflow-hidden';
+include '../header.php';
+include $prefix . 'sidebar.php';
+?>
 
 <!-- Main -->
 <main class="main flex-1 overflow-y-auto">

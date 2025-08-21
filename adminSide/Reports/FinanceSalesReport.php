@@ -1,23 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Finance & Sales Report - Admin</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="../css/admin.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-</head>
-<body class="sales-report finance-page flex h-screen overflow-hidden">
-  <?php
-  $activePage = 'reports';
-  include '../sidebar.php';
-  require_once '../../PHP/db_connect.php';
+<?php
+$activePage = 'reports';
+require_once '../../PHP/db_connect.php';
 
-    $reportData = [];
-    if ($pdo) {
-        $stmt = $pdo->query("
-        SELECT t.Transaction_ID, o.Order_ID, o.Order_Date,
+$reportData = [];
+if ($pdo) {
+    $stmt = $pdo->query(
+        "SELECT t.Transaction_ID, o.Order_ID, o.Order_Date,
                u.Name AS Customer, IFNULL(SUM(oi.Subtotal), 0) AS Product_Total,
                t.Amount_Paid, t.Payment_Method, t.Payment_Status,
                t.Payment_Date, t.Reference_Number
@@ -28,13 +16,20 @@
         GROUP BY t.Transaction_ID, o.Order_ID, o.Order_Date, u.Name,
                  t.Amount_Paid, t.Payment_Method, t.Payment_Status,
                  t.Payment_Date, t.Reference_Number
-        ORDER BY o.Order_Date DESC
-    ");
-        $reportData = $stmt->fetchAll();
-    } else {
-        error_log('Database connection failed in FinanceSalesReport.php');
-    }
-  ?>
+        ORDER BY o.Order_Date DESC"
+    );
+    $reportData = $stmt->fetchAll();
+} else {
+    error_log('Database connection failed in FinanceSalesReport.php');
+}
+
+$pageTitle = 'Finance & Sales Report - Admin';
+$bodyClass = 'sales-report finance-page';
+$extraHead = '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>';
+include '../header.php';
+?>
+<div class="flex h-screen overflow-hidden">
+  <?php include $prefix . 'sidebar.php'; ?>
 
   <!-- Main Content -->
   <main class="main flex-1 overflow-y-auto">
@@ -239,5 +234,6 @@
       },
     });
   </script>
+</div>
 </body>
 </html>

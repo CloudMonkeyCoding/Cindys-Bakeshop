@@ -1,19 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cindy's Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="../css/admin.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-  <body class="dashboard-page">
-  <div class="flex min-h-screen">
-    <?php
-    $activePage = 'dashboard';
-    include '../sidebar.php';
-    ?>
+<?php
+$activePage = 'dashboard';
+$pageTitle = "Cindy's Dashboard";
+$bodyClass = 'dashboard-page';
+$extraHead = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>';
+include '../header.php';
+?>
+<div class="flex min-h-screen">
+  <?php include $prefix . 'sidebar.php'; ?>
 
 
     <!-- Main Content -->
