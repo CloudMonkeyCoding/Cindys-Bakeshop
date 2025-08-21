@@ -433,6 +433,18 @@ INSERT INTO `product_ratings` (`Product_Name`, `Average_Rating`, `Total_Review`,
 ('EGG PIE CARAMEL', 4.2, 15, 'Yummy'),
 ('PASTEL DELIGHT ROUND CAKE', 3.4, 9, 'wow yummy');
 
+-- Table structure for table `favorites`
+CREATE TABLE `favorites` (
+  `Favorite_ID` int(11) NOT NULL AUTO_INCREMENT,
+  `User_ID` int(11) NOT NULL,
+  `Product_ID` int(11) NOT NULL,
+  PRIMARY KEY (`Favorite_ID`),
+  KEY `User_ID` (`User_ID`),
+  KEY `Product_ID` (`Product_ID`),
+  CONSTRAINT `favorites_ibfk_1` FOREIGN KEY (`User_ID`) REFERENCES `user` (`User_ID`),
+  CONSTRAINT `favorites_ibfk_2` FOREIGN KEY (`Product_ID`) REFERENCES `product` (`Product_ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 
 -- Table structure for table `order_cancellation`
 CREATE TABLE `order_cancellation` (

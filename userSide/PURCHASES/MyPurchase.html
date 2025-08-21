@@ -333,33 +333,34 @@
     }
 
     function loadCartItems() {
-      const cart = JSON.parse(localStorage.getItem('cart')) || [];
       const container = document.getElementById('cart-items-container');
-      if (cart.length === 0) {
-        container.innerHTML = '<p style="text-align:center;">No items in your cart.</p>';
-        return;
-      }
-      container.innerHTML = '';
-      cart.forEach((item, index) => {
-        const div = document.createElement('div');
-        div.classList.add('order-card');
-        div.innerHTML = `
-          <div class="order-info">
-            <img src="default.png" class="order-img" alt="Product">
-            <div class="order-details">
-              <b>${item.name}</b><br>
-              Order ID: CART-${index + 1}<br>
-              Price: ₱${item.price.toFixed(2)}<br>
-              QTY: ${item.quantity}
-            </div>
-          </div>
-          <div class="order-action">
-            <p>Total Price: ₱${(item.price * item.quantity).toFixed(2)}</p>
-            <button class="cancel-btn" onclick="openCancelModal(${index})">Cancel</button>
-          </div>
-        `;
-        container.appendChild(div);
-      });
+      fetch('../../PHP/order_api.php?action=list&user_id=1')
+        .then(res => res.json())
+        .then(orders => {
+          if (!orders || orders.length === 0) {
+            container.innerHTML = '<p style="text-align:center;">No items in your cart.</p>';
+            return;
+          }
+          container.innerHTML = '';
+          orders.forEach(order => {
+            const div = document.createElement('div');
+            div.classList.add('order-card');
+            div.innerHTML = `
+              <div class="order-info">
+                <img src="default.png" class="order-img" alt="Product">
+                <div class="order-details">
+                  <b>Order #${order.Order_ID}</b><br>
+                  Status: ${order.Status}<br>
+                  Order Date: ${order.Order_Date}
+                </div>
+              </div>
+              <div class="order-action">
+                <p>&nbsp;</p>
+              </div>
+            `;
+            container.appendChild(div);
+          });
+        });
     }
 
     function openCancelModal(index) {
@@ -379,11 +380,7 @@
         alert("Please select a reason before cancelling.");
         return;
       }
-      const cart = JSON.parse(localStorage.getItem('cart')) || [];
       if (cancelIndex !== null) {
-        cart.splice(cancelIndex, 1);
-        localStorage.setItem('cart', JSON.stringify(cart));
-        loadCartItems();
         closeCancelModal();
         alert("Order cancelled for reason: " + reason);
       }

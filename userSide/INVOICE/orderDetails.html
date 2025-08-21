@@ -106,30 +106,34 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <script>
-  const order = JSON.parse(localStorage.getItem("cindy_order"));
-  if (order) {
-    document.getElementById("name").textContent = order.name;
-    document.getElementById("address").textContent = order.address;
-    document.getElementById("mop").textContent = order.mop;
-    document.getElementById("date").textContent = order.date;
+  const params = new URLSearchParams(window.location.search);
+  const orderId = params.get('order_id');
+  if (orderId) {
+    fetch('../../PHP/order_api.php?action=view&order_id=' + orderId)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.order) {
+          document.querySelector('.invoice-container').innerHTML = '<h2>No Order Found</h2>';
+          return;
+        }
+        const order = data.order;
+        document.getElementById('name').textContent = order.User_ID;
+        document.getElementById('address').textContent = order.Address || '';
+        document.getElementById('mop').textContent = order.Status;
+        document.getElementById('date').textContent = order.Order_Date;
 
-    const tbody = document.getElementById("items-list");
-    let total = 0;
-
-    order.items.forEach(itemText => {
-      // Expected format: "Item xQty ₱Price"
-      const [nameQty, priceStr] = itemText.split("₱");
-      const subtotal = parseFloat(priceStr);
-      total += subtotal;
-
-      const row = document.createElement("tr");
-      row.innerHTML = `<td>${nameQty.trim()}</td><td>₱${subtotal.toFixed(2)}</td>`;
-      tbody.appendChild(row);
-    });
-
-    document.getElementById("total").textContent = total.toFixed(2);
+        const tbody = document.getElementById('items-list');
+        let total = 0;
+        data.items.forEach(item => {
+          total += parseFloat(item.Subtotal);
+          const row = document.createElement('tr');
+          row.innerHTML = `<td>${item.Name} x${item.Quantity}</td><td>₱${parseFloat(item.Subtotal).toFixed(2)}</td>`;
+          tbody.appendChild(row);
+        });
+        document.getElementById('total').textContent = total.toFixed(2);
+      });
   } else {
-    document.querySelector(".invoice-container").innerHTML = "<h2>No Order Found</h2>";
+    document.querySelector('.invoice-container').innerHTML = '<h2>No Order Found</h2>';
   }
 
   document.getElementById("download-btn").addEventListener("click", function () {

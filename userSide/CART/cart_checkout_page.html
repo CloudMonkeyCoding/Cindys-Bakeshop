@@ -372,30 +372,36 @@
 
     const cartContainer = document.getElementById('cart-items');
     const masterCheckbox = document.querySelector('.check-all input[type="checkbox"]');
+    let cartId = null;
+    let checkoutData = [];
 
-    function loadCart() {
-      const cart = JSON.parse(localStorage.getItem("cart")) || [];
+    async function loadCart() {
+      const res = await fetch('../../PHP/cart_api.php?action=list&user_id=1');
+      const data = await res.json();
+      cartId = data.cart_id;
+      const cart = data.items;
       cartContainer.innerHTML = '';
 
-      if (cart.length === 0) {
+      if (!cart || cart.length === 0) {
         cartContainer.innerHTML = '<p style="text-align:center;">Your cart is empty.</p>';
         document.querySelector('.total-items').textContent = 'Items: 0';
         document.querySelector('.total-price').textContent = 'Total Price: ₱0.00';
         return;
       }
 
-      cart.forEach((item, index) => {
+      cart.forEach(item => {
         const div = document.createElement('div');
         div.className = 'cart-item';
-        div.setAttribute('data-index', index);
-        div.setAttribute('data-price', item.price);
+        div.setAttribute('data-id', item.Cart_Item_ID);
+        div.setAttribute('data-product', item.Product_ID);
+        div.setAttribute('data-price', item.Price);
         div.innerHTML = `
           <div class="cart-item-left">
             <input type="checkbox" class="item-check" checked>
-            <img src="default.png" alt="Product">
+            <img src="${item.Image_Path || 'default.png'}" alt="Product">
             <div class="item-details">
-              <b>${item.name}</b><br>
-              Price: ₱${item.price.toFixed(2)}
+              <b>${item.Name}</b><br>
+              Price: ₱${parseFloat(item.Price).toFixed(2)}
               <div class="edit-note" style="display: none;">
                 <input type="text" placeholder="Add note (e.g. No icing)">
               </div>
@@ -403,7 +409,7 @@
           </div>
           <div class="item-actions">
             <button class="qty-btn" onclick="decreaseQty(this)">-</button>
-            <div class="qty-display">${item.quantity}</div>
+            <div class="qty-display">${item.Quantity}</div>
             <button class="qty-btn" onclick="increaseQty(this)">+</button>
             <button class="edit-btn" onclick="toggleEdit(this)">✏️</button>
             <button class="remove-btn" onclick="removeItem(this)">🗑️</button>
@@ -455,10 +461,12 @@
     }
 
     function saveQty(button, newQty) {
-      const index = button.closest('.cart-item').getAttribute('data-index');
-      const cart = JSON.parse(localStorage.getItem("cart")) || [];
-      cart[index].quantity = newQty;
-      localStorage.setItem("cart", JSON.stringify(cart));
+      const id = button.closest('.cart-item').getAttribute('data-id');
+      fetch('../../PHP/cart_api.php?action=update', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `cart_item_id=${id}&quantity=${newQty}`
+      });
     }
 
     function toggleAll(masterCheckbox) {
@@ -475,11 +483,12 @@
 
     function removeItem(button) {
       const item = button.closest('.cart-item');
-      const index = item.getAttribute('data-index');
-      let cart = JSON.parse(localStorage.getItem("cart")) || [];
-      cart.splice(index, 1);
-      localStorage.setItem("cart", JSON.stringify(cart));
-      loadCart();
+      const id = item.getAttribute('data-id');
+      fetch('../../PHP/cart_api.php?action=remove', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `cart_item_id=${id}`
+      }).then(() => loadCart());
     }
 
     function toggleEdit(button) {
@@ -491,6 +500,7 @@
     function goToCheckout() {
       const checkoutItems = document.getElementById("checkout-items");
       checkoutItems.innerHTML = "";
+      checkoutData = [];
 
       let hasItem = false;
 
@@ -507,16 +517,13 @@
           div.classList.add("summary-item");
           div.innerHTML = `<span>${name} x${qty}</span><span>₱${total.toFixed(2)}</span>`;
           checkoutItems.appendChild(div);
+          checkoutData.push({product_id: item.getAttribute('data-product'), quantity: parseInt(qty)});
         }
       });
 
       if (!hasItem) {
         alert("Please select at least one item to check out.");
         return;
-      }
-
-      if (localStorage.getItem('buy_now') === 'true') {
-        localStorage.removeItem('buy_now');
       }
 
       document.getElementById("cart-section").style.display = "none";
@@ -533,21 +540,17 @@
       const name = document.getElementById("name").value;
       const address = document.getElementById("address").value;
       const mop = document.getElementById("mop").value;
-      const items = [];
-      document.querySelectorAll('.summary-item').forEach(item => {
-        items.push(item.innerText);
+      fetch('../../PHP/order_api.php?action=create', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `user_id=1&items=${encodeURIComponent(JSON.stringify(checkoutData))}`
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("confirmationMsg").innerHTML =
+          `🎉 Thank you, <b>${name}</b>! Your order has been placed. <br><br><a href="orderDetails.html?order_id=${data.order_id}" style="color:blue;text-decoration:underline;">👉 View Order Details</a>`;
+        loadCart();
       });
-      const order = {
-        name,
-        address,
-        mop,
-        items,
-        date: new Date().toLocaleString()
-      };
-      localStorage.setItem("cindy_order", JSON.stringify(order));
-      localStorage.removeItem("cart");
-      document.getElementById("confirmationMsg").innerHTML =
-        `🎉 Thank you, <b>${name}</b>! Your order has been placed. <br><br><a href="orderDetails.html" style="color:blue;text-decoration:underline;">👉 View Order Details</a>`;
     }
 
     window.addEventListener("DOMContentLoaded", loadCart);

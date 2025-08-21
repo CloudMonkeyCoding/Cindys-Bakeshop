@@ -235,14 +235,13 @@
 
   
     window.onload = () => {
-      document.getElementById("firstName").value = userData.firstName;
-      document.getElementById("lastName").value = userData.lastName;
-      document.getElementById("email").value = userData.email;
-
-      const savedFace = localStorage.getItem("faceImage");
-      if (savedFace) {
-        document.getElementById("profilePic").src = savedFace;
-      }
+      fetch('../../PHP/user_api.php?action=get_face&user_id=1')
+        .then(res => res.json())
+        .then(data => {
+          if (data.face_image_path) {
+            document.getElementById('profilePic').src = data.face_image_path;
+          }
+        });
     };
 
     document.getElementById("editProfileForm").addEventListener("submit", function(e) {

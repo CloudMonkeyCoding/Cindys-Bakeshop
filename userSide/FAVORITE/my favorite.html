@@ -139,41 +139,33 @@
   </section>
 
   <script>
-    const sampleFavorites = [
-      {
-        name: "UBENG UBE LOAF",
-        image: "../Images/bread/bread2.png",
-        link: "../PRODUCT/product.php?id=2"
-      },
-      {
-        name: "CHOCO CARAMEL CAKE",
-        image: "../Images/cakes/cake5.png",
-        link: "../PRODUCT/product.php?id=5"
-      }
-    ];
+    const grid = document.getElementById('favoritesGrid');
+    const noFav = document.getElementById('noFavorites');
 
-    localStorage.setItem("favorites", JSON.stringify(sampleFavorites));
+    fetch('../../PHP/favorite_api.php?action=list&user_id=1')
+      .then(res => res.json())
+      .then(favorites => {
+        if (!favorites || favorites.length === 0) {
+          noFav.style.display = 'block';
+          return;
+        }
 
-    const favorites = JSON.parse(localStorage.getItem("favorites")) || [];
-    const grid = document.getElementById("favoritesGrid");
-    const noFav = document.getElementById("noFavorites");
-
-    if (favorites.length === 0) {
-      noFav.style.display = "block";
-    } else {
-      favorites.forEach(product => {
-        const div = document.createElement("div");
-        div.className = "favorite-item";
-        div.innerHTML = `
-          <a href="${product.link}">
-            <img src="${product.image}" alt="${product.name}">
-            <div class="product-name">${product.name}</div>
-          </a>
-          <a href="../LOGIN_SIGNUP/user_login.html" class="order-now">Order Now</a>
-        `;
-        grid.appendChild(div);
+        favorites.forEach(product => {
+          const div = document.createElement('div');
+          div.className = 'favorite-item';
+          div.innerHTML = `
+            <a href="../PRODUCT/product.php?id=${product.Product_ID}">
+              <img src="${product.Image_Path}" alt="${product.Name}">
+              <div class="product-name">${product.Name}</div>
+            </a>
+            <a href="../LOGIN_SIGNUP/user_login.html" class="order-now">Order Now</a>
+          `;
+          grid.appendChild(div);
+        });
+      })
+      .catch(() => {
+        noFav.style.display = 'block';
       });
-    }
   </script>
 
 </body>
