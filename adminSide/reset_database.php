@@ -27,26 +27,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Reset Database</title>
-    <link rel="stylesheet" href="css/admin.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reset Database</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
 </head>
 <body class="dashboard-page">
-<div class="flex min-h-screen">
-<?php
-$activePage = 'reset';
-include 'sidebar.php';
-?>
-<main class="flex-1 p-6">
-    <h1 class="text-2xl font-bold mb-4">Reset Database</h1>
-    <?php if ($message): ?>
+  <div class="flex min-h-screen">
+    <?php
+    $activePage = 'reset';
+    include 'sidebar.php';
+    ?>
+    <main class="flex-1 p-6">
+      <h1 class="text-2xl font-bold mb-4">Reset Database</h1>
+      <?php if ($message): ?>
         <p class="mb-4"><?php echo htmlspecialchars($message); ?></p>
-    <?php endif; ?>
-    <form method="post" onsubmit="return confirm('Are you sure you want to reset the database?');">
+      <?php endif; ?>
+      <form method="post" onsubmit="return confirm('Are you sure you want to reset the database?');">
         <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded">Reset Database</button>
-    </form>
-</main>
-</div>
+      </form>
+    </main>
+  </div>
 </body>
 </html>
