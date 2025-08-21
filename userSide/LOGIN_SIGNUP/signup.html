@@ -129,99 +129,95 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    async function loadFirebase() {
+      const response = await fetch('../../PHP/firebase_config.php', { credentials: 'same-origin' });
+      if (!response.ok) {
+        throw new Error('Unable to load Firebase configuration');
+      }
+      const app = initializeApp(await response.json());
+      const auth = getAuth(app);
 
-    const firebaseConfig = {
-    apiKey: "AIzaSyBQ9XuHo1kPCppj5M-NaCsiwZ2zlxajCe8",
-    authDomain: "cindys-bakeshop.firebaseapp.com",
-    projectId: "cindys-bakeshop",
-    storageBucket: "cindys-bakeshop.firebasestorage.app",
-    messagingSenderId: "958275560878",
-    appId: "1:958275560878:web:3731b0ba27925db3f5543f",
-    measurementId: "G-3R38BZW59Y"
-  };
+      const video = document.getElementById('video');
+      const captureBtn = document.getElementById('captureBtn');
+      const faceInput = document.getElementById('faceImage');
+      const capturedImage = document.getElementById('capturedImage');
+      const password = document.getElementById('password');
+      const confirmPassword = document.getElementById('confirmPassword');
+      const passwordMsg = document.getElementById('passwordMsg');
 
+      // Webcam
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          video.srcObject = stream;
+        })
+        .catch(err => {
+          alert("Camera access denied: " + err);
+        });
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-
-    const video = document.getElementById('video');
-    const captureBtn = document.getElementById('captureBtn');
-    const faceInput = document.getElementById('faceImage');
-    const capturedImage = document.getElementById('capturedImage');
-    const password = document.getElementById('password');
-    const confirmPassword = document.getElementById('confirmPassword');
-    const passwordMsg = document.getElementById('passwordMsg');
-
-    // Webcam
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => {
-        video.srcObject = stream;
-      })
-      .catch(err => {
-        alert("Camera access denied: " + err);
+      // Capture face image
+      captureBtn.addEventListener('click', () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL('image/png');
+        faceInput.value = imageData;
+        capturedImage.src = imageData;
+        capturedImage.style.display = 'block';
+        video.style.display = 'none';
+        captureBtn.textContent = "Face Captured ✅";
+        captureBtn.disabled = true;
       });
 
-    // Capture face image
-    captureBtn.addEventListener('click', () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const imageData = canvas.toDataURL('image/png');
-      faceInput.value = imageData;
-      capturedImage.src = imageData;
-      capturedImage.style.display = 'block';
-      video.style.display = 'none';
-      captureBtn.textContent = "Face Captured ✅";
-      captureBtn.disabled = true;
-    });
+      function isStrongPassword(pw) {
+        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        return regex.test(pw);
+      }
 
-    function isStrongPassword(pw) {
-      const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-      return regex.test(pw);
+      // Form submission
+      document.getElementById('signupForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const fullName = document.getElementById('fullName').value;
+        const email = document.getElementById('email').value;
+        const username = document.getElementById('username').value;
+        const pw = password.value;
+        const confirmPw = confirmPassword.value;
+        const faceImage = faceInput.value;
+
+        if (!isStrongPassword(pw)) {
+          passwordMsg.textContent = "Password must be 8+ chars with uppercase, lowercase, number, and symbol.";
+          return;
+        }
+
+        if (pw !== confirmPw) {
+          passwordMsg.textContent = "Passwords do not match.";
+          return;
+        }
+
+        if (!faceImage) {
+          alert("Please capture your face before signing up.");
+          return;
+        }
+
+        try {
+          await createUserWithEmailAndPassword(auth, email, pw);
+          await fetch('../../PHP/register_user.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fullName, email, password: pw, faceImage })
+          });
+          passwordMsg.textContent = "";
+          alert("Signup successful! Redirecting to login page...");
+          window.location.href = "../LOGIN_SIGNUP/user_login.html";
+        } catch (err) {
+          alert(err.message);
+        }
+      });
     }
 
-    // Form submission
-    document.getElementById('signupForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-
-      const fullName = document.getElementById('fullName').value;
-      const email = document.getElementById('email').value;
-      const username = document.getElementById('username').value;
-      const pw = password.value;
-      const confirmPw = confirmPassword.value;
-      const faceImage = faceInput.value;
-
-      if (!isStrongPassword(pw)) {
-        passwordMsg.textContent = "Password must be 8+ chars with uppercase, lowercase, number, and symbol.";
-        return;
-      }
-
-      if (pw !== confirmPw) {
-        passwordMsg.textContent = "Passwords do not match.";
-        return;
-      }
-
-      if (!faceImage) {
-        alert("Please capture your face before signing up.");
-        return;
-      }
-
-      try {
-        await createUserWithEmailAndPassword(auth, email, pw);
-        await fetch('../../PHP/register_user.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fullName, email, password: pw, faceImage })
-        });
-        passwordMsg.textContent = "";
-        alert("Signup successful! Redirecting to login page...");
-        window.location.href = "../LOGIN_SIGNUP/user_login.html";
-      } catch (err) {
-        alert(err.message);
-      }
-    });
+    loadFirebase().catch(err => console.error('Firebase init failed:', err));
   </script>
 
 </body>

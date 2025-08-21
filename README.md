@@ -51,6 +51,27 @@ php -S localhost:8000
 - Browse the customer-facing site at `http://localhost:8000/user-cindysbakeshop`.
 - Access the admin dashboard at `http://localhost:8000/adminSide`.
 
+## Firebase Configuration
+Firebase settings are served from a dedicated endpoint rather than being
+hardcoded into client pages. The endpoint `PHP/firebase_config.php` reads values
+from environment variables and returns them as JSON to authorized requests.
+
+Set the following variables in your environment or server configuration:
+
+- `FIREBASE_API_KEY`
+- `FIREBASE_AUTH_DOMAIN`
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_STORAGE_BUCKET`
+- `FIREBASE_MESSAGING_SENDER_ID`
+- `FIREBASE_APP_ID`
+- `FIREBASE_MEASUREMENT_ID` (optional)
+- `FIREBASE_CONFIG_TOKEN` (optional shared secret; if set, clients must send an
+  `X-Firebase-Config-Token` header matching this value)
+
+Client-side pages such as `userSide/LOGIN_SIGNUP/user_login.html` and
+`userSide/LOGIN_SIGNUP/signup.html` fetch this endpoint to obtain the Firebase
+configuration at runtime.
+
 ## Contributing
 Pull requests are welcome. Please ensure that any modified PHP files pass
 `php -l` for syntax errors before submitting changes.
