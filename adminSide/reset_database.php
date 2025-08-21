@@ -26,19 +26,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $activePage = 'reset';
 $pageTitle = 'Reset Database';
+$headerTitle = 'Reset Database';
 $bodyClass = 'dashboard-page';
 include 'header.php';
 ?>
 <div class="flex min-h-screen">
   <?php include $prefix . 'sidebar.php'; ?>
-  <main class="flex-1 p-6">
-    <h1 class="text-2xl font-bold mb-4">Reset Database</h1>
-    <?php if ($message): ?>
-      <p class="mb-4"><?php echo htmlspecialchars($message); ?></p>
-    <?php endif; ?>
-    <form method="post" onsubmit="return confirm('Are you sure you want to reset the database?');">
-      <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded">Reset Database</button>
-    </form>
+  <main class="flex-1 p-6 overflow-y-auto">
+    <?php include $prefix . 'topbar.php'; ?>
+    <div class="mt-6">
+      <?php if ($message): ?>
+        <p class="mb-4"><?php echo htmlspecialchars($message); ?></p>
+      <?php endif; ?>
+      <form method="post" onsubmit="return confirm('Are you sure you want to reset the database?');">
+        <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded">Reset Database</button>
+      </form>
+    </div>
   </main>
 </div>
 </body>

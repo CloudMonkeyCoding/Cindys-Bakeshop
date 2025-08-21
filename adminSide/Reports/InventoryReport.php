@@ -16,6 +16,7 @@ foreach ($inventoryRows as $row) {
 }
 
 $pageTitle = 'Inventory Report';
+$headerTitle = 'Inventory Report';
 $bodyClass = 'inventory-report';
 include '../header.php';
 ?>
@@ -24,7 +25,7 @@ include '../header.php';
 
   <!-- Main -->
   <main class="main flex-1 overflow-y-auto">
-    <div class="header-bar"><h1>Inventory Report</h1></div>
+    <?php include $prefix . 'topbar.php'; ?>
     <div class="content">
       <div class="search-bar">
         <input type="text" id="searchInput" placeholder="Search product..." onkeyup="filterInventory()">

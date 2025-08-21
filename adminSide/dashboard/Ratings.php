@@ -20,15 +20,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_rating_id']) &
 $ratings = $pdo ? getAllProductRatings($pdo) : [];
 $activePage = 'ratings';
 $pageTitle = 'Product Ratings - Admin';
+$headerTitle = 'Product Ratings';
 include '../header.php';
 ?>
 <div class="flex h-screen overflow-hidden">
   <?php include $prefix . 'sidebar.php'; ?>
       <main class="flex-1 overflow-y-auto">
-        <div class="header-bar">
-          <h1>Product Ratings</h1>
-          <img src="https://i.imgur.com/1Q2Z1ZL.png" alt="User" class="h-8 w-8 rounded-full">
-        </div>
+        <?php include $prefix . 'topbar.php'; ?>
 
         <div class="p-6">
           <table class="table w-full text-sm text-left bg-white rounded shadow">

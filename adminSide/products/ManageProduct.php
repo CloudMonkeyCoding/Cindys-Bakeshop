@@ -9,6 +9,7 @@ if ($pdo) {
     error_log('Database connection failed in ManageProduct.php');
 }
 $pageTitle = 'Manage Products';
+$headerTitle = 'Manage Products';
 $bodyClass = 'manage-product flex h-screen overflow-hidden';
 include '../header.php';
 include $prefix . 'sidebar.php';
@@ -16,7 +17,7 @@ include $prefix . 'sidebar.php';
 
 <!-- Main -->
 <main class="main flex-1 overflow-y-auto">
-  <div class="header-bar"><h1>Manage Products</h1></div>
+  <?php include $prefix . 'topbar.php'; ?>
   <div class="content">
     <div class="toolbar">
       <input type="text" id="search" placeholder="Search product name...">
