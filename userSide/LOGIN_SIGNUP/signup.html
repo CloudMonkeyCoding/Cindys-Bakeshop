@@ -210,7 +210,11 @@
 
       try {
         await createUserWithEmailAndPassword(auth, email, pw);
-        // TODO: Save additional profile data (fullName, username, faceImage) to Firestore
+        await fetch('../../PHP/register_user.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fullName, email, password: pw, faceImage })
+        });
         passwordMsg.textContent = "";
         alert("Signup successful! Redirecting to login page...");
         window.location.href = "../LOGIN_SIGNUP/user_login.html";

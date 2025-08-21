@@ -4,22 +4,23 @@
         return $stmt->fetchAll();
     }
 
-    function addUser($pdo, $name, $email, $password, $address, $warning_count = 0) {
+function addUser($pdo, $name, $email, $password, $address, $warning_count = 0, $face_image_path = null) {
         // Hash the password for security
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
         // Prepare SQL query
-        $stmt = $pdo->prepare("INSERT INTO User (Name, Email, Password, Address, Warning_Count) 
-                            VALUES (:name, :email, :password, :address, :warning_count)");
+    $stmt = $pdo->prepare("INSERT INTO User (Name, Email, Password, Address, Warning_Count, Face_Image_Path)
+                            VALUES (:name, :email, :password, :address, :warning_count, :face_image_path)");
 
         // Execute with data
         $stmt->execute([
             ':name' => $name,
             ':email' => $email,
-            ':password' => $hashed_password,
-            ':address' => $address,
-            ':warning_count' => $warning_count
-        ]);
+        ':password' => $hashed_password,
+        ':address' => $address,
+        ':warning_count' => $warning_count,
+        ':face_image_path' => $face_image_path
+    ]);
 
         return $pdo->lastInsertId(); // returns the new User_ID
     }
