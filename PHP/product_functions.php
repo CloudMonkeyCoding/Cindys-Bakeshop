@@ -148,21 +148,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     header('Content-Type: application/json');
 
-    switch ($_POST['action']) {
+    $action = filter_input(INPUT_POST, 'action', FILTER_SANITIZE_SPECIAL_CHARS);
+    switch ($action) {
         case 'update':
-            $id = $_POST['product_id'] ?? 0;
-            $name = $_POST['name'] ?? '';
-            $description = $_POST['description'] ?? '';
-            $price = $_POST['price'] ?? 0;
-            $stock = $_POST['stock_quantity'] ?? 0;
-            $category = $_POST['category'] ?? '';
+            $id = filter_input(INPUT_POST, 'product_id', FILTER_VALIDATE_INT) ?? 0;
+            $name = filter_input(INPUT_POST, 'name', FILTER_SANITIZE_SPECIAL_CHARS) ?? '';
+            $description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_SPECIAL_CHARS) ?? '';
+            $price = filter_input(INPUT_POST, 'price', FILTER_VALIDATE_FLOAT);
+            $price = $price !== false ? $price : 0;
+            $stock = filter_input(INPUT_POST, 'stock_quantity', FILTER_VALIDATE_INT);
+            $stock = $stock !== false ? $stock : 0;
+            $category = filter_input(INPUT_POST, 'category', FILTER_SANITIZE_SPECIAL_CHARS) ?? '';
             $imageFile = $_FILES['image'] ?? null;
             $success = updateProductById($pdo, $id, $name, $description, $price, $stock, $category, $imageFile) > 0;
             echo json_encode(['success' => $success]);
             break;
 
         case 'delete':
-            $id = $_POST['product_id'] ?? 0;
+            $id = filter_input(INPUT_POST, 'product_id', FILTER_VALIDATE_INT) ?? 0;
             $success = deleteProductById($pdo, $id) > 0;
             echo json_encode(['success' => $success]);
             break;
