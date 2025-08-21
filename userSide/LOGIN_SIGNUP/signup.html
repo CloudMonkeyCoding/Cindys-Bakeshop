@@ -126,7 +126,17 @@
     </form>
   </div>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      // TODO: Add your Firebase configuration
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
     const video = document.getElementById('video');
     const captureBtn = document.getElementById('captureBtn');
     const faceInput = document.getElementById('faceImage');
@@ -166,7 +176,7 @@
     }
 
     // Form submission
-    document.getElementById('signupForm').addEventListener('submit', function(e) {
+    document.getElementById('signupForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
       const fullName = document.getElementById('fullName').value;
@@ -191,22 +201,15 @@
         return;
       }
 
-      // Save user data to localStorage
-      const userData = {
-        fullName,
-        email,
-        username,
-        password: pw,
-        faceImage
-      };
-
-      localStorage.setItem("cindy_user", JSON.stringify(userData));
-
-      passwordMsg.textContent = "";
-      alert("Signup successful! Redirecting to login page...");
-
-      // Redirect to login
-      window.location.href = "../LOGIN_SIGNUP/user_login.html";
+      try {
+        await createUserWithEmailAndPassword(auth, email, pw);
+        // TODO: Save additional profile data (fullName, username, faceImage) to Firestore
+        passwordMsg.textContent = "";
+        alert("Signup successful! Redirecting to login page...");
+        window.location.href = "../LOGIN_SIGNUP/user_login.html";
+      } catch (err) {
+        alert(err.message);
+      }
     });
   </script>
 

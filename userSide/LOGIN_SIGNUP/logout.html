@@ -6,12 +6,26 @@
   <title>Logout</title>
   <style>
     body { font-family: Arial; text-align: center; padding: 50px; background: #f2f2f2; }
-    h1 { color: red; }
-    a { padding: 10px 20px; background: red; color: white; border-radius: 10px; text-decoration: none; }
   </style>
 </head>
 <body>
-  <h1>You have been logged out.</h1>
-  <p><a href="../LOGIN_SIGNUP/user_login.html">Return to Home</a></p>
+  <p>Signing you out...</p>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      // TODO: Add your Firebase configuration
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    signOut(auth).finally(() => {
+      window.location.href = "./user_login.html";
+    });
+  </script>
 </body>
 </html>
+
