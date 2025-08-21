@@ -37,6 +37,7 @@ $activePage = $activePage ?? '';
         <a href="../Reports/InventoryReport.php" class="block p-2 hover:bg-gray-100 rounded">Inventory Report</a>
       </div>
     </div>
+    <a href="../reset_database.php" class="flex items-center gap-2 p-2 rounded <?php echo $activePage === 'reset' ? 'bg-gray-200 font-semibold' : 'sidebar-link'; ?>">🗑️ Reset Database</a>
     </nav>
 </aside>
 
