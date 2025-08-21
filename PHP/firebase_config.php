@@ -24,4 +24,18 @@ $config = [
     'measurementId' => getenv('FIREBASE_MEASUREMENT_ID'),
 ];
 
+// Ensure all configuration values are present
+$missing = array_keys(array_filter($config, function ($value) {
+    return $value === false || $value === null || $value === '';
+}));
+
+if (!empty($missing)) {
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'Firebase configuration incomplete',
+        'missing' => $missing,
+    ]);
+    exit;
+}
+
 echo json_encode($config);
