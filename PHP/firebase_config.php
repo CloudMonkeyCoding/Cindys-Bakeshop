@@ -2,6 +2,11 @@
 // Endpoint to serve Firebase configuration from environment variables.
 // Optionally requires a shared secret via the X-Firebase-Config-Token header.
 
+require __DIR__ . '/../vendor/autoload.php';
+
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../'); // assumes .env is in project root
+$dotenv->load();
+
 header('Content-Type: application/json');
 
 $expectedToken = getenv('FIREBASE_CONFIG_TOKEN');
@@ -15,27 +20,15 @@ if ($expectedToken) {
 }
 
 $config = [
-    'apiKey' => getenv('FIREBASE_API_KEY'),
-    'authDomain' => getenv('FIREBASE_AUTH_DOMAIN'),
-    'projectId' => getenv('FIREBASE_PROJECT_ID'),
-    'storageBucket' => getenv('FIREBASE_STORAGE_BUCKET'),
-    'messagingSenderId' => getenv('FIREBASE_MESSAGING_SENDER_ID'),
-    'appId' => getenv('FIREBASE_APP_ID'),
-    'measurementId' => getenv('FIREBASE_MEASUREMENT_ID'),
+    'apiKey' => $_ENV['FIREBASE_API_KEY'],
+    'authDomain' => $_ENV['FIREBASE_AUTH_DOMAIN'],
+    'projectId' => $_ENV['FIREBASE_PROJECT_ID'],
+    'storageBucket' => $_ENV['FIREBASE_STORAGE_BUCKET'],
+    'messagingSenderId' => $_ENV['FIREBASE_MESSAGING_SENDER_ID'],
+    'appId' => $_ENV['FIREBASE_APP_ID'],
+    'measurementId' => $_ENV['FIREBASE_MEASUREMENT_ID'],
 ];
 
-// Ensure all configuration values are present
-$missing = array_keys(array_filter($config, function ($value) {
-    return $value === false || $value === null || $value === '';
-}));
 
-if (!empty($missing)) {
-    http_response_code(500);
-    echo json_encode([
-        'error' => 'Firebase configuration incomplete',
-        'missing' => $missing,
-    ]);
-    exit;
-}
 
 echo json_encode($config);
