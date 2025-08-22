@@ -177,7 +177,13 @@ CREATE TABLE `user` (
   `Email` varchar(100) DEFAULT NULL,
   `Password` varchar(255) DEFAULT NULL,
   `Address` text DEFAULT NULL,
-  `Warning_Count` int(11) DEFAULT 0
+  `Language` varchar(50) DEFAULT 'English',
+  `Theme` varchar(20) DEFAULT 'Light',
+  `Notify_Order_Status` tinyint(1) DEFAULT 0,
+  `Notify_Promotions` tinyint(1) DEFAULT 0,
+  `Notify_Feedback` tinyint(1) DEFAULT 0,
+  `Warning_Count` int(11) DEFAULT 0,
+  `Face_Image_Path` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
