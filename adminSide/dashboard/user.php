@@ -1,9 +1,25 @@
 <?php
+require_once '../../PHP/db_connect.php';
+require_once '../../PHP/blacklist_functions.php';
 $activePage = 'users';
 $pageTitle = 'Users - Cindy’s Bakeshop';
 $headerTitle = 'Users';
 $bodyClass = 'users-page';
 include '../header.php';
+
+$blockedUsers = [];
+if ($pdo) {
+    $sql = "SELECT b.Blacklist_ID, u.Name, u.Email, oc.Cancellation_Date AS Date_Blocked, 
+                   b.Blacklist_reason AS Reason, p.Name AS Product_Name
+            FROM blacklist b
+            JOIN user u ON b.User_ID = u.User_ID
+            LEFT JOIN order_cancellation oc ON b.User_ID = oc.User_ID
+            LEFT JOIN order_item oi ON oc.Order_ID = oi.Order_ID
+            LEFT JOIN product p ON oi.Product_ID = p.Product_ID
+            GROUP BY b.Blacklist_ID";
+    $stmt = $pdo->query($sql);
+    $blockedUsers = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+}
 ?>
 <div class="flex h-screen overflow-hidden">
   <?php include $prefix . 'sidebar.php'; ?>
@@ -37,30 +53,16 @@ include '../header.php';
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>Maria Andoks</td>
-              <td>maria@example.com</td>
-              <td>2025-07-05</td>
-              <td>Violation of terms</td>
-              <td>Red Velvet Cake</td>
+            <?php foreach ($blockedUsers as $user): ?>
+            <tr data-blacklist-id="<?php echo htmlspecialchars($user['Blacklist_ID']); ?>">
+              <td><?php echo htmlspecialchars($user['Name'] ?? ''); ?></td>
+              <td><?php echo htmlspecialchars($user['Email'] ?? ''); ?></td>
+              <td><?php echo htmlspecialchars($user['Date_Blocked'] ?? ''); ?></td>
+              <td><?php echo htmlspecialchars($user['Reason'] ?? ''); ?></td>
+              <td><?php echo htmlspecialchars($user['Product_Name'] ?? ''); ?></td>
               <td><button class="unblock-btn bg-green-500 text-white px-3 py-1 rounded">Unblock</button></td>
             </tr>
-            <tr>
-              <td>Juan Dela Cruz</td>
-              <td>juancruz@example.com</td>
-              <td>2025-06-22</td>
-              <td>Spam activity</td>
-              <td>Chocolate Cake</td>
-              <td><button class="unblock-btn bg-green-500 text-white px-3 py-1 rounded">Unblock</button></td>
-            </tr>
-            <tr>
-              <td>Ana Reyes</td>
-              <td>ana.reyes@example.com</td>
-              <td>2025-07-03</td>
-              <td>Fake orders</td>
-              <td>Cheesecake</td>
-              <td><button class="unblock-btn bg-green-500 text-white px-3 py-1 rounded">Unblock</button></td>
-            </tr>
+            <?php endforeach; ?>
           </tbody>
         </table>
       </div>
@@ -70,13 +72,12 @@ include '../header.php';
 <script>
   const searchInput = document.getElementById('searchInput');
   const cakeFilter = document.getElementById('cakeFilter');
-  const rows = document.querySelectorAll("#usersTable tbody tr");
 
   function filterTable() {
     const query = searchInput.value.toLowerCase();
     const selectedCake = cakeFilter.value;
 
-    rows.forEach(row => {
+    document.querySelectorAll("#usersTable tbody tr").forEach(row => {
       const name = row.cells[0].textContent.toLowerCase();
       const email = row.cells[1].textContent.toLowerCase();
       const cake = row.cells[4].textContent;
@@ -90,6 +91,27 @@ include '../header.php';
 
   searchInput.addEventListener('input', filterTable);
   cakeFilter.addEventListener('change', filterTable);
+
+  document.querySelectorAll('.unblock-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const row = btn.closest('tr');
+      const id = row.getAttribute('data-blacklist-id');
+      const fd = new FormData();
+      fd.append('action', 'unblock');
+      fd.append('blacklist_id', id);
+      fetch('../../PHP/blacklist_api.php', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            row.remove();
+            filterTable();
+          } else {
+            alert('Unblock failed');
+          }
+        })
+        .catch(() => alert('Unblock failed'));
+    });
+  });
 
   function showAllUsers() {}
   function showBlockedUsers() {}
