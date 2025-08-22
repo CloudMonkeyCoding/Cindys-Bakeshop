@@ -151,7 +151,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     async function loadFirebase() {
       const response = await fetch('../../PHP/firebase_config.php', { credentials: 'same-origin' });
       if (!response.ok) {
@@ -159,6 +159,16 @@
       }
       const app = initializeApp(await response.json());
       const auth = getAuth(app);
+
+      window.auth = auth;
+      window.getAuth = getAuth;
+      onAuthStateChanged(auth, user => {
+        if (user) {
+          console.log('Logged in as:', user.email);
+        } else {
+          console.log('Not logged in');
+        }
+      });
 
       window.login = (e) => {
         e.preventDefault();
