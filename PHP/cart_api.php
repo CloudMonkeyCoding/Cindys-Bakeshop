@@ -27,7 +27,7 @@ switch ($action) {
             $items = [];
         } else {
             $cartId = $cart['Cart_ID'];
-            $stmt = $pdo->prepare("SELECT ci.Cart_Item_ID, ci.Product_ID, ci.Quantity, p.Name, p.Price, p.Image_Path FROM Cart_Item ci JOIN Product p ON ci.Product_ID = p.Product_ID WHERE ci.Cart_ID = :cart_id");
+            $stmt = $pdo->prepare("SELECT ci.Cart_Item_ID, ci.Product_ID, ci.Quantity, p.Name, p.Price, p.Image_Path FROM cart_item ci JOIN product p ON ci.Product_ID = p.Product_ID WHERE ci.Cart_ID = :cart_id");
             $stmt->execute([':cart_id' => $cartId]);
             $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }

@@ -2,7 +2,7 @@
 // 1) Add an item to cart
 function addCartItem($pdo, $cartId, $productId, $quantity) {
     $stmt = $pdo->prepare("
-        INSERT INTO Cart_Item (Cart_ID, Product_ID, Quantity)
+        INSERT INTO cart_item (Cart_ID, Product_ID, Quantity)
         VALUES (:cart_id, :product_id, :quantity)
     ");
     $stmt->execute([
@@ -16,7 +16,7 @@ function addCartItem($pdo, $cartId, $productId, $quantity) {
 // 2) Get all items in a cart
 function getCartItemsByCartId($pdo, $cartId) {
     $stmt = $pdo->prepare("
-        SELECT * FROM Cart_Item WHERE Cart_ID = :cart_id
+        SELECT * FROM cart_item WHERE Cart_ID = :cart_id
     ");
     $stmt->execute([':cart_id' => $cartId]);
     return $stmt->fetchAll();
@@ -25,7 +25,7 @@ function getCartItemsByCartId($pdo, $cartId) {
 // 3) Get all items for a product
 function getCartItemsByProductId($pdo, $productId) {
     $stmt = $pdo->prepare("
-        SELECT * FROM Cart_Item WHERE Product_ID = :product_id
+        SELECT * FROM cart_item WHERE Product_ID = :product_id
     ");
     $stmt->execute([':product_id' => $productId]);
     return $stmt->fetchAll();
@@ -34,7 +34,7 @@ function getCartItemsByProductId($pdo, $productId) {
 // 4) Get a single cart item by ID
 function getCartItemById($pdo, $cartItemId) {
     $stmt = $pdo->prepare("
-        SELECT * FROM Cart_Item WHERE Cart_Item_ID = :cart_item_id
+        SELECT * FROM cart_item WHERE Cart_Item_ID = :cart_item_id
     ");
     $stmt->execute([':cart_item_id' => $cartItemId]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -43,7 +43,7 @@ function getCartItemById($pdo, $cartItemId) {
 // 5) Update quantity of a cart item
 function updateCartItemQuantity($pdo, $cartItemId, $quantity) {
     $stmt = $pdo->prepare("
-        UPDATE Cart_Item
+        UPDATE cart_item
         SET Quantity = :quantity
         WHERE Cart_Item_ID = :cart_item_id
     ");
@@ -57,7 +57,7 @@ function updateCartItemQuantity($pdo, $cartItemId, $quantity) {
 // 6) Remove one item from the cart
 function deleteCartItemById($pdo, $cartItemId) {
     $stmt = $pdo->prepare("
-        DELETE FROM Cart_Item WHERE Cart_Item_ID = :cart_item_id
+        DELETE FROM cart_item WHERE Cart_Item_ID = :cart_item_id
     ");
     $stmt->execute([':cart_item_id' => $cartItemId]);
     return $stmt->rowCount();
@@ -66,7 +66,7 @@ function deleteCartItemById($pdo, $cartItemId) {
 // 7) Remove all items from a cart
 function deleteCartItemsByCartId($pdo, $cartId) {
     $stmt = $pdo->prepare("
-        DELETE FROM Cart_Item WHERE Cart_ID = :cart_id
+        DELETE FROM cart_item WHERE Cart_ID = :cart_id
     ");
     $stmt->execute([':cart_id' => $cartId]);
     return $stmt->rowCount();
@@ -75,7 +75,7 @@ function deleteCartItemsByCartId($pdo, $cartId) {
 // 8) Remove all items for a product (optional, e.g., product discontinued)
 function deleteCartItemsByProductId($pdo, $productId) {
     $stmt = $pdo->prepare("
-        DELETE FROM Cart_Item WHERE Product_ID = :product_id
+        DELETE FROM cart_item WHERE Product_ID = :product_id
     ");
     $stmt->execute([':product_id' => $productId]);
     return $stmt->rowCount();

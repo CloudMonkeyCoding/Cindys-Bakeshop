@@ -2,7 +2,7 @@
 // 1) Create a cart for a user
 function createCart($pdo, $userId) {
     $stmt = $pdo->prepare("
-        INSERT INTO Cart (User_ID)
+        INSERT INTO shopping_cart (User_ID)
         VALUES (:user_id)
     ");
     $stmt->execute([':user_id' => $userId]);
@@ -12,7 +12,7 @@ function createCart($pdo, $userId) {
 // 2) Get a cart by Cart_ID
 function getCartById($pdo, $cartId) {
     $stmt = $pdo->prepare("
-        SELECT * FROM Cart WHERE Cart_ID = :cart_id
+        SELECT * FROM shopping_cart WHERE Cart_ID = :cart_id
     ");
     $stmt->execute([':cart_id' => $cartId]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -21,7 +21,7 @@ function getCartById($pdo, $cartId) {
 // 3) Get a cart by User_ID (one user should have only one active cart)
 function getCartByUserId($pdo, $userId) {
     $stmt = $pdo->prepare("
-        SELECT * FROM Cart WHERE User_ID = :user_id
+        SELECT * FROM shopping_cart WHERE User_ID = :user_id
     ");
     $stmt->execute([':user_id' => $userId]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -30,7 +30,7 @@ function getCartByUserId($pdo, $userId) {
 // 4) Delete a cart by Cart_ID
 function deleteCartById($pdo, $cartId) {
     $stmt = $pdo->prepare("
-        DELETE FROM Cart WHERE Cart_ID = :cart_id
+        DELETE FROM shopping_cart WHERE Cart_ID = :cart_id
     ");
     $stmt->execute([':cart_id' => $cartId]);
     return $stmt->rowCount();
@@ -39,7 +39,7 @@ function deleteCartById($pdo, $cartId) {
 // 5) Delete a cart by User_ID
 function deleteCartByUserId($pdo, $userId) {
     $stmt = $pdo->prepare("
-        DELETE FROM Cart WHERE User_ID = :user_id
+        DELETE FROM shopping_cart WHERE User_ID = :user_id
     ");
     $stmt->execute([':user_id' => $userId]);
     return $stmt->rowCount();
@@ -47,7 +47,7 @@ function deleteCartByUserId($pdo, $userId) {
 
 // 6) Get all carts (optional)
 function getAllCarts($pdo) {
-    $stmt = $pdo->query("SELECT * FROM Cart");
+    $stmt = $pdo->query("SELECT * FROM shopping_cart");
     return $stmt->fetchAll();
 }
 ?>
