@@ -3,79 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <title>Order Details - Cindy's Bakeshop</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f9f9f9;
-  background: url('../Images/bread/b.jpg') no-repeat center center fixed;
-    background-size: cover;
-      padding: 30px;
-    }
-
-    .invoice-container {
-      max-width: 700px;
-      margin: auto;
-      background: white;
-      padding: 30px;
-      border: 2px solid red;
-      border-radius: 20px;
-    }
-
-    h1 {
-      text-align: center;
-      color: red;
-    }
-
-    .invoice-header,
-    .invoice-summary {
-      margin-bottom: 20px;
-    }
-
-    .invoice-header div {
-      margin-bottom: 5px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid #ccc;
-      text-align: left;
-    }
-
-    .total {
-      text-align: right;
-      font-weight: bold;
-      font-size: 18px;
-    }
-
-    .back-btn {
-      background-color: red;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 10px;
-      font-weight: bold;
-      cursor: pointer;
-      text-decoration: none;
-      margin-right: 10px;
-    }
-
-    .back-btn:hover {
-      background-color: black;
-    }
-
-    #download-btn {
-      background-color: green;
-      margin-top: 10px;
-    }
-  </style>
+  <link rel="stylesheet" href="../styles.css" />
 </head>
-<body>
+<body class="invoice-page">
 
 <div class="invoice-container" id="invoice">
   <h1>Order Invoice</h1>
