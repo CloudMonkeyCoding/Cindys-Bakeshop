@@ -75,6 +75,23 @@ function addUser($pdo, $name, $email, $password, $address, $warning_count = 0, $
         return $stmt->rowCount(); // number of rows updated
     }
 
+    function updateUserNameAddress($pdo, $userId, $name, $address) {
+        $stmt = $pdo->prepare("
+            UPDATE User
+            SET Name = :name,
+                Address = :address
+            WHERE User_ID = :user_id
+        ");
+
+        $stmt->execute([
+            ':name' => $name,
+            ':address' => $address,
+            ':user_id' => $userId
+        ]);
+
+        return $stmt->rowCount();
+    }
+
     function getUserById($pdo, $userId) {
         $stmt = $pdo->prepare("SELECT * FROM User WHERE User_ID = :user_id");
         $stmt->execute([':user_id' => $userId]);

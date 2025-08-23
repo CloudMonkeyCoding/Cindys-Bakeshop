@@ -289,6 +289,47 @@
       font-weight: bold;
       text-align: center;
     }
+    .field-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .edit-field-btn {
+      background: red;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .edit-field-btn:hover {
+      background: black;
+    }
+    .input-wrapper {
+      position: relative;
+    }
+    .input-wrapper input[readonly],
+    .input-wrapper textarea[readonly] {
+      background: #f5f5f5;
+    }
+    .done-btn {
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: none;
+      background: red;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 2px 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .done-btn:hover {
+      background: black;
+    }
   </style>
 </head>
 <body>
@@ -333,11 +374,27 @@
     <h2>Checkout</h2>
     <div id="checkout-items"></div>
     <form class="checkout-form" onsubmit="placeOrder(event)">
-      <label for="name">Full Name</label>
-      <input type="text" id="name" required>
+      <div class="input-group">
+        <div class="field-header">
+          <label for="name">Full Name</label>
+          <button type="button" id="edit-name" class="edit-field-btn">edit</button>
+        </div>
+        <div class="input-wrapper">
+          <input type="text" id="name" required readonly>
+          <button type="button" id="done-name" class="done-btn">done</button>
+        </div>
+      </div>
 
-      <label for="address">Delivery Address</label>
-      <textarea id="address" rows="3" required></textarea>
+      <div class="input-group">
+        <div class="field-header">
+          <label for="address">Delivery Address</label>
+          <button type="button" id="edit-address" class="edit-field-btn">edit</button>
+        </div>
+        <div class="input-wrapper">
+          <textarea id="address" rows="3" required readonly></textarea>
+          <button type="button" id="done-address" class="done-btn">done</button>
+        </div>
+      </div>
 
       <label for="mop">Mode of Payment</label>
       <select id="mop" required>
@@ -378,14 +435,53 @@
     let cartId = null;
     let checkoutData = [];
     let userEmail = null;
+    const nameField = document.getElementById('name');
+    const addressField = document.getElementById('address');
+    const nameEditBtn = document.getElementById('edit-name');
+    const addrEditBtn = document.getElementById('edit-address');
+    const nameDoneBtn = document.getElementById('done-name');
+    const addrDoneBtn = document.getElementById('done-address');
+
+    nameEditBtn.addEventListener('click', () => {
+      nameField.readOnly = false;
+      nameDoneBtn.style.display = 'block';
+      nameField.focus();
+    });
+
+    nameDoneBtn.addEventListener('click', () => {
+      nameField.readOnly = true;
+      nameDoneBtn.style.display = 'none';
+      saveProfile();
+    });
+
+    addrEditBtn.addEventListener('click', () => {
+      addressField.readOnly = false;
+      addrDoneBtn.style.display = 'block';
+      addressField.focus();
+    });
+
+    addrDoneBtn.addEventListener('click', () => {
+      addressField.readOnly = true;
+      addrDoneBtn.style.display = 'none';
+      saveProfile();
+    });
 
     const auth = getAuth();
     onAuthStateChanged(auth, user => {
       if (user) {
         userEmail = user.email;
         loadCart();
+        loadProfile();
       }
     });
+
+    async function loadProfile() {
+      if (!userEmail) return;
+      const res = await fetch(`../../PHP/user_api.php?action=get_profile&email=${encodeURIComponent(userEmail)}`);
+      const data = await res.json();
+      nameField.value = data.name || '';
+      addressField.value = data.address || '';
+    }
 
     async function loadCart() {
       if (!userEmail) return;
@@ -441,6 +537,15 @@
       });
 
       updateTotal();
+    }
+
+    function saveProfile() {
+      if (!userEmail) return;
+      fetch('../../PHP/user_api.php?action=set_profile', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `email=${encodeURIComponent(userEmail)}&name=${encodeURIComponent(nameField.value)}&address=${encodeURIComponent(addressField.value)}`
+      });
     }
 
     function updateTotal() {

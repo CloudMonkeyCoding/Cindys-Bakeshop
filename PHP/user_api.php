@@ -40,6 +40,43 @@ switch ($action) {
         $stmt->execute([':path' => $path, ':id' => $userId]);
         echo json_encode(['updated' => $stmt->rowCount()]);
         break;
+    case 'get_profile':
+        $email = $_GET['email'] ?? '';
+        if (!$email) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Email required']);
+            break;
+        }
+        $user = getUserByEmail($pdo, $email);
+        if (!$user) {
+            http_response_code(404);
+            echo json_encode(['error' => 'User not found']);
+            break;
+        }
+        echo json_encode([
+            'user_id' => $user['User_ID'],
+            'name' => $user['Name'],
+            'address' => $user['Address']
+        ]);
+        break;
+    case 'set_profile':
+        $email = $_POST['email'] ?? '';
+        $name = $_POST['name'] ?? '';
+        $address = $_POST['address'] ?? '';
+        if (!$email) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Email required']);
+            break;
+        }
+        $user = getUserByEmail($pdo, $email);
+        if (!$user) {
+            http_response_code(404);
+            echo json_encode(['error' => 'User not found']);
+            break;
+        }
+        updateUserNameAddress($pdo, $user['User_ID'], $name, $address);
+        echo json_encode(['updated' => true]);
+        break;
     default:
         http_response_code(400);
         echo json_encode(['error' => 'Invalid action']);
