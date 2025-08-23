@@ -21,7 +21,15 @@ async function addToCart() {
         ? `/PHP/cart_api.php?action=list&email=${encodeURIComponent(email)}`
         : `/PHP/cart_api.php?action=list`;
       const listResp = await fetch(listUrl);
-      const listData = await listResp.json();
+      const listText = await listResp.text();
+      let listData;
+      try {
+        listData = JSON.parse(listText);
+      } catch (e) {
+        console.error("Invalid cart list response", listText);
+        alert("Error retrieving cart.");
+        return false;
+      }
       cartId = listData.cart_id;
       localStorage.setItem("cart_id", cartId);
     }
@@ -33,7 +41,15 @@ async function addToCart() {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body
     });
-    const result = await response.json();
+    const respText = await response.text();
+    let result;
+    try {
+      result = JSON.parse(respText);
+    } catch (e) {
+      console.error("Invalid add-to-cart response", respText);
+      alert("Error adding item to cart.");
+      return false;
+    }
     if (result.cart_item_id) {
       alert("Item added to cart!");
       return true;
