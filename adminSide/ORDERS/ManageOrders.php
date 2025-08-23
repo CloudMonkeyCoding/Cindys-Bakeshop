@@ -84,21 +84,38 @@ include '../header.php';
 
   <!-- Sidebar Script -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
   <script>
     function exportOrdersToPDF() {
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      doc.text("Orders Report", 14, 20);
-      let y = 30;
+      const doc = new jsPDF({ orientation: 'landscape' });
+      doc.setFontSize(10);
+      doc.text("Orders Report", 14, 15);
+
+      const headers = ["Order ID", "Order Date", "Customer", "Items", "Total", "Status"];
+      const rows = [];
+
       document.querySelectorAll('#orderTable tr').forEach(row => {
-        const cols = Array.from(row.cells).map(cell => cell.innerText.trim());
-        doc.text(cols.join(' | '), 14, y);
-        y += 7;
-        if (y > 280) {
-          doc.addPage();
-          y = 20;
+        const cells = row.querySelectorAll('td');
+        if (cells.length) {
+          rows.push([
+            cells[1].innerText.trim(),
+            cells[2].innerText.trim(),
+            cells[3].innerText.trim(),
+            cells[4].innerText.trim(),
+            cells[5].innerText.trim(),
+            cells[6].innerText.trim()
+          ]);
         }
       });
+
+      doc.autoTable({
+        head: [headers],
+        body: rows,
+        startY: 20,
+        styles: { fontSize: 8 }
+      });
+
       doc.save('orders.pdf');
     }
 
