@@ -1,0 +1,227 @@
+/* Shared styles for user authentication pages */
+
+/* Signup page styles */
+body.signup {
+  font-family: Arial, sans-serif;
+  background: url('Images/cindyslogin.jpg') no-repeat center center;
+  background-size: cover;
+  height: 100vh;
+  margin: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+body.signup .signup-box {
+  position: absolute;
+  top: 50px;
+  right: 100px;
+  background-color: white;
+  width: 350px;
+  padding: 30px 25px;
+  border-radius: 35px;
+  border: 2px solid black;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+body.signup .signup-box h2 {
+  text-align: center;
+  margin-bottom: 10px;
+  font-size: 26px;
+}
+
+body.signup form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+body.signup form input {
+  padding: 9px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+body.signup #video,
+body.signup #capturedImage {
+  width: 100%;
+  height: 150px;
+  border-radius: 10px;
+  border: 1px solid #999;
+  object-fit: cover;
+}
+
+body.signup #capturedImage {
+  display: none;
+}
+
+body.signup .button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+body.signup button {
+  padding: 10px;
+  font-size: 15px;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+}
+
+body.signup #captureBtn {
+  background-color: #007bff;
+}
+
+body.signup #signupBtn {
+  background-color: red;
+}
+
+body.signup .login-link {
+  text-align: center;
+  font-size: 14px;
+  color: #007bff;
+  text-decoration: none;
+}
+
+body.signup .login-link:hover {
+  text-decoration: underline;
+}
+
+body.signup .error {
+  color: red;
+  font-size: 13px;
+  margin-top: -8px;
+}
+
+/* Login page styles */
+body.login * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body.login {
+  font-family: Arial, sans-serif;
+  background: url('Images/cindyslogin.jpg') no-repeat center center;
+  background-size: cover;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+body.login header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 20px 50px;
+}
+
+body.login nav {
+  display: flex;
+  gap: 20px;
+}
+
+body.login nav a {
+  text-decoration: none;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: transparent;
+  color: rgb(255, 255, 255);
+}
+
+body.login nav a.active {
+  color: rgb(255, 215, 215);
+}
+
+body.login nav a.about {
+  color: white;
+}
+
+body.login nav a.signup {
+  background-color: #ffc800;
+  color: rgb(255, 254, 254);
+}
+
+body.login nav a img {
+  width: 20px;
+  height: 20px;
+}
+
+body.login .login-box {
+  position: absolute;
+  top: 160px;
+  right: 120px;
+  background-color: white;
+  width: 350px;
+  height: 450px;
+  padding: 40px 30px;
+  border-radius: 35px;
+  border: 2px solid black;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+body.login .login-box h2 {
+  text-align: center;
+  margin-bottom: 25px;
+  font-size: 26px;
+  font-weight: bold;
+}
+
+body.login .login-box input {
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  font-size: 16px;
+  border: 1.5px solid gray;
+  border-radius: 5px;
+}
+
+body.login .login-box button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  background-color: red;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+body.login .login-box .links {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+body.login .login-box .links a {
+  text-decoration: none;
+}
+
+body.login .login-box .links a:first-child {
+  color: #4da6ff;
+}
+
+body.login .login-box .links a:last-child {
+  color: red;
+}
+
+/* Logout page styles */
+body.logout {
+  font-family: Arial;
+  text-align: center;
+  padding: 50px;
+  background: #f2f2f2;
+}
