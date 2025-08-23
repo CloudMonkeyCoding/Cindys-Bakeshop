@@ -310,7 +310,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId) {
     </form>
   </div>
 
-  <script type="module" src="../firebase-init.js"></script>
+  <script type="module">
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import "../firebase-init.js";
+
+    const auth = getAuth();
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        const emailInput = document.querySelector('input[name="email"]');
+        if (emailInput) {
+          emailInput.value = user.email;
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        if (!params.get('email')) {
+          params.set('email', user.email);
+          window.location.search = params.toString();
+        }
+      }
+    });
+  </script>
   <script>
     function toggleDropdown() {
       const dropdown = document.getElementById("profileDropdown");
