@@ -1,7 +1,7 @@
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-async function loadFirebase() {
+try {
   if (!getApps().length) {
     const configUrl = new URL('../PHP/firebase_config.php', import.meta.url);
     const response = await fetch(configUrl, { credentials: 'same-origin' });
@@ -20,6 +20,6 @@ async function loadFirebase() {
       console.log('Not logged in');
     }
   });
+} catch (err) {
+  console.error('Firebase init failed:', err);
 }
-
-loadFirebase().catch(err => console.error('Firebase init failed:', err));
