@@ -346,6 +346,7 @@ $price = isset($product['Price']) ? number_format((float)$product['Price'], 2) :
     </div>
   </div>
 
+  <script type="module" src="../firebase-init.js"></script>
   <script src="js/cart.js"></script>
   <script>
     function changeQty(delta) {
