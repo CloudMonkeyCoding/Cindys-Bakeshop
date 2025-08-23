@@ -396,12 +396,16 @@
         </div>
       </div>
 
-      <label for="mop">Mode of Payment</label>
-      <select id="mop" required>
+      <label for="order-type">Delivery or Pick Up</label>
+      <select id="order-type" required>
         <option value="">-- Select --</option>
-        <option value="Cash on Delivery">Cash on Delivery</option>
-        <option value="GCash">GCash</option>
-        <option value="Credit Card">Credit Card</option>
+        <option value="Delivery">Delivery</option>
+        <option value="Pick up">Pick up</option>
+      </select>
+
+      <label for="mop">Mode of Payment</label>
+      <select id="mop" required disabled>
+        <option value="">-- Select --</option>
       </select>
 
       <button type="submit" class="place-order-btn">Place Order</button>
@@ -441,6 +445,19 @@
     const addrEditBtn = document.getElementById('edit-address');
     const nameDoneBtn = document.getElementById('done-name');
     const addrDoneBtn = document.getElementById('done-address');
+    const orderTypeSelect = document.getElementById('order-type');
+    const mopSelect = document.getElementById('mop');
+
+    orderTypeSelect.addEventListener('change', () => {
+      mopSelect.innerHTML = '<option value="">-- Select --</option>';
+      if (orderTypeSelect.value === 'Delivery') {
+        mopSelect.innerHTML += '<option value="GCash">GCash</option>';
+      } else if (orderTypeSelect.value === 'Pick up') {
+        mopSelect.innerHTML += '<option value="Cash on Pick Up">Cash on Pick Up</option>';
+        mopSelect.innerHTML += '<option value="GCash">GCash</option>';
+      }
+      mopSelect.disabled = orderTypeSelect.value === '';
+    });
 
     nameEditBtn.addEventListener('click', () => {
       nameField.readOnly = false;
@@ -662,11 +679,12 @@
       e.preventDefault();
       const name = document.getElementById("name").value;
       const address = document.getElementById("address").value;
+      const orderType = document.getElementById("order-type").value;
       const mop = document.getElementById("mop").value;
       fetch('../../PHP/order_api.php?action=create', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: `email=${encodeURIComponent(userEmail)}&items=${encodeURIComponent(JSON.stringify(checkoutData))}`
+        body: `email=${encodeURIComponent(userEmail)}&items=${encodeURIComponent(JSON.stringify(checkoutData))}&order_type=${encodeURIComponent(orderType)}&mop=${encodeURIComponent(mop)}`
       })
       .then(res => res.json())
       .then(data => {
