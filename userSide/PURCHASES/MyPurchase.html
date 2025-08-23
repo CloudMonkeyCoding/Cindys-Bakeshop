@@ -307,7 +307,10 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import "../firebase-init.js";
+
     let cancelIndex = null;
 
     function toggleDropdown() {
@@ -332,9 +335,19 @@
       document.querySelectorAll('.tab')[index].classList.add('active');
     }
 
+    let userEmail = null;
+    const auth = getAuth();
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        userEmail = user.email;
+        loadCartItems();
+      }
+    });
+
     function loadCartItems() {
+      if (!userEmail) return;
       const container = document.getElementById('cart-items-container');
-      fetch('../../PHP/order_api.php?action=list&user_id=1')
+      fetch(`../../PHP/order_api.php?action=list&email=${encodeURIComponent(userEmail)}`)
         .then(res => res.json())
         .then(orders => {
           if (!orders || orders.length === 0) {
@@ -388,6 +401,5 @@
 
     window.addEventListener('DOMContentLoaded', loadCartItems);
   </script>
-  <script type="module" src="../firebase-init.js"></script>
 </body>
 </html>

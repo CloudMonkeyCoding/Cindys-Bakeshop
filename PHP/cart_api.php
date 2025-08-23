@@ -2,13 +2,25 @@
 require_once 'db_connect.php';
 require_once 'cart_functions.php';
 require_once 'cart_item_functions.php';
+require_once 'user_functions.php';
 
 header('Content-Type: application/json');
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 switch ($action) {
     case 'list':
-        $userId = (int)($_GET['user_id'] ?? 0);
+        $email = $_GET['email'] ?? '';
+        if ($email) {
+            $user = getUserByEmail($pdo, $email);
+            if (!$user) {
+                http_response_code(404);
+                echo json_encode(['error' => 'User not found']);
+                break;
+            }
+            $userId = (int)$user['User_ID'];
+        } else {
+            $userId = (int)($_GET['user_id'] ?? 0);
+        }
         $cart = getCartByUserId($pdo, $userId);
         if (!$cart) {
             $cartId = createCart($pdo, $userId);

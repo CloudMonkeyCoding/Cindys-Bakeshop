@@ -138,36 +138,45 @@
     <div class="no-favorites" id="noFavorites" style="display:none;">No favorite products found.</div>
   </section>
 
-  <script>
+  <script type="module">
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import "../firebase-init.js";
+
     const grid = document.getElementById('favoritesGrid');
     const noFav = document.getElementById('noFavorites');
 
-    fetch('../../PHP/favorite_api.php?action=list&user_id=1')
-      .then(res => res.json())
-      .then(favorites => {
-        if (!favorites || favorites.length === 0) {
-          noFav.style.display = 'block';
-          return;
-        }
+    const auth = getAuth();
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        fetch(`../../PHP/favorite_api.php?action=list&email=${encodeURIComponent(user.email)}`)
+          .then(res => res.json())
+          .then(favorites => {
+            if (!favorites || favorites.length === 0) {
+              noFav.style.display = 'block';
+              return;
+            }
 
-        favorites.forEach(product => {
-          const div = document.createElement('div');
-          div.className = 'favorite-item';
-          div.innerHTML = `
-            <a href="../PRODUCT/product.php?id=${product.Product_ID}">
-              <img src="${product.Image_Path}" alt="${product.Name}">
-              <div class="product-name">${product.Name}</div>
-            </a>
-            <a href="../LOGIN_SIGNUP/user_login.html" class="order-now">Order Now</a>
-          `;
-          grid.appendChild(div);
-        });
-      })
-      .catch(() => {
+            favorites.forEach(product => {
+              const div = document.createElement('div');
+              div.className = 'favorite-item';
+              div.innerHTML = `
+                <a href="../PRODUCT/product.php?id=${product.Product_ID}">
+                  <img src="${product.Image_Path}" alt="${product.Name}">
+                  <div class="product-name">${product.Name}</div>
+                </a>
+                <a href="../LOGIN_SIGNUP/user_login.html" class="order-now">Order Now</a>
+              `;
+              grid.appendChild(div);
+            });
+          })
+          .catch(() => {
+            noFav.style.display = 'block';
+          });
+      } else {
         noFav.style.display = 'block';
-      });
+      }
+    });
   </script>
-  <script type="module" src="../firebase-init.js"></script>
 
 </body>
 </html>

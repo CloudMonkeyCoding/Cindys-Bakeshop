@@ -217,8 +217,10 @@
     </form>
   </div>
 
-  <script type="module" src="../firebase-init.js"></script>
-  <script>
+  <script type="module">
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import "../firebase-init.js";
+
     function toggleDropdown() {
       const dropdown = document.getElementById("profileDropdown");
       dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
@@ -234,16 +236,18 @@
       }
     };
 
-  
-    window.onload = () => {
-      fetch('../../PHP/user_api.php?action=get_face&user_id=1')
-        .then(res => res.json())
-        .then(data => {
-          if (data.face_image_path) {
-            document.getElementById('profilePic').src = data.face_image_path;
-          }
-        });
-    };
+    const auth = getAuth();
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        fetch(`../../PHP/user_api.php?action=get_face&email=${encodeURIComponent(user.email)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.face_image_path) {
+              document.getElementById('profilePic').src = data.face_image_path;
+            }
+          });
+      }
+    });
 
     document.getElementById("editProfileForm").addEventListener("submit", function(e) {
       e.preventDefault();

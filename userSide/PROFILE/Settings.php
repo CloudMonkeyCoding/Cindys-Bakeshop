@@ -1,10 +1,17 @@
 <?php
-session_start();
 require_once '../../PHP/db_connect.php';
 require_once '../../PHP/user_functions.php';
 
-$userId = $_SESSION['user_id'] ?? null;
+$email = $_GET['email'] ?? $_POST['email'] ?? '';
+$userId = null;
 $message = '';
+
+if ($email) {
+    $user = getUserByEmail($pdo, $email);
+    if ($user) {
+        $userId = $user['User_ID'];
+    }
+}
 
 // Default settings
 $userSettings = [
@@ -16,14 +23,11 @@ $userSettings = [
 ];
 
 if ($userId) {
-    $user = getUserById($pdo, $userId);
-    if ($user) {
-        $userSettings['language'] = $user['Language'] ?? 'English';
-        $userSettings['theme'] = $user['Theme'] ?? 'Light';
-        $userSettings['notify_order'] = $user['Notify_Order_Status'] ?? 0;
-        $userSettings['notify_promotions'] = $user['Notify_Promotions'] ?? 0;
-        $userSettings['notify_feedback'] = $user['Notify_Feedback'] ?? 0;
-    }
+    $userSettings['language'] = $user['Language'] ?? 'English';
+    $userSettings['theme'] = $user['Theme'] ?? 'Light';
+    $userSettings['notify_order'] = $user['Notify_Order_Status'] ?? 0;
+    $userSettings['notify_promotions'] = $user['Notify_Promotions'] ?? 0;
+    $userSettings['notify_feedback'] = $user['Notify_Feedback'] ?? 0;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId) {
@@ -267,6 +271,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId) {
       <p class="message"><?php echo htmlspecialchars($message); ?></p>
     <?php endif; ?>
     <form method="POST" action="">
+      <input type="hidden" name="email" value="<?php echo htmlspecialchars($email); ?>">
     <div class="settings-section">
       <h3>Account Preferences</h3>
       <label for="language">Language</label>

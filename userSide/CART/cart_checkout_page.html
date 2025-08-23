@@ -354,8 +354,11 @@
     <button class="back-btn" onclick="goBack()">← Back to Cart</button>
   </div>
 
-  <script>
-      function toggleDropdown() {
+  <script type="module">
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import "../firebase-init.js";
+
+    function toggleDropdown() {
       const dropdown = document.getElementById("profileDropdown");
       dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
     }
@@ -374,9 +377,19 @@
     const masterCheckbox = document.querySelector('.check-all input[type="checkbox"]');
     let cartId = null;
     let checkoutData = [];
+    let userEmail = null;
+
+    const auth = getAuth();
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        userEmail = user.email;
+        loadCart();
+      }
+    });
 
     async function loadCart() {
-      const res = await fetch('../../PHP/cart_api.php?action=list&user_id=1');
+      if (!userEmail) return;
+      const res = await fetch(`../../PHP/cart_api.php?action=list&email=${encodeURIComponent(userEmail)}`);
       const data = await res.json();
       cartId = data.cart_id;
       const cart = data.items;
@@ -543,7 +556,7 @@
       fetch('../../PHP/order_api.php?action=create', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: `user_id=1&items=${encodeURIComponent(JSON.stringify(checkoutData))}`
+        body: `email=${encodeURIComponent(userEmail)}&items=${encodeURIComponent(JSON.stringify(checkoutData))}`
       })
       .then(res => res.json())
       .then(data => {
@@ -552,9 +565,7 @@
         loadCart();
       });
     }
-
-    window.addEventListener("DOMContentLoaded", loadCart);
   </script>
-  <script type="module" src="../firebase-init.js"></script>
+  
 </body>
 </html>
