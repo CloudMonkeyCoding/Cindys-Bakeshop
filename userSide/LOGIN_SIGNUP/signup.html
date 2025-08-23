@@ -214,11 +214,15 @@
 
         try {
           await createUserWithEmailAndPassword(auth, email, pw);
-          await fetch('../../PHP/register_user.php', {
+          const res = await fetch('../../PHP/register_user.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ fullName, email, password: pw, faceImage })
           });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Failed to save user');
+          }
           passwordMsg.textContent = "";
           alert("Signup successful! Redirecting to login page...");
           window.location.href = "../LOGIN_SIGNUP/user_login.html";

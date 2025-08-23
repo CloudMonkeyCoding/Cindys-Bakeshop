@@ -29,6 +29,13 @@ if (!$name || !$email || !$password || !$faceImage) {
     exit;
 }
 
+// Prevent duplicate registrations for the same email
+if (checkEmailExists($pdo, $email)) {
+    http_response_code(409);
+    echo json_encode(['error' => 'Email already registered']);
+    exit;
+}
+
 $parts = explode(',', $faceImage);
 if (count($parts) < 2) {
     http_response_code(400);
