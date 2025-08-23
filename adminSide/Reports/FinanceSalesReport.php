@@ -106,6 +106,7 @@ include '../header.php';
   </main>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
   <script>
     const notifications = [
       "⚠️ Low Stock: Chocolate Cake (2 left)",
@@ -148,19 +149,36 @@ include '../header.php';
 
     function exportTableToPDF() {
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      doc.text('Finance & Sales Report', 14, 20);
-      let y = 30;
-      const rows = document.querySelectorAll('#reportTable tbody tr');
-      rows.forEach(row => {
-        const cols = Array.from(row.cells).map(cell => cell.innerText.trim());
-        doc.text(cols.join(' | '), 14, y);
-        y += 7;
-        if (y > 280) {
-          doc.addPage();
-          y = 20;
-        }
+      const doc = new jsPDF({ orientation: 'landscape' });
+      doc.setFontSize(10);
+      doc.text('Finance & Sales Report', 14, 15);
+
+      const headers = [
+        'Transaction ID',
+        'Order ID',
+        'Date',
+        'Customer',
+        'Product Total',
+        'Amount Paid',
+        'Payment Method',
+        'Status',
+        'Payment Date',
+        'Reference Number'
+      ];
+
+      const rows = [];
+      document.querySelectorAll('#reportTable tbody tr').forEach(row => {
+        const cells = Array.from(row.cells).map(cell => cell.innerText.trim());
+        rows.push(cells);
       });
+
+      doc.autoTable({
+        head: [headers],
+        body: rows,
+        startY: 20,
+        styles: { fontSize: 8 }
+      });
+
       doc.save('finance_sales_report.pdf');
     }
 
