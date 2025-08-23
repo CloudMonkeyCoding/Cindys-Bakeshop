@@ -421,14 +421,19 @@
             </div>
           </div>
           <div class="item-actions">
-            <button class="qty-btn" onclick="decreaseQty(this)">-</button>
+            <button class="qty-btn decrease-btn">-</button>
             <div class="qty-display">${item.Quantity}</div>
-            <button class="qty-btn" onclick="increaseQty(this)">+</button>
-            <button class="edit-btn" onclick="toggleEdit(this)">✏️</button>
-            <button class="remove-btn" onclick="removeItem(this)">🗑️</button>
+            <button class="qty-btn increase-btn">+</button>
+            <button class="edit-btn">✏️</button>
+            <button class="remove-btn">🗑️</button>
           </div>
         `;
         cartContainer.appendChild(div);
+
+        div.querySelector('.decrease-btn').addEventListener('click', e => decreaseQty(e.target));
+        div.querySelector('.increase-btn').addEventListener('click', e => increaseQty(e.target));
+        div.querySelector('.edit-btn').addEventListener('click', e => toggleEdit(e.target));
+        div.querySelector('.remove-btn').addEventListener('click', e => removeItem(e.target));
       });
 
       document.querySelectorAll('.item-check').forEach(cb => {
@@ -571,10 +576,6 @@
     window.toggleAll = toggleAll;
     window.goToCheckout = goToCheckout;
     window.goBack = goBack;
-    window.increaseQty = increaseQty;
-    window.decreaseQty = decreaseQty;
-    window.toggleEdit = toggleEdit;
-    window.removeItem = removeItem;
     window.placeOrder = placeOrder;
   </script>
   
