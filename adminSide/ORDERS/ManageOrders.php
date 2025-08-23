@@ -31,7 +31,7 @@ include '../header.php';
             <input type="text" id="searchOrder" placeholder="Search Order ID" class="border rounded px-2 py-1 text-sm">
             <input type="date" id="startDate" class="border rounded px-2 py-1 text-sm">
             <input type="date" id="endDate" class="border rounded px-2 py-1 text-sm">
-            <a href="../../PHP/export_orders_csv.php" class="bg-gray-300 px-4 py-1 rounded text-sm">Export Orders</a>
+            <button onclick="exportOrdersToPDF()" class="bg-gray-300 px-4 py-1 rounded text-sm">Export Orders</button>
           </div>
           <div class="flex space-x-4 mb-2 text-sm">
             <button onclick="filterOrders('all')" class="tab-active">All</button>
@@ -83,7 +83,25 @@ include '../header.php';
   </div>
 
   <!-- Sidebar Script -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
+    function exportOrdersToPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text("Orders Report", 14, 20);
+      let y = 30;
+      document.querySelectorAll('#orderTable tr').forEach(row => {
+        const cols = Array.from(row.cells).map(cell => cell.innerText.trim());
+        doc.text(cols.join(' | '), 14, y);
+        y += 7;
+        if (y > 280) {
+          doc.addPage();
+          y = 20;
+        }
+      });
+      doc.save('orders.pdf');
+    }
+
     let currentStatus = 'all';
 
     function filterOrders(status) {

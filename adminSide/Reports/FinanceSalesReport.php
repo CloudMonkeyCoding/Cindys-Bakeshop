@@ -45,7 +45,7 @@ include '../header.php';
         <option>Last 30 days</option>
         <option>This Month</option>
       </select>
-      <button class="export-btn" onclick="exportTableToCSV()">Export CSV</button>
+      <button class="export-btn" onclick="exportTableToPDF()">Export PDF</button>
     </div>
 
     <!-- Sales Summary Cards -->
@@ -105,6 +105,7 @@ include '../header.php';
     </table>
   </main>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
     const notifications = [
       "⚠️ Low Stock: Chocolate Cake (2 left)",
@@ -145,26 +146,22 @@ include '../header.php';
       }
     });
 
-    function sanitizeCSVCell(value) {
-      value = value.replace(/"/g, '""');
-      if (/^[=+\-@]/.test(value)) {
-        value = "'" + value;
-      }
-      return `"${value}"`;
-    }
-
-    function exportTableToCSV() {
-      const table = document.getElementById("reportTable");
-      let csv = [];
-      for (let row of table.rows) {
-        let cols = Array.from(row.cells).map(cell => sanitizeCSVCell(cell.innerText.trim()));
-        csv.push(cols.join(","));
-      }
-      const csvContent = "data:text/csv;charset=utf-8," + csv.join("\n");
-      const link = document.createElement("a");
-      link.setAttribute("href", csvContent);
-      link.setAttribute("download", "finance_sales_report.csv");
-      link.click();
+    function exportTableToPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text('Finance & Sales Report', 14, 20);
+      let y = 30;
+      const rows = document.querySelectorAll('#reportTable tbody tr');
+      rows.forEach(row => {
+        const cols = Array.from(row.cells).map(cell => cell.innerText.trim());
+        doc.text(cols.join(' | '), 14, y);
+        y += 7;
+        if (y > 280) {
+          doc.addPage();
+          y = 20;
+        }
+      });
+      doc.save('finance_sales_report.pdf');
     }
 
     const barCtx = document.getElementById("barChart").getContext("2d");
