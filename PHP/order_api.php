@@ -56,13 +56,14 @@ switch ($action) {
     case 'view':
         $orderId = (int)($_GET['order_id'] ?? 0);
         $order = getOrderById($pdo, $orderId);
+        $user = $order ? getUserById($pdo, $order['User_ID']) : null;
         $stmt = $pdo->prepare('SELECT oi.Quantity, oi.Subtotal, p.Name FROM Order_Item oi JOIN Product p ON oi.Product_ID = p.Product_ID WHERE oi.Order_ID = :order_id');
         $stmt->execute([':order_id' => $orderId]);
         $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $stmt = $pdo->prepare('SELECT Payment_Method, Payment_Status, Amount_Paid, Reference_Number FROM Transaction WHERE Order_ID = :order_id');
         $stmt->execute([':order_id' => $orderId]);
         $transaction = $stmt->fetch(PDO::FETCH_ASSOC);
-        echo json_encode(['order' => $order, 'items' => $items, 'transaction' => $transaction]);
+        echo json_encode(['order' => $order, 'user' => $user, 'items' => $items, 'transaction' => $transaction]);
         break;
     default:
         http_response_code(400);

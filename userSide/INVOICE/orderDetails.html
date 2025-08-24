@@ -47,9 +47,10 @@
           return;
         }
         const order = data.order;
+        const user = data.user || {};
         const transaction = data.transaction || {};
-        document.getElementById('name').textContent = order.User_ID;
-        document.getElementById('address').textContent = order.Address || '';
+        document.getElementById('name').textContent = user.Name || '';
+        document.getElementById('address').textContent = user.Address || '';
         document.getElementById('mop').textContent = transaction.Payment_Method || '';
         document.getElementById('date').textContent = order.Order_Date;
 
