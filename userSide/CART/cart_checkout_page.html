@@ -363,7 +363,7 @@
       .then(res => res.json())
       .then(data => {
         document.getElementById("confirmationMsg").innerHTML =
-          `🎉 Thank you, <b>${name}</b>! Your order has been placed. <br><br><a href="orderDetails.html?order_id=${data.order_id}" style="color:blue;text-decoration:underline;">👉 View Order Details</a>`;
+          `🎉 Thank you, <b>${name}</b>! Your order has been placed. <br><br><a href="../INVOICE/orderDetails.html?order_id=${data.order_id}" style="color:blue;text-decoration:underline;">👉 View Order Details</a>`;
         loadCart();
       });
     }
