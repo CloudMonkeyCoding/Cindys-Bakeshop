@@ -1,6 +1,10 @@
 async function addToCart() {
   const qtyEl = document.getElementById("qty");
   const qty = qtyEl ? parseInt(qtyEl.value, 10) || 1 : 1;
+  if (typeof window.maxStock !== 'undefined' && qty > window.maxStock) {
+    alert(`Only ${window.maxStock} left in stock.`);
+    return false;
+  }
   const productId = new URLSearchParams(window.location.search).get("id");
   if (!productId) {
     alert("Missing product id.");

@@ -5,6 +5,7 @@ require_once 'order_item_functions.php';
 require_once 'transaction_functions.php';
 require_once 'user_functions.php';
 require_once 'inventory_functions.php';
+require_once 'product_functions.php';
 
 header('Content-Type: application/json');
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
@@ -61,6 +62,7 @@ switch ($action) {
             $total += $subtotal;
             addOrderItem($pdo, $orderId, $it['product_id'], $it['quantity'], $subtotal);
             adjustInventoryStock($pdo, $it['product_id'], -$it['quantity']);
+            adjustProductStock($pdo, $it['product_id'], -$it['quantity']);
         }
         addTransaction($pdo, $orderId, $mop, 'Pending', date('Y-m-d'), $total, null);
         echo json_encode(['order_id' => $orderId]);

@@ -349,12 +349,22 @@ $price = isset($product['Price']) ? number_format((float)$product['Price'], 2) :
   <script type="module" src="../firebase-init.js"></script>
   <script src="js/cart.js"></script>
   <script>
+    const maxStock = <?= (int)($product['Stock_Quantity'] ?? 0); ?>;
+    if (maxStock === 0) {
+      document.querySelector('.add-to-cart').disabled = true;
+      document.querySelector('.buy-now').disabled = true;
+    }
+
     function changeQty(delta) {
       const qty = document.getElementById('qty');
       let current = parseInt(qty.value);
       current = isNaN(current) ? 1 : current;
       current += delta;
       if (current < 1) current = 1;
+      if (current > maxStock) {
+        current = maxStock;
+        alert(`Only ${maxStock} left in stock.`);
+      }
       qty.value = current;
     }
 
