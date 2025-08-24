@@ -23,6 +23,25 @@ deliveries while administrators manage the catalogue and fulfilment.
 - `user-cindysbakeshop/` – customer‑facing pages
 - `Admin Cindys/`, `UpdatedUser/`, `UpdatedUser1/` – legacy/alternate versions kept for reference
 
+## Database Schema Summary
+The SQL dump defines the following tables:
+
+- **blacklist** – banned users with reason and IP (`Blacklist_ID`, `User_ID`, `Blacklist_reason`, `IP_Address`)
+- **cart_item** – items placed in a shopping cart (`Cart_Item_ID`, `Cart_ID`, `Product_ID`, `Quantity`)
+- **delivery** – delivery status for orders (`Delivery_ID`, `Order_ID`, `Status`, `Delivery_Date`, `Delivery_Personnel`)
+- **delivery_personnel** – links delivery staff to user accounts (`Delivery_Personnel_ID`, `User_ID`)
+- **inventory** – stock levels for products (`Inventory_ID`, `Product_ID`, `Stock_Quantity`)
+- **order** – customer orders (`Order_ID`, `User_ID`, `Order_Date`, `Status`)
+- **order_item** – products within an order (`Order_Item_ID`, `Order_ID`, `Product_ID`, `Quantity`, `Subtotal`)
+- **product** – product catalog (`Product_ID`, `Name`, `Description`, `Price`, `Stock_Quantity`, `Category`, `Image_Path`)
+- **shopping_cart** – cart ownership (`Cart_ID`, `User_ID`)
+- **store_staff** – identifies staff accounts (`Store_Staff_ID`, `User_ID`)
+- **transaction** – payment records (`Transaction_ID`, `Order_ID`, `Payment_Method`, `Payment_Status`, `Payment_Date`, `Amount_Paid`, `Reference_Number`)
+- **user** – registered users and preferences (`User_ID`, `Name`, `Email`, `Password`, `Address`, `Language`, `Theme`, `Notify_Order_Status`, `Notify_Promotions`, `Notify_Feedback`, `Warning_Count`, `Face_Image_Path`)
+- **product_ratings** – aggregated product reviews (`Rating_ID`, `Product_Name`, `Average_Rating`, `Total_Review`, `Comments`)
+- **favorites** – user-saved products (`Favorite_ID`, `User_ID`, `Product_ID`)
+- **order_cancellation** – cancellation requests (`Cancellation_ID`, `Order_ID`, `User_ID`, `Reason`, `Cancellation_Date`, `Status`)
+
 ## Installation
 1. Create a database named `cindysdb` in your MySQL server.
 2. Import the SQL dump using phpMyAdmin or the command line:
