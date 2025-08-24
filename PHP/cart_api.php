@@ -37,8 +37,22 @@ switch ($action) {
         $cartId = (int)($_POST['cart_id'] ?? 0);
         $productId = (int)($_POST['product_id'] ?? 0);
         $qty = (int)($_POST['quantity'] ?? 1);
+        $userId = (int)($_POST['user_id'] ?? 0);
+
+        // Ensure the cart exists; if not, create or fetch using user ID
+        $cartExists = $cartId > 0 ? getCartById($pdo, $cartId) : null;
+        if (!$cartExists) {
+            if ($userId <= 0) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Invalid or missing cart_id']);
+                break;
+            }
+            $cart = getCartByUserId($pdo, $userId);
+            $cartId = $cart ? $cart['Cart_ID'] : createCart($pdo, $userId);
+        }
+
         $id = addCartItem($pdo, $cartId, $productId, $qty);
-        echo json_encode(['cart_item_id' => $id]);
+        echo json_encode(['cart_item_id' => $id, 'cart_id' => $cartId]);
         break;
     case 'update':
         $cartItemId = (int)($_POST['cart_item_id'] ?? 0);
