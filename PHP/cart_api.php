@@ -38,6 +38,14 @@ switch ($action) {
         $productId = (int)($_POST['product_id'] ?? 0);
         $qty = (int)($_POST['quantity'] ?? 1);
         $userId = (int)($_POST['user_id'] ?? 0);
+        $email = $_POST['email'] ?? '';
+
+        if ($userId <= 0 && $email) {
+            $user = getUserByEmail($pdo, $email);
+            if ($user) {
+                $userId = (int)$user['User_ID'];
+            }
+        }
 
         // Ensure the cart exists; if not, create or fetch using user ID
         $cartExists = $cartId > 0 ? getCartById($pdo, $cartId) : null;

@@ -7,16 +7,17 @@ async function addToCart() {
     return false;
   }
   try {
-    // Ensure we have a cart ID for this user
+    // Ensure we have user info and a cart ID
+    let email = null;
+    try {
+      const auth = window.getAuth ? window.getAuth() : null;
+      email = auth && auth.currentUser ? auth.currentUser.email : null;
+    } catch (e) {
+      console.error("Auth unavailable", e);
+    }
+
     let cartId = localStorage.getItem("cart_id");
     if (!cartId) {
-      let email = null;
-      try {
-        const auth = window.getAuth ? window.getAuth() : null;
-        email = auth && auth.currentUser ? auth.currentUser.email : null;
-      } catch (e) {
-        console.error("Auth unavailable", e);
-      }
       const listUrl = email
         ? `/PHP/cart_api.php?action=list&email=${encodeURIComponent(email)}`
         : `/PHP/cart_api.php?action=list`;
@@ -33,13 +34,17 @@ async function addToCart() {
       cartId = listData.cart_id;
       localStorage.setItem("cart_id", cartId);
     }
-    const body = `cart_id=${encodeURIComponent(cartId)}&product_id=${encodeURIComponent(
-      productId
-    )}&quantity=${encodeURIComponent(qty)}`;
+
+    const params = new URLSearchParams();
+    params.set("cart_id", cartId);
+    params.set("product_id", productId);
+    params.set("quantity", qty);
+    if (email) params.set("email", email);
+
     const response = await fetch("/PHP/cart_api.php?action=add", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body
+      body: params.toString()
     });
     const respText = await response.text();
     let result;
