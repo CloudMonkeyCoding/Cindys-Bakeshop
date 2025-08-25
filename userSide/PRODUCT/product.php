@@ -47,8 +47,8 @@ $price = isset($product['Price']) ? number_format((float)$product['Price'], 2) :
   <div class="background-blur"></div>
   <?php include __DIR__ . '/../topbar.php'; ?>
   <div class="wrapper">
-    <button class="back-btn" onclick="history.back()">&larr; Back</button>
     <div class="container">
+      <button class="back-btn" onclick="history.back()">&larr; Back</button>
       <div class="image-section">
         <div class="circle-bg"></div>
         <?php if (!empty($product['Image_Path'])): ?>
