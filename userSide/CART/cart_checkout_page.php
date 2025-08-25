@@ -376,11 +376,22 @@
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: `email=${encodeURIComponent(userEmail)}&items=${encodeURIComponent(JSON.stringify(checkoutData))}&order_type=${encodeURIComponent(orderType)}&mop=${encodeURIComponent(mop)}`
       })
-      .then(res => res.json())
+      .then(async res => {
+        const contentType = res.headers.get('Content-Type') || '';
+        if (!res.ok || !contentType.includes('application/json')) {
+          const text = await res.text();
+          throw new Error(text);
+        }
+        return res.json();
+      })
       .then(data => {
         document.getElementById("confirmationMsg").innerHTML =
           `🎉 Thank you, <b>${name}</b>! Your order has been placed. <br><br><a href="../INVOICE/orderDetails.php?order_id=${data.order_id}" style="color:blue;text-decoration:underline;">👉 View Order Details</a>`;
         loadCart();
+      })
+      .catch(err => {
+        console.error('Error placing order:', err);
+        document.getElementById("confirmationMsg").textContent = 'There was a problem placing your order. Please try again.';
       });
     }
 
