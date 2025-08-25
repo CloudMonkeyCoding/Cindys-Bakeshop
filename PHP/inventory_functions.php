@@ -1,4 +1,5 @@
 <?php
+require_once 'notification_functions.php';
 // 1) Add inventory entry for a product
 function addInventory($pdo, $productId, $stockQuantity) {
     $stmt = $pdo->prepare("
@@ -30,11 +31,26 @@ function getAllInventory($pdo) {
 // 3b) Get inventory with product details
 function getInventoryWithProducts($pdo) {
     $stmt = $pdo->query(
-        "SELECT p.Name, p.Category, i.Stock_Quantity\n" .
+        "SELECT p.Product_ID, p.Name, p.Category, i.Stock_Quantity\n" .
         "FROM Inventory i\n" .
         "JOIN Product p ON i.Product_ID = p.Product_ID"
     );
     return $stmt->fetchAll();
+}
+
+function notifyLowStock($pdo, $productId) {
+    $stmt = $pdo->prepare(
+        "SELECT p.Name, i.Stock_Quantity
+         FROM Inventory i
+         JOIN Product p ON i.Product_ID = p.Product_ID
+         WHERE i.Product_ID = :id"
+    );
+    $stmt->execute([':id' => $productId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($row && $row['Stock_Quantity'] !== null && $row['Stock_Quantity'] < 5) {
+        $message = 'Low stock: ' . $row['Name'] . ' (' . $row['Stock_Quantity'] . ' left)';
+        addNotification($pdo, 'low_stock', $message, $productId);
+    }
 }
 
 // 4) Update stock quantity for a product
@@ -48,6 +64,7 @@ function updateInventoryStock($pdo, $productId, $stockQuantity) {
         ':stock_quantity' => $stockQuantity,
         ':product_id' => $productId
     ]);
+    notifyLowStock($pdo, $productId);
     return $stmt->rowCount();
 }
 
@@ -62,6 +79,7 @@ function adjustInventoryStock($pdo, $productId, $quantityChange) {
         ':quantity_change' => $quantityChange,
         ':product_id' => $productId
     ]);
+    notifyLowStock($pdo, $productId);
     return $stmt->rowCount();
 }
 
@@ -73,4 +91,33 @@ function deleteInventoryByProductId($pdo, $productId) {
     $stmt->execute([':product_id' => $productId]);
     return $stmt->rowCount();
 }
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['product_id'], $_POST['stock_quantity'])) {
+    require_once 'db_connect.php';
+    header('Content-Type: application/json');
+    if (!$pdo) {
+        echo json_encode(['success' => false, 'error' => 'Database connection failed']);
+        exit;
+    }
+
+    $productId = (int)$_POST['product_id'];
+    $stockInput = trim($_POST['stock_quantity']);
+    $stockQuantity = ($stockInput === '') ? null : (int)$stockInput;
+    updateInventoryStock($pdo, $productId, $stockQuantity);
+
+    $rows = getInventoryWithProducts($pdo);
+    $data = [];
+    foreach ($rows as $row) {
+        $category = $row['Category'] ?? 'Uncategorized';
+        $data[$category][] = [
+            'id' => $row['Product_ID'],
+            'name' => $row['Name'],
+            'stock' => $row['Stock_Quantity']
+        ];
+    }
+
+    echo json_encode(['success' => true, 'data' => $data]);
+    exit;
+}
+
 ?>

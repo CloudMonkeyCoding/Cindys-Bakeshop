@@ -22,7 +22,6 @@ if ($pdo) {
           <input id="searchInput" type="text" placeholder="Search bread...">
         </div>
       </div>
-
       <div class="products-grid">
       <?php foreach ($products as $product): ?>
         <div class="product-card" onclick="goToProduct(<?= htmlspecialchars($product['Product_ID']) ?>)">
@@ -43,28 +42,39 @@ if ($pdo) {
 
     </div>
 
-    <script>
-      const searchInput = document.getElementById('searchInput');
-      const productCards = document.querySelectorAll('.product-card');
-      const noResults = document.getElementById('no-results');
+<p id="no-results" style="text-align: center; font-weight: bold; font-size: 18px; display: none;">
+  No products found.
+</p>
 
-      searchInput.addEventListener('input', () => {
-        const searchTerm = searchInput.value.toLowerCase();
-        let matches = 0;
+<script>
+  const searchInput = document.getElementById('searchInput');
+  const productCards = Array.from(document.querySelectorAll('.product-card'));
+  const noResults = document.getElementById('no-results');
 
-        productCards.forEach(card => {
-          const productName = card.querySelector('.product-name').textContent.toLowerCase();
-          const isMatch = productName.includes(searchTerm);
-          card.style.display = isMatch ? 'block' : 'none';
-          if (isMatch) matches++;
-        });
+  function applyFilter() {
+    const searchTerm = (searchInput.value || '').toLowerCase().trim();
+    let matches = 0;
 
-        noResults.style.display = matches === 0 ? 'block' : 'none';
-      });
+    productCards.forEach(card => {
+      const nameEl = card.querySelector('.product-name');
+      const productName = (nameEl ? nameEl.textContent : '').toLowerCase();
+      const isMatch = !searchTerm || productName.includes(searchTerm);
+      // Use '' (empty string) to restore default display so the grid stays intact
+      card.style.display = isMatch ? '' : 'none';
+      if (isMatch) matches++;
+    });
 
-      function goToProduct(id) {
-        window.location.href = `product.php?id=${id}`;
-      }
-    </script>
+    noResults.style.display = matches === 0 ? '' : 'none';
+  }
+
+  searchInput.addEventListener('input', applyFilter);
+  // Run once on load in case list is empty or pre-filtered
+  applyFilter();
+
+  function goToProduct(id) {
+    window.location.href = `product.php?id=${encodeURIComponent(id)}`;
+  }
+</script>
+
 </body>
 </html>
