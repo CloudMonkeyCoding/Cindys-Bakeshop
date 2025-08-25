@@ -57,7 +57,7 @@ if ($pdo) {
 
     .products-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 25px;
       padding: 20px 40px;
     }
@@ -78,7 +78,7 @@ if ($pdo) {
     }
 
     .product-card img {
-      max-width: 160px;
+      max-width: 130px;
       height: auto;
       margin-bottom: 10px;
     }
