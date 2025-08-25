@@ -49,7 +49,7 @@
               div.className = 'favorite-item';
               div.innerHTML = `
                 <a href="../PRODUCT/product.php?id=${product.Product_ID}">
-                  <img src="${product.Image_Path}" alt="${product.Name}">
+                  <img src="${product.Image_Path ? '../../adminSide/products/uploads/' + product.Image_Path : ''}" alt="${product.Name}">
                   <div class="product-name">${product.Name}</div>
                 </a>
                 <a href="../LOGIN_SIGNUP/user_login.html" class="order-now">Order Now</a>

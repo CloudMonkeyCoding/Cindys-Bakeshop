@@ -199,7 +199,7 @@
         div.innerHTML = `
           <div class="cart-item-left">
             <input type="checkbox" class="item-check" checked>
-            <img src="${item.Image_Path || 'default.png'}" alt="Product">
+            <img src="${item.Image_Path ? '../../adminSide/products/uploads/' + item.Image_Path : 'default.png'}" alt="Product">
             <div class="item-details">
               <b>${item.Name}</b><br>
               Price: ₱${parseFloat(item.Price).toFixed(2)}
