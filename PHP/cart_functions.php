@@ -1,6 +1,9 @@
 <?php
 // 1) Create a cart for a user
 function createCart($pdo, $userId) {
+    if ($userId <= 0) {
+        return 0;
+    }
     $stmt = $pdo->prepare("
         INSERT INTO shopping_cart (User_ID)
         VALUES (:user_id)

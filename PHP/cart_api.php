@@ -21,6 +21,11 @@ switch ($action) {
         } else {
             $userId = (int)($_GET['user_id'] ?? 0);
         }
+        if ($userId <= 0) {
+            echo json_encode(['cart_id' => 0, 'items' => []]);
+            break;
+        }
+
         $cart = getCartByUserId($pdo, $userId);
         if (!$cart) {
             $cartId = createCart($pdo, $userId);
