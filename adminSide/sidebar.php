@@ -14,6 +14,8 @@ $prefix = str_repeat('../', $depth);
   <nav class="space-y-2 text-sm font-medium">
     <a href="<?= $prefix ?>dashboard/admin_dash.php" class="flex items-center gap-2 p-2 rounded <?php echo $activePage === 'dashboard' ? 'bg-gray-200 font-semibold' : 'sidebar-link'; ?>">🏠 Dashboard</a>
 
+    <a href="<?= $prefix ?>notifications.php" class="flex items-center gap-2 p-2 rounded <?php echo $activePage === 'notifications' ? 'bg-gray-200 font-semibold' : 'sidebar-link'; ?>">🔔 Notifications</a>
+
     <!-- Orders -->
     <div class="menu">
       <a href="javascript:void(0)" onclick="toggleMenu(this)" class="flex items-center gap-2 p-2 rounded sidebar-link">📦 Orders</a>
