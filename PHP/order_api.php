@@ -8,6 +8,7 @@ require_once 'inventory_functions.php';
 require_once 'product_functions.php';
 require_once 'cart_functions.php';
 require_once 'cart_item_functions.php';
+require_once 'email_functions.php';
 
 header('Content-Type: application/json');
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
@@ -65,6 +66,12 @@ switch ($action) {
             addOrderItem($pdo, $orderId, $it['product_id'], $it['quantity'], $subtotal);
             adjustInventoryStock($pdo, $it['product_id'], -$it['quantity']);
             adjustProductStock($pdo, $it['product_id'], -$it['quantity']);
+
+            $inventory = getInventoryByProductId($pdo, $it['product_id']);
+            if ($inventory && $inventory['Stock_Quantity'] < 20) {
+                $product = getProductById($pdo, $it['product_id']);
+                sendLowStockEmail($product['Name'], (int)$inventory['Stock_Quantity']);
+            }
         }
         addTransaction($pdo, $orderId, $mop, 'Pending', date('Y-m-d'), $total, null);
         $cart = getCartByUserId($pdo, $userId);
