@@ -61,6 +61,7 @@ if ($pdo) {
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 25px;
       padding: 20px 40px;
+      justify-content: center;
     }
 
     .product-card {
@@ -72,6 +73,8 @@ if ($pdo) {
       box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
       transition: transform 0.2s;
       cursor: pointer;
+      width: 180px;
+      margin: 0 auto;
     }
 
     .product-card:hover {
