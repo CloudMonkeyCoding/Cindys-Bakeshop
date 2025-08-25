@@ -128,7 +128,7 @@ if ($pdo) {
 <body>
   <div class="content-wrapper">
     <?php
-      $backLink = 'MENU.html';
+      $backLink = 'MENU.php';
       $backText = 'Back to Menu';
       $searchPlaceholder = 'Search cakes...';
       include __DIR__ . '/../topbar.php';

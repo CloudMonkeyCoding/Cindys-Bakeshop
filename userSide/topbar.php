@@ -1,5 +1,5 @@
 <?php
-$backLink = $backLink ?? 'MENU.html';
+$backLink = $backLink ?? 'MENU.php';
 $backText = $backText ?? 'Back';
 $searchPlaceholder = $searchPlaceholder ?? 'Search...';
 ?>
