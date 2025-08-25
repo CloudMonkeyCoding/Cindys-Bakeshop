@@ -78,6 +78,7 @@ switch ($action) {
         if ($cart) {
             deleteCartItemsByCartId($pdo, $cart['Cart_ID']);
         }
+        sendOrderNotificationEmail($orderId, $userId, $total);
         echo json_encode(['order_id' => $orderId]);
         break;
     case 'view':

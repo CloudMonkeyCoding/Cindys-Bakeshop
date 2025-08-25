@@ -10,13 +10,13 @@ if (class_exists('Dotenv\\Dotenv')) {
 }
 
 /**
- * Send a low-stock notification email using SMTP credentials.
+ * Send an email to the admin using Brevo SMTP settings.
  *
- * @param string $productName
- * @param int    $stockQty
+ * @param string $subject
+ * @param string $body
  * @return void
  */
-function sendLowStockEmail(string $productName, int $stockQty): void
+function sendAdminEmail(string $subject, string $body): void
 {
     $host = $_ENV['BREVO_SMTP_HOST'] ?? '';
     $port = (int)($_ENV['BREVO_SMTP_PORT'] ?? 587);
@@ -44,11 +44,40 @@ function sendLowStockEmail(string $productName, int $stockQty): void
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->setFrom($from, $fromName);
         $mail->addAddress($from);
-        $mail->Subject = 'Low Stock Alert: ' . $productName;
-        $mail->Body = "Stock for {$productName} is low. Current level: {$stockQty}.";
+        $mail->Subject = $subject;
+        $mail->Body = $body;
         $mail->send();
     } catch (Exception $e) {
         error_log('Mailer Error: ' . $mail->ErrorInfo);
     }
+}
+
+/**
+ * Send a low-stock notification email using SMTP credentials.
+ *
+ * @param string $productName
+ * @param int    $stockQty
+ * @return void
+ */
+function sendLowStockEmail(string $productName, int $stockQty): void
+{
+    $subject = 'Low Stock Alert: ' . $productName;
+    $body = "Stock for {$productName} is low. Current level: {$stockQty}.";
+    sendAdminEmail($subject, $body);
+}
+
+/**
+ * Notify the admin whenever a new order is placed.
+ *
+ * @param int   $orderId
+ * @param int   $userId
+ * @param float $total
+ * @return void
+ */
+function sendOrderNotificationEmail(int $orderId, int $userId, float $total): void
+{
+    $subject = 'New Order: #' . $orderId;
+    $body = "Order #{$orderId} has been placed by user ID {$userId}. Total amount: {$total}.";
+    sendAdminEmail($subject, $body);
 }
 ?>
