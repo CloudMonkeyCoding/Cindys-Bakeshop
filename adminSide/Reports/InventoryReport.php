@@ -12,7 +12,11 @@ if ($pdo) {
 $inventoryData = [];
 foreach ($inventoryRows as $row) {
     $category = $row['Category'] ?? 'Uncategorized';
-    $inventoryData[$category][] = [$row['Name'], (int)$row['Stock_Quantity']];
+$inventoryData[$category][] = [
+    'id' => $row['Product_ID'],
+    'name' => $row['Name'],
+    'stock' => $row['Stock_Quantity']
+];
 }
 
 $pageTitle = 'Inventory Report';
@@ -42,52 +46,104 @@ include '../header.php';
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
 
-    const inventoryData = <?php echo json_encode($inventoryData); ?>;
+      let inventoryData = <?php echo json_encode($inventoryData); ?>;
 
-    function buildInventoryTables() {
-      const container = document.getElementById("inventoryContainer");
-      container.innerHTML = "";
-      for (let category in inventoryData) {
-        const section = document.createElement("div");
-        section.innerHTML = `<h2>${category}</h2><table class="inventory-table"><thead><tr><th>Item Name</th><th>Stock</th></tr></thead><tbody></tbody></table>`;
-        const tbody = section.querySelector("tbody");
-        inventoryData[category].forEach(([name, stock]) => {
-          const tr = document.createElement("tr");
-          const tdName = `<td>${name}</td>`;
-          const tdStock = `<td class="stock"><input type="text" value="${stock ?? ''}" /></td>`;
-          tr.innerHTML = tdName + tdStock;
-          tbody.appendChild(tr);
-        });
-        container.appendChild(section);
-      }
-    }
-
-    function updateStockColors() {
-      document.querySelectorAll('.stock input').forEach(input => {
-        const td = input.parentElement;
-        td.className = 'stock';
-        const value = input.value.trim();
-
-        if (value === "") {
-          input.value = "Pre-order";
-          td.classList.add('stock-preorder');
-        } else {
-          const stock = parseInt(value);
-          if (stock === 0) td.classList.add('stock-low');
-          else if (stock < 10) td.classList.add('stock-medium');
-          else td.classList.add('stock-ok');
+      function buildInventoryTables() {
+        const container = document.getElementById("inventoryContainer");
+        container.innerHTML = "";
+        for (let category in inventoryData) {
+          const section = document.createElement("div");
+          section.innerHTML = `<h2>${category}</h2><table class=\"inventory-table\"><thead><tr><th>Item Name</th><th>Stock</th><th>Actions</th></tr></thead><tbody></tbody></table>`;
+          const tbody = section.querySelector("tbody");
+          inventoryData[category].forEach(item => {
+            const { id, name, stock } = item;
+            const tr = document.createElement("tr");
+            const tdName = `<td>${name}</td>`;
+            const tdStock = `<td class=\"stock\"><input type=\"text\" value=\"${stock ?? ''}\" data-id=\"${id}\" /></td>`;
+            const tdAction = `<td><button class=\"minus-btn\">-</button><button class=\"plus-btn\">+</button></td>`;
+            tr.innerHTML = tdName + tdStock + tdAction;
+            tbody.appendChild(tr);
+          });
+          container.appendChild(section);
         }
-      });
-    }
+      }
 
-    function filterInventory() {
-      const input = document.getElementById('searchInput').value.toLowerCase();
-      const rows = document.querySelectorAll('#inventoryContainer table tbody tr');
-      rows.forEach(row => {
-        const item = row.cells[0].innerText.toLowerCase();
-        row.style.display = item.includes(input) ? '' : 'none';
-      });
-    }
+      function updateStockColors() {
+        document.querySelectorAll('.stock input').forEach(input => {
+          const td = input.parentElement;
+          td.className = 'stock';
+          const value = input.value.trim();
+
+          if (value === "") {
+            td.classList.add('stock-preorder');
+          } else {
+            const stock = parseInt(value);
+            if (stock === 0) td.classList.add('stock-low');
+            else if (stock < 10) td.classList.add('stock-medium');
+            else td.classList.add('stock-ok');
+          }
+        });
+      }
+
+      function addInputListeners() {
+        document.querySelectorAll('.stock input').forEach(input => {
+          input.addEventListener('input', updateStockColors);
+          input.addEventListener('change', () => {
+            saveStock(input.dataset.id, input.value.trim());
+          });
+        });
+      }
+
+      function adjustStock(btn, delta) {
+        const tr = btn.closest('tr');
+        const input = tr.querySelector('.stock input');
+        let value = parseInt(input.value) || 0;
+        value += delta;
+        if (value < 0) value = 0;
+        input.value = value;
+        updateStockColors();
+        saveStock(input.dataset.id, input.value.trim());
+      }
+
+      function addAdjustListeners() {
+        document.querySelectorAll('.minus-btn').forEach(btn => {
+          btn.addEventListener('click', () => adjustStock(btn, -1));
+        });
+        document.querySelectorAll('.plus-btn').forEach(btn => {
+          btn.addEventListener('click', () => adjustStock(btn, 1));
+        });
+      }
+
+      async function saveStock(id, stock) {
+        const formData = new FormData();
+        formData.append('product_id', id);
+        formData.append('stock_quantity', stock);
+        try {
+          const response = await fetch('../../PHP/inventory_functions.php', {
+            method: 'POST',
+            body: formData
+          });
+          const result = await response.json();
+          if (result.success) {
+            inventoryData = result.data;
+            buildInventoryTables();
+            updateStockColors();
+            addInputListeners();
+            addAdjustListeners();
+          }
+        } catch (error) {
+          console.error('Error updating stock', error);
+        }
+      }
+
+      function filterInventory() {
+        const input = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#inventoryContainer table tbody tr');
+        rows.forEach(row => {
+          const item = row.cells[0].innerText.toLowerCase();
+          row.style.display = item.includes(input) ? '' : 'none';
+        });
+      }
 
     async function exportToPDF() {
       const { jsPDF } = window.jspdf;
@@ -114,13 +170,12 @@ include '../header.php';
       doc.save("Inventory_Report.pdf");
     }
 
-    window.onload = () => {
-      buildInventoryTables();
-      updateStockColors();
-      document.querySelectorAll('.stock input').forEach(input => {
-        input.addEventListener('input', updateStockColors);
-      });
-    };
+      window.onload = () => {
+        buildInventoryTables();
+        updateStockColors();
+        addInputListeners();
+        addAdjustListeners();
+      };
   </script>
 </body>
 </html>

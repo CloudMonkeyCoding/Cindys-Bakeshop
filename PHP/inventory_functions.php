@@ -30,7 +30,7 @@ function getAllInventory($pdo) {
 // 3b) Get inventory with product details
 function getInventoryWithProducts($pdo) {
     $stmt = $pdo->query(
-        "SELECT p.Name, p.Category, i.Stock_Quantity\n" .
+        "SELECT p.Product_ID, p.Name, p.Category, i.Stock_Quantity\n" .
         "FROM Inventory i\n" .
         "JOIN Product p ON i.Product_ID = p.Product_ID"
     );
@@ -73,4 +73,33 @@ function deleteInventoryByProductId($pdo, $productId) {
     $stmt->execute([':product_id' => $productId]);
     return $stmt->rowCount();
 }
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['product_id'], $_POST['stock_quantity'])) {
+    require_once 'db_connect.php';
+    header('Content-Type: application/json');
+    if (!$pdo) {
+        echo json_encode(['success' => false, 'error' => 'Database connection failed']);
+        exit;
+    }
+
+    $productId = (int)$_POST['product_id'];
+    $stockInput = trim($_POST['stock_quantity']);
+    $stockQuantity = ($stockInput === '') ? null : (int)$stockInput;
+    updateInventoryStock($pdo, $productId, $stockQuantity);
+
+    $rows = getInventoryWithProducts($pdo);
+    $data = [];
+    foreach ($rows as $row) {
+        $category = $row['Category'] ?? 'Uncategorized';
+        $data[$category][] = [
+            'id' => $row['Product_ID'],
+            'name' => $row['Name'],
+            'stock' => $row['Stock_Quantity']
+        ];
+    }
+
+    echo json_encode(['success' => true, 'data' => $data]);
+    exit;
+}
+
 ?>
