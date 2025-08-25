@@ -80,4 +80,16 @@ function deleteCartItemsByProductId($pdo, $productId) {
     $stmt->execute([':product_id' => $productId]);
     return $stmt->rowCount();
 }
+
+// 9) Get a cart item by cart and product
+function getCartItemByCartAndProduct($pdo, $cartId, $productId) {
+    $stmt = $pdo->prepare("
+        SELECT * FROM cart_item WHERE Cart_ID = :cart_id AND Product_ID = :product_id
+    ");
+    $stmt->execute([
+        ':cart_id' => $cartId,
+        ':product_id' => $productId
+    ]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
 ?>

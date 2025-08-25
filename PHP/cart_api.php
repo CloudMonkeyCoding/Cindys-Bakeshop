@@ -59,8 +59,15 @@ switch ($action) {
             $cartId = $cart ? $cart['Cart_ID'] : createCart($pdo, $userId);
         }
 
-        $id = addCartItem($pdo, $cartId, $productId, $qty);
-        echo json_encode(['cart_item_id' => $id, 'cart_id' => $cartId]);
+        $existing = getCartItemByCartAndProduct($pdo, $cartId, $productId);
+        if ($existing) {
+            $newQty = $existing['Quantity'] + $qty;
+            $updated = updateCartItemQuantity($pdo, $existing['Cart_Item_ID'], $newQty);
+            echo json_encode(['cart_item_id' => $existing['Cart_Item_ID'], 'cart_id' => $cartId, 'updated' => $updated]);
+        } else {
+            $id = addCartItem($pdo, $cartId, $productId, $qty);
+            echo json_encode(['cart_item_id' => $id, 'cart_id' => $cartId]);
+        }
         break;
     case 'update':
         $cartItemId = (int)($_POST['cart_item_id'] ?? 0);

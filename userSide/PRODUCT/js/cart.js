@@ -11,7 +11,7 @@ async function addToCart() {
     return false;
   }
   try {
-    // Ensure we have user info and a cart ID
+    // Ensure we have user info
     let email = null;
     try {
       const auth = window.getAuth ? window.getAuth() : null;
@@ -20,32 +20,45 @@ async function addToCart() {
       console.error("Auth unavailable", e);
     }
 
-    let cartId = localStorage.getItem("cart_id");
-    if (!cartId) {
-      const listUrl = email
-        ? `/PHP/cart_api.php?action=list&email=${encodeURIComponent(email)}`
-        : `/PHP/cart_api.php?action=list`;
-      const listResp = await fetch(listUrl);
-      const listText = await listResp.text();
-      let listData;
-      try {
-        listData = JSON.parse(listText);
-      } catch (e) {
-        console.error("Invalid cart list response", listText);
-        alert("Error retrieving cart.");
-        return false;
-      }
-      cartId = listData.cart_id;
-      localStorage.setItem("cart_id", cartId);
+    const listUrl = email
+      ? `/PHP/cart_api.php?action=list&email=${encodeURIComponent(email)}`
+      : `/PHP/cart_api.php?action=list`;
+    const listResp = await fetch(listUrl);
+    const listText = await listResp.text();
+    let listData;
+    try {
+      listData = JSON.parse(listText);
+    } catch (e) {
+      console.error("Invalid cart list response", listText);
+      alert("Error retrieving cart.");
+      return false;
     }
+    const cartId = listData.cart_id;
+    localStorage.setItem("cart_id", cartId);
+    const existing = listData.items.find(
+      (item) => String(item.Product_ID) === String(productId)
+    );
 
     const params = new URLSearchParams();
-    params.set("cart_id", cartId);
-    params.set("product_id", productId);
-    params.set("quantity", qty);
+    let action = "add";
+    let newQty = qty;
+    if (existing) {
+      newQty = parseInt(existing.Quantity, 10) + qty;
+      if (typeof window.maxStock !== 'undefined' && newQty > window.maxStock) {
+        alert(`Only ${window.maxStock} left in stock.`);
+        return false;
+      }
+      action = "update";
+      params.set("cart_item_id", existing.Cart_Item_ID);
+      params.set("quantity", newQty);
+    } else {
+      params.set("cart_id", cartId);
+      params.set("product_id", productId);
+      params.set("quantity", qty);
+    }
     if (email) params.set("email", email);
 
-    const response = await fetch("/PHP/cart_api.php?action=add", {
+    const response = await fetch(`/PHP/cart_api.php?action=${action}`, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: params.toString()
@@ -55,12 +68,12 @@ async function addToCart() {
     try {
       result = JSON.parse(respText);
     } catch (e) {
-      console.error("Invalid add-to-cart response", respText);
+      console.error("Invalid cart response", respText);
       alert("Error adding item to cart.");
       return false;
     }
-    if (result.cart_item_id) {
-      alert("Item added to cart!");
+    if ((action === "add" && result.cart_item_id) || (action === "update" && result.updated)) {
+      alert(action === "add" ? "Item added to cart!" : "Cart quantity updated!");
       return true;
     } else {
       alert("Failed to add item to cart.");
