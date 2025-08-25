@@ -6,6 +6,8 @@ require_once 'transaction_functions.php';
 require_once 'user_functions.php';
 require_once 'inventory_functions.php';
 require_once 'product_functions.php';
+require_once 'cart_functions.php';
+require_once 'cart_item_functions.php';
 
 header('Content-Type: application/json');
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
@@ -65,6 +67,10 @@ switch ($action) {
             adjustProductStock($pdo, $it['product_id'], -$it['quantity']);
         }
         addTransaction($pdo, $orderId, $mop, 'Pending', date('Y-m-d'), $total, null);
+        $cart = getCartByUserId($pdo, $userId);
+        if ($cart) {
+            deleteCartItemsByCartId($pdo, $cart['Cart_ID']);
+        }
         echo json_encode(['order_id' => $orderId]);
         break;
     case 'view':

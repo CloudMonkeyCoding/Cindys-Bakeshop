@@ -42,6 +42,9 @@ function getCartItemById($pdo, $cartItemId) {
 
 // 5) Update quantity of a cart item
 function updateCartItemQuantity($pdo, $cartItemId, $quantity) {
+    if ($quantity <= 0) {
+        return deleteCartItemById($pdo, $cartItemId);
+    }
     $stmt = $pdo->prepare("
         UPDATE cart_item
         SET Quantity = :quantity

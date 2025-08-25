@@ -276,11 +276,17 @@
     }
 
     function saveQty(button, newQty) {
-      const id = button.closest('.cart-item').getAttribute('data-id');
+      const item = button.closest('.cart-item');
+      const id = item.getAttribute('data-id');
       fetch('../../PHP/cart_api.php?action=update', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: `cart_item_id=${id}&quantity=${newQty}`
+      }).then(() => {
+        if (newQty <= 0) {
+          item.remove();
+        }
+        updateTotal();
       });
     }
 
@@ -322,16 +328,24 @@
       document.querySelectorAll('.cart-item').forEach(item => {
         const checkbox = item.querySelector('.item-check');
         if (checkbox.checked) {
-          hasItem = true;
           const name = item.querySelector('.item-details b').textContent;
           let qty = parseInt(item.querySelector('.qty-display').textContent, 10);
           const stock = parseInt(item.getAttribute('data-stock'), 10);
           if (qty > stock) {
+            if (stock <= 0) {
+              alert(`${name} is out of stock and has been removed from your cart.`);
+              saveQty(item.querySelector('.increase-btn'), 0);
+              return;
+            }
             alert(`${name} quantity reduced to available stock of ${stock}.`);
             qty = stock;
             item.querySelector('.qty-display').textContent = stock;
             saveQty(item.querySelector('.increase-btn'), stock);
           }
+          if (qty <= 0) {
+            return;
+          }
+          hasItem = true;
           const price = parseFloat(item.getAttribute('data-price'));
           const total = price * qty;
 

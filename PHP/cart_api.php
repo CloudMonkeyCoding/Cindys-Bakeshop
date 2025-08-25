@@ -72,8 +72,12 @@ switch ($action) {
     case 'update':
         $cartItemId = (int)($_POST['cart_item_id'] ?? 0);
         $qty = (int)($_POST['quantity'] ?? 1);
-        $updated = updateCartItemQuantity($pdo, $cartItemId, $qty);
-        echo json_encode(['updated' => $updated]);
+        $result = updateCartItemQuantity($pdo, $cartItemId, $qty);
+        if ($qty <= 0) {
+            echo json_encode(['deleted' => $result]);
+        } else {
+            echo json_encode(['updated' => $result]);
+        }
         break;
     case 'remove':
         $cartItemId = (int)($_POST['cart_item_id'] ?? 0);
