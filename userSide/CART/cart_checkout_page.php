@@ -351,11 +351,16 @@
       try {
         const res = await fetch(`../../PHP/cart_api.php?action=list&email=${encodeURIComponent(userEmail)}`);
         const cartType = res.headers.get('Content-Type') || '';
+        const cartText = await res.text();
         if (!res.ok || !cartType.includes('application/json')) {
-          const text = await res.text();
-          throw new Error(text);
+          throw new Error(cartText);
         }
-        const latest = await res.json();
+        let latest;
+        try {
+          latest = JSON.parse(cartText);
+        } catch {
+          throw new Error(cartText);
+        }
         const shortages = [];
         latest.items.forEach(it => {
           const sel = checkoutData.find(c => c.product_id == it.Product_ID);
@@ -384,11 +389,16 @@
         });
 
         const orderTypeHeader = orderRes.headers.get('Content-Type') || '';
+        const orderText = await orderRes.text();
         if (!orderRes.ok || !orderTypeHeader.includes('application/json')) {
-          const text = await orderRes.text();
-          throw new Error(text);
+          throw new Error(orderText);
         }
-        const data = await orderRes.json();
+        let data;
+        try {
+          data = JSON.parse(orderText);
+        } catch {
+          throw new Error(orderText);
+        }
 
         document.getElementById("confirmationMsg").innerHTML =
           `🎉 Thank you, <b>${name}</b>! Your order has been placed. <br><br><a href="../INVOICE/orderDetails.php?order_id=${data.order_id}" style="color:blue;text-decoration:underline;">👉 View Order Details</a>`;
