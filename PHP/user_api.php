@@ -63,10 +63,18 @@ switch ($action) {
             echo json_encode(['error' => 'User not found']);
             break;
         }
+        $fullName = $user['Name'] ?? '';
+        $parts = preg_split('/\s+/', trim($fullName));
+        $first = $parts[0] ?? '';
+        $last = count($parts) > 1 ? implode(' ', array_slice($parts, 1)) : '';
+        $path = normalizeFacePath($user['Face_Image_Path'] ?? null);
         echo json_encode([
             'user_id' => $user['User_ID'],
-            'name' => $user['Name'],
-            'address' => $user['Address']
+            'name' => $fullName,
+            'first_name' => $first,
+            'last_name' => $last,
+            'address' => $user['Address'],
+            'face_image_path' => $path
         ]);
         break;
     case 'set_profile':

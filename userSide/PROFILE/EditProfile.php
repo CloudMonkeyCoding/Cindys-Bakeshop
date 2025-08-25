@@ -40,9 +40,15 @@
     onAuthStateChanged(auth, user => {
       if (user) {
         document.getElementById('email').value = user.email;
-        fetch(`../../PHP/user_api.php?action=get_face&email=${encodeURIComponent(user.email)}`)
+        fetch(`../../PHP/user_api.php?action=get_profile&email=${encodeURIComponent(user.email)}`)
           .then(res => res.json())
           .then(data => {
+            if (data.first_name) {
+              document.getElementById('firstName').value = data.first_name;
+            }
+            if (data.last_name) {
+              document.getElementById('lastName').value = data.last_name;
+            }
             if (data.face_image_path) {
               document.getElementById('profilePic').src = data.face_image_path;
             }
