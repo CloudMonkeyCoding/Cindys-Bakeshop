@@ -47,13 +47,14 @@
 
     let cancelIndex = null;
 
-    function showTab(id) {
+    // Expose to global scope so inline HTML handlers can call it
+    window.showTab = function (id) {
       document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
       document.getElementById(id).classList.add('active');
       const index = ['to-process', 'to-receive', 'completed'].indexOf(id);
       document.querySelectorAll('.tab')[index].classList.add('active');
-    }
+    };
 
     let userEmail = null;
     const auth = getAuth();
