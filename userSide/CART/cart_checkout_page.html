@@ -359,12 +359,36 @@
       document.getElementById("cart-section").style.display = "block";
     }
 
-    function placeOrder(e) {
+    async function placeOrder(e) {
       e.preventDefault();
       const name = document.getElementById("name").value;
       const address = document.getElementById("address").value;
       const orderType = document.getElementById("order-type").value;
       const mop = document.getElementById("mop").value;
+
+      const res = await fetch(`../../PHP/cart_api.php?action=list&email=${encodeURIComponent(userEmail)}`);
+      const latest = await res.json();
+      const shortages = [];
+      latest.items.forEach(it => {
+        const sel = checkoutData.find(c => c.product_id == it.Product_ID);
+        if (sel && sel.quantity > parseInt(it.Stock_Quantity, 10)) {
+          shortages.push({ id: it.Cart_Item_ID, name: it.Name, stock: parseInt(it.Stock_Quantity, 10) });
+        }
+      });
+
+      if (shortages.length) {
+        await Promise.all(shortages.map(s => fetch('../../PHP/cart_api.php?action=update', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          body: `cart_item_id=${s.id}&quantity=${s.stock}`
+        })));
+        alert(shortages.map(s => `${s.name} quantity reduced to available stock of ${s.stock}.`).join('\n'));
+        loadCart();
+        document.getElementById("checkout-section").style.display = "none";
+        document.getElementById("cart-section").style.display = "block";
+        return;
+      }
+
       fetch('../../PHP/order_api.php?action=create', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
