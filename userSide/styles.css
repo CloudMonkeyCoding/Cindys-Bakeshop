@@ -1751,6 +1751,7 @@ body.product-detail-page .back-btn {
   top: 20px;
   left: 20px;
   margin: 0;
+  z-index: 10;
 }
 
 body.product-detail-page .image-section {
