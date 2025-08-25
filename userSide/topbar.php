@@ -78,7 +78,7 @@
     <img src="../Images/cindy's logo.png" alt="Cindy's Logo">
   </div>
   <div class="nav">
-    <a href="MENU.php" class="active">Menu</a>
+    <a href="../PRODUCT/MENU.php" class="active">Menu</a>
     <a href="../CART/cart_checkout_page.php">Cart</a>
     <div class="dropdown">
       <button onclick="toggleDropdown()">Profile</button>
