@@ -26,8 +26,10 @@
       <input type="email" id="email" placeholder="Email" required />
       <input type="password" id="password" placeholder="New Password" required />
       <input type="password" id="confirmPassword" placeholder="Confirm Password" required />
+      <input type="file" id="profilePicInput" accept="image/*" />
       <button type="submit">Save Changes</button>
     </form>
+    <div id="serverMessage"></div>
   </div>
 
   <script type="module">
@@ -38,6 +40,7 @@
     const auth = getAuth();
     onAuthStateChanged(auth, user => {
       if (user) {
+        document.getElementById('email').value = user.email;
         fetch(`../../PHP/user_api.php?action=get_face&email=${encodeURIComponent(user.email)}`)
           .then(res => res.json())
           .then(data => {
@@ -56,6 +59,7 @@
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
       const confirmPassword = document.getElementById("confirmPassword").value;
+      const profilePicFile = document.getElementById("profilePicInput").files[0];
 
       const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 
@@ -69,7 +73,41 @@
         return;
       }
 
-      alert(`Profile updated successfully!\nName: ${firstName} ${lastName}\nEmail: ${email}`);
+      const formData = new FormData();
+      formData.append('first_name', firstName);
+      formData.append('last_name', lastName);
+      formData.append('email', email);
+      formData.append('password', password);
+      if (profilePicFile) {
+        formData.append('profile_picture', profilePicFile);
+      }
+
+      fetch('../../PHP/user_api.php?action=update_profile', {
+        method: 'POST',
+        body: formData
+      })
+        .then(res => res.json())
+        .then(data => {
+          const msgEl = document.getElementById('serverMessage');
+          if (data.error) {
+            msgEl.textContent = data.error;
+            msgEl.style.color = 'red';
+            return;
+          }
+          msgEl.textContent = data.message || 'Profile updated successfully!';
+          msgEl.style.color = 'green';
+          if (data.face_image_path) {
+            document.getElementById('profilePic').src = data.face_image_path;
+          }
+          document.getElementById('password').value = '';
+          document.getElementById('confirmPassword').value = '';
+          document.getElementById('profilePicInput').value = '';
+        })
+        .catch(() => {
+          const msgEl = document.getElementById('serverMessage');
+          msgEl.textContent = 'An error occurred while updating profile.';
+          msgEl.style.color = 'red';
+        });
     });
   </script>
 
