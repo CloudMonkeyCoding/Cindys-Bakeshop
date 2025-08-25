@@ -195,6 +195,7 @@
         div.setAttribute('data-id', item.Cart_Item_ID);
         div.setAttribute('data-product', item.Product_ID);
         div.setAttribute('data-price', item.Price);
+        div.setAttribute('data-stock', item.Stock_Quantity);
         div.innerHTML = `
           <div class="cart-item-left">
             <input type="checkbox" class="item-check" checked>
@@ -323,7 +324,14 @@
         if (checkbox.checked) {
           hasItem = true;
           const name = item.querySelector('.item-details b').textContent;
-          const qty = item.querySelector('.qty-display').textContent;
+          let qty = parseInt(item.querySelector('.qty-display').textContent, 10);
+          const stock = parseInt(item.getAttribute('data-stock'), 10);
+          if (qty > stock) {
+            alert(`${name} quantity reduced to available stock of ${stock}.`);
+            qty = stock;
+            item.querySelector('.qty-display').textContent = stock;
+            saveQty(item.querySelector('.increase-btn'), stock);
+          }
           const price = parseFloat(item.getAttribute('data-price'));
           const total = price * qty;
 
@@ -331,9 +339,11 @@
           div.classList.add("summary-item");
           div.innerHTML = `<span>${name} x${qty}</span><span>₱${total.toFixed(2)}</span>`;
           checkoutItems.appendChild(div);
-          checkoutData.push({product_id: item.getAttribute('data-product'), quantity: parseInt(qty)});
+          checkoutData.push({product_id: item.getAttribute('data-product'), quantity: qty});
         }
       });
+
+      updateTotal();
 
       if (!hasItem) {
         alert("Please select at least one item to check out.");
