@@ -48,6 +48,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId) {
             ':user_id' => $userId
         ]);
 
+        if (!empty($_POST['newPassword']) && ($_POST['newPassword'] === ($_POST['confirmNewPassword'] ?? ''))) {
+            updateUserPasswordById($pdo, $userId, $_POST['newPassword']);
+        }
         $message = 'Settings updated successfully.';
     } catch (Exception $e) {
         $message = 'Failed to update settings.';
@@ -94,6 +97,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId) {
       <label><input type="checkbox" name="notify_order" <?php echo $userSettings['notify_order'] ? 'checked' : ''; ?>> Order Status Updates</label>
       <label><input type="checkbox" name="notify_promotions" <?php echo $userSettings['notify_promotions'] ? 'checked' : ''; ?>> Promotions & Discounts</label>
       <label><input type="checkbox" name="notify_feedback" <?php echo $userSettings['notify_feedback'] ? 'checked' : ''; ?>> Feedback Reminders</label>
+    </div>
+
+    <div class="settings-section">
+      <h3>Security</h3>
+      <label for="currentPassword">Current Password</label>
+      <input type="password" id="currentPassword" name="currentPassword">
+
+      <label for="newPassword">New Password</label>
+      <input type="password" id="newPassword" name="newPassword">
+
+      <label for="confirmNewPassword">Confirm New Password</label>
+      <input type="password" id="confirmNewPassword" name="confirmNewPassword">
     </div>
 
     <button class="save-btn" type="submit">Save Settings</button>
