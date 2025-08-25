@@ -30,8 +30,6 @@ try {
 
 $category = $product['Category'] ?? '';
 $categoryLower = strtolower($category);
-$backLink = $categoryLower . '.php';
-$searchPlaceholder = 'Search ' . $categoryLower . '...';
 
 switch ($categoryLower) {
     case 'bread':
@@ -90,44 +88,6 @@ $price = isset($product['Price']) ? number_format((float)$product['Price'], 2) :
       padding: 20px;
     }
 
-    .content-wrapper {
-      background-color: rgba(255, 0, 0, 0.92);
-      padding: 20px 30px;
-      border-radius: 20px;
-      width: 100%;
-      max-width: 1300px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-      position: relative;
-    }
-
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .top-bar a {
-      font-weight: bold;
-      color: #fff;
-      text-decoration: none;
-      font-size: 18px;
-      transition: all 0.3s ease;
-    }
-
-    .top-bar a:hover {
-      color: #ffff66;
-    }
-
-    .search-box input {
-      padding: 12px 20px;
-      width: 240px;
-      border-radius: 30px;
-      border: 2px solid #fff;
-      outline: none;
-      font-size: 14px;
-      background: #fff0f0;
-    }
 
     .container {
       background: #fff;
@@ -300,14 +260,8 @@ $price = isset($product['Price']) ? number_format((float)$product['Price'], 2) :
 </head>
 <body>
   <div class="background-blur"></div>
+  <?php include __DIR__ . '/../topbar.php'; ?>
   <div class="wrapper">
-    <div class="content-wrapper">
-        <?php
-          $backText = 'Back to Home';
-          include __DIR__ . '/../topbar.php';
-        ?>
-    </div>
-
     <div class="container">
       <div class="image-section">
         <div class="circle-bg"></div>

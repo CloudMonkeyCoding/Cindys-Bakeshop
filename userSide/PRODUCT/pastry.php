@@ -30,31 +30,6 @@ if ($pdo) {
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
     }
 
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 20px;
-    }
-
-    .top-bar a {
-      font-weight: bold;
-      color: red;
-      text-decoration: none;
-      font-size: 18px;
-    }
-
-    .top-bar a:hover {
-      text-decoration: underline;
-    }
-
-    .search-box input {
-      padding: 8px 15px;
-      width: 220px;
-      border-radius: 30px;
-      border: 2px solid black;
-      outline: none;
-    }
 
     .products-grid {
       display: grid;
@@ -128,12 +103,7 @@ if ($pdo) {
 </head>
 <body>
   <div class="content-wrapper">
-    <?php
-      $backLink = 'MENU.php';
-      $backText = 'Back to Menu';
-      $searchPlaceholder = 'Search pastry...';
-      include __DIR__ . '/../topbar.php';
-    ?>
+    <?php include __DIR__ . '/../topbar.php'; ?>
 
     <div class="products-grid">
       <?php foreach ($products as $product): ?>
@@ -151,29 +121,9 @@ if ($pdo) {
       <?php endforeach; ?>
     </div>
 
-    <p id="no-results" style="text-align: center; font-weight: bold; font-size: 18px; display: none;">No products found.</p>
   </div>
 
   <script>
-    // Search Functionality
-    const searchInput = document.getElementById('searchInput');
-    const productCards = document.querySelectorAll('.product-card');
-    const noResults = document.getElementById('no-results');
-
-    searchInput.addEventListener('input', () => {
-      const searchTerm = searchInput.value.toLowerCase();
-      let matches = 0;
-
-      productCards.forEach(card => {
-        const productName = card.querySelector('.product-name').textContent.toLowerCase();
-        const isMatch = productName.includes(searchTerm);
-        card.style.display = isMatch ? 'block' : 'none';
-        if (isMatch) matches++;
-      });
-
-      noResults.style.display = matches === 0 ? 'block' : 'none';
-    });
-
     function goToProduct(id) {
       window.location.href = `product.php?id=${id}`;
     }
