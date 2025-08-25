@@ -24,12 +24,11 @@
         <input type="text" id="lastName" placeholder="Last Name" required />
       </div>
       <input type="email" id="email" placeholder="Email" required />
-      <input type="password" id="password" placeholder="New Password" required />
-      <input type="password" id="confirmPassword" placeholder="Confirm Password" required />
       <input type="file" id="profilePicInput" accept="image/*" />
       <button type="submit">Save Changes</button>
     </form>
     <div id="serverMessage"></div>
+    <p><a href="Settings.php">Change Password</a></p>
   </div>
 
   <script type="module">
@@ -57,27 +56,12 @@
       const firstName = document.getElementById("firstName").value;
       const lastName = document.getElementById("lastName").value;
       const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      const confirmPassword = document.getElementById("confirmPassword").value;
       const profilePicFile = document.getElementById("profilePicInput").files[0];
-
-      const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-
-      if (!strongPasswordRegex.test(password)) {
-        alert("Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.");
-        return;
-      }
-
-      if (password !== confirmPassword) {
-        alert("Passwords do not match!");
-        return;
-      }
 
       const formData = new FormData();
       formData.append('first_name', firstName);
       formData.append('last_name', lastName);
       formData.append('email', email);
-      formData.append('password', password);
       if (profilePicFile) {
         formData.append('profile_picture', profilePicFile);
       }
@@ -99,8 +83,6 @@
           if (data.face_image_path) {
             document.getElementById('profilePic').src = data.face_image_path;
           }
-          document.getElementById('password').value = '';
-          document.getElementById('confirmPassword').value = '';
           document.getElementById('profilePicInput').value = '';
         })
         .catch(() => {
