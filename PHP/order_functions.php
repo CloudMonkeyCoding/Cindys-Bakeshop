@@ -19,13 +19,22 @@ function getAllOrders($pdo) {
     return $stmt->fetchAll();
 }
 
-// 3) Get all orders for a specific user
+// 3) Get all orders for a specific user along with a product image
 function getOrdersByUserId($pdo, $userId) {
     $stmt = $pdo->prepare("
-        SELECT * FROM `Order` WHERE User_ID = :user_id
+        SELECT o.Order_ID,
+               o.User_ID,
+               o.Order_Date,
+               o.Status,
+               MIN(p.Image_Path) AS Image_Path
+        FROM `Order` o
+        LEFT JOIN Order_Item oi ON o.Order_ID = oi.Order_ID
+        LEFT JOIN Product p ON oi.Product_ID = p.Product_ID
+        WHERE o.User_ID = :user_id
+        GROUP BY o.Order_ID, o.User_ID, o.Order_Date, o.Status
     ");
     $stmt->execute([':user_id' => $userId]);
-    return $stmt->fetchAll();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 // 4) Get a single order by ID
