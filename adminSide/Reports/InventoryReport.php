@@ -60,7 +60,7 @@ include '../header.php';
             const tr = document.createElement("tr");
             const tdName = `<td>${name}</td>`;
             const tdStock = `<td class=\"stock\"><input type=\"text\" value=\"${stock ?? ''}\" /></td>`;
-            const tdAction = `<td><button class=\"save-btn\" data-id=\"${id}\">Save</button></td>`;
+            const tdAction = `<td><button class=\"save-btn\" data-id=\"${id}\">Save</button><button class=\"minus-btn\">-</button><button class=\"plus-btn\">+</button></td>`;
             tr.innerHTML = tdName + tdStock + tdAction;
             tbody.appendChild(tr);
           });
@@ -75,7 +75,6 @@ include '../header.php';
           const value = input.value.trim();
 
           if (value === "") {
-            input.value = "Pre-order";
             td.classList.add('stock-preorder');
           } else {
             const stock = parseInt(value);
@@ -92,13 +91,31 @@ include '../header.php';
         });
       }
 
+      function adjustStock(btn, delta) {
+        const tr = btn.closest('tr');
+        const input = tr.querySelector('.stock input');
+        let value = parseInt(input.value) || 0;
+        value += delta;
+        if (value < 0) value = 0;
+        input.value = value;
+        updateStockColors();
+      }
+
+      function addAdjustListeners() {
+        document.querySelectorAll('.minus-btn').forEach(btn => {
+          btn.addEventListener('click', () => adjustStock(btn, -1));
+        });
+        document.querySelectorAll('.plus-btn').forEach(btn => {
+          btn.addEventListener('click', () => adjustStock(btn, 1));
+        });
+      }
+
       async function saveStock(e) {
         const btn = e.target;
         const id = btn.dataset.id;
         const tr = btn.closest('tr');
         const input = tr.querySelector('.stock input');
         let stock = input.value.trim();
-        if (stock.toLowerCase() === 'pre-order') stock = '';
         const formData = new FormData();
         formData.append('product_id', id);
         formData.append('stock_quantity', stock);
@@ -114,6 +131,7 @@ include '../header.php';
             updateStockColors();
             addInputListeners();
             addSaveListeners();
+            addAdjustListeners();
           }
         } catch (error) {
           console.error('Error updating stock', error);
@@ -165,6 +183,7 @@ include '../header.php';
         updateStockColors();
         addInputListeners();
         addSaveListeners();
+        addAdjustListeners();
       };
   </script>
 </body>
