@@ -128,7 +128,16 @@ switch ($action) {
         }
 
         $relativePath = null;
+        $oldFace = $user['Face_Image_Path'] ?? null;
+        $oldPath = $oldFace ? __DIR__ . '/../' . ltrim($oldFace, '/') : null;
         if (!empty($_FILES['profile_picture']['tmp_name'])) {
+            $maxSize = 5 * 1024 * 1024; // 5MB
+            if ($_FILES['profile_picture']['size'] > $maxSize) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Profile picture must be 5MB or less']);
+                break;
+            }
+
             $facesDir = __DIR__ . '/../user_faces';
             if (!is_dir($facesDir)) {
                 mkdir($facesDir, 0777, true);
@@ -144,17 +153,20 @@ switch ($action) {
             $relativePath = '/user_faces/' . $filename;
             $sql .= ', Face_Image_Path = :face';
             $params[':face'] = $relativePath;
+            if ($oldPath && is_file($oldPath)) {
+                unlink($oldPath);
+            }
         }
 
         $sql .= ' WHERE User_ID = :id';
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
 
-        $existing = normalizeFacePath($user['Face_Image_Path'] ?? null);
+        $existing = normalizeFacePath($relativePath ?? $oldFace);
 
         echo json_encode([
             'message' => 'Profile updated successfully',
-            'face_image_path' => $relativePath ?? $existing
+            'face_image_path' => $existing
         ]);
         break;
     default:

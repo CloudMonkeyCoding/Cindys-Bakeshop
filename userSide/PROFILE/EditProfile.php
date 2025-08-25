@@ -63,6 +63,13 @@
       const lastName = document.getElementById("lastName").value;
       const email = document.getElementById("email").value;
       const profilePicFile = document.getElementById("profilePicInput").files[0];
+      const msgEl = document.getElementById('serverMessage');
+
+      if (profilePicFile && profilePicFile.size > 5 * 1024 * 1024) {
+        msgEl.textContent = 'Profile picture must be 5MB or less.';
+        msgEl.style.color = 'red';
+        return;
+      }
 
       const formData = new FormData();
       formData.append('first_name', firstName);
@@ -78,7 +85,6 @@
       })
         .then(res => res.json())
         .then(data => {
-          const msgEl = document.getElementById('serverMessage');
           if (data.error) {
             msgEl.textContent = data.error;
             msgEl.style.color = 'red';
@@ -92,7 +98,6 @@
           document.getElementById('profilePicInput').value = '';
         })
         .catch(() => {
-          const msgEl = document.getElementById('serverMessage');
           msgEl.textContent = 'An error occurred while updating profile.';
           msgEl.style.color = 'red';
         });
