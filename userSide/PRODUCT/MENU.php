@@ -200,62 +200,10 @@
       color: #fff;
       text-decoration: underline;
     }
-
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 20px;
-    }
-
-    .top-bar a {
-      font-weight: bold;
-      color: red;
-      text-decoration: none;
-      font-size: 18px;
-    }
-
-    .top-bar a:hover {
-      text-decoration: underline;
-    }
-
-    .search-box input {
-      padding: 8px 15px;
-      width: 220px;
-      border-radius: 30px;
-      border: 2px solid black;
-      outline: none;
-    }
   </style>
 </head>
 <body>
-
-  <!-- HEADER -->
-  <header>
-    <div class="logo">
-      <img src="../Images/cindy's logo.png" alt="Cindy's Logo">
-    </div>
-    <div class="nav">
-
-      <a href="MENU.php" class="active">Menu</a>
-      <a href="../CART/cart_checkout_page.html">Cart</a>
-      <div class="dropdown">
-        <button onclick="toggleDropdown()">Profile</button>
-        <div class="dropdown-content" id="profileDropdown">
-          <a href="../PROFILE/EditProfile.html">Edit Profile</a>
-          <a href="../PURCHASES/MyPurchase.html">My Purchases</a>
-          <a href="../PROFILE/Settings.php">Settings</a>
-        </div>
-      </div>
-       <a href="../LOGIN_SIGNUP/logout.html">Logout</a>
-    </div>
-  </header>
-  <?php
-    $backLink = 'HOME.HTML';
-    $backText = 'Back to Home';
-    $searchPlaceholder = 'Search menu...';
-    include __DIR__ . '/../topbar.php';
-  ?>
+  <?php include __DIR__ . '/../topbar.php'; ?>
  <section class="top">
 </section>
 
