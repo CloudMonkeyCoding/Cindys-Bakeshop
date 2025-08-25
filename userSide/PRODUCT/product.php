@@ -326,7 +326,7 @@ $price = isset($product['Price']) ? number_format((float)$product['Price'], 2) :
           <div class="price">Php <?= htmlspecialchars($price) ?></div>
           <span class="favorite-icon" onclick="toggleFavorite(this)">❤️</span>
         </div>
-        <div class="stock">Stock: <?= htmlspecialchars($product['Stock_Quantity'] ?? '') ?></div>
+        <div class="stock" id="stockDisplay">Stock: <?= htmlspecialchars($product['Stock_Quantity'] ?? '') ?></div>
         <h2><?= htmlspecialchars($product['Name']) ?></h2>
         <p><?= htmlspecialchars($product['Description'] ?? '') ?></p>
 
@@ -349,11 +349,62 @@ $price = isset($product['Price']) ? number_format((float)$product['Price'], 2) :
   <script type="module" src="../firebase-init.js"></script>
   <script src="js/cart.js"></script>
   <script>
-    const maxStock = <?= (int)($product['Stock_Quantity'] ?? 0); ?>;
-    if (maxStock === 0) {
-      document.querySelector('.add-to-cart').disabled = true;
-      document.querySelector('.buy-now').disabled = true;
+    let maxStock = <?= (int)($product['Stock_Quantity'] ?? 0); ?>;
+    window.maxStock = maxStock;
+
+    async function updateMaxStockFromCart() {
+      const productId = <?= (int)$id ?>;
+      try {
+        let email = null;
+        try {
+          const auth = window.getAuth ? window.getAuth() : null;
+          email = auth && auth.currentUser ? auth.currentUser.email : null;
+        } catch (e) {
+          console.error("Auth unavailable", e);
+        }
+
+        const listUrl = email
+          ? `/PHP/cart_api.php?action=list&email=${encodeURIComponent(email)}`
+          : `/PHP/cart_api.php?action=list`;
+        const resp = await fetch(listUrl);
+        const text = await resp.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          console.error("Invalid cart list response", text);
+          return;
+        }
+        if (data.items) {
+          const existing = data.items.find(
+            (item) => String(item.Product_ID) === String(productId)
+          );
+          if (existing) {
+            const existingQty = parseInt(existing.Quantity, 10) || 0;
+            maxStock = Math.max(0, maxStock - existingQty);
+            window.maxStock = maxStock;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch cart", err);
+      }
+
+      const stockEl = document.getElementById('stockDisplay');
+      if (stockEl) stockEl.textContent = `Stock: ${maxStock}`;
+
+      const qtyEl = document.getElementById('qty');
+      if (qtyEl) {
+        if (maxStock === 0) qtyEl.value = 0;
+        else if (parseInt(qtyEl.value, 10) > maxStock) qtyEl.value = maxStock;
+      }
+
+      if (maxStock === 0) {
+        document.querySelector('.add-to-cart').disabled = true;
+        document.querySelector('.buy-now').disabled = true;
+      }
     }
+
+    updateMaxStockFromCart();
 
     function changeQty(delta) {
       const qty = document.getElementById('qty');
