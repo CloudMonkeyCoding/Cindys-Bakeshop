@@ -127,12 +127,12 @@ if ($pdo) {
 </head>
 <body>
   <div class="content-wrapper">
-    <div class="top-bar">
-      <a href="MENU.html">&larr; Back to Menu</a>
-      <div class="search-box">
-        <input id="searchInput" type="text" placeholder="Search cakes...">
-      </div>
-    </div>
+    <?php
+      $backLink = 'MENU.html';
+      $backText = 'Back to Menu';
+      $searchPlaceholder = 'Search cakes...';
+      include __DIR__ . '/../topbar.php';
+    ?>
 
     <div class="products-grid">
       <?php foreach ($products as $product): ?>

@@ -302,12 +302,10 @@ $price = isset($product['Price']) ? number_format((float)$product['Price'], 2) :
   <div class="background-blur"></div>
   <div class="wrapper">
     <div class="content-wrapper">
-      <div class="top-bar">
-        <a href="<?= htmlspecialchars($backLink) ?>">&larr; Back to Home</a>
-        <div class="search-box">
-          <input id="searchInput" type="text" placeholder="<?= htmlspecialchars($searchPlaceholder) ?>">
-        </div>
-      </div>
+        <?php
+          $backText = 'Back to Home';
+          include __DIR__ . '/../topbar.php';
+        ?>
     </div>
 
     <div class="container">
