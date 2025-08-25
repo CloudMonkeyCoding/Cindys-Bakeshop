@@ -16,73 +16,7 @@
       background: url('../Images/cindyslogin.jpg') no-repeat center center fixed;
       background-size: cover;
   }
-     header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: red;
-      padding: 16px 40px;
-      border-bottom: 2px solid red;
-    }
-    .logo img {
-      height: 120px;
-    }
-    .nav {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-    }
- .nav a,
-.dropdown button {
-  padding: 15px 34px;
-  border-radius: 30px;
-  background: transparent; /* ✅ transparent background */
-  text-decoration: none;
-  color: rgb(255, 255, 255);
-  font-weight: bold;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: none;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-
-.nav a i,
-.dropdown button i {
-  font-size: 18px;
-}
-
-    .nav a:hover,
-    .dropdown button:hover {
-      background: black;
-      color: white;
-    }
-
-    .dropdown {
-      position: relative;
-    }
-    .dropdown-content {
-      display: none;
-      position: absolute;
-      right: 0;
-      top: 45px;
-      background-color: yellow;
-      min-width: 160px;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
-      z-index: 1;
-    }
-    .dropdown-content a {
-      color: black;
-      padding: 12px 16px;
-      text-decoration: none;
-      display: block;
-      font-weight: bold;
-    }
+ 
 
   .profile-container {
     max-width: 500px;
@@ -177,25 +111,7 @@
 </style>
 </head>
 <body>
-
-  <header>
-    <div class="logo">
-      <img src="../Images/cindy's logo.png" alt="Cindy's Logo">
-    </div>
-    <div class="nav">
-    <a href="../PRODUCT/MENU.php"><i class="fas fa-bread-slice"></i> Menu</a>
-      <a href="../CART/cart_checkout_page.html"><i class="fas fa-shopping-cart"></i> Cart</a>
-      <div class="dropdown">
-        <button onclick="toggleDropdown()"><i class="fas fa-user"></i> Profile</button>
-        <div class="dropdown-content" id="profileDropdown">
-          <a href="../PROFILE/EditProfile.html">Edit Profile</a>
-          <a href="../PURCHASES/MyPurchase.html">My Purchases</a>
-          <a href="../PROFILE/Settings.php">Settings</a>
-        </div>
-      </div>
-      <a href="../HOME PAGING/HOME.HTML"><i class="fas fa-sign-out-alt"></i> Logout</a>
-    </div>
-  </header>
+  <?php include __DIR__ . '/../topbar.php'; ?>
 
   <div class="profile-container">
     <div class="back-arrow" onclick="window.history.back()">&larr; Back</div>
@@ -221,20 +137,6 @@
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import "../firebase-init.js";
 
-    function toggleDropdown() {
-      const dropdown = document.getElementById("profileDropdown");
-      dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
-    }
-
-    // Close dropdown when clicking outside
-    window.onclick = function(event) {
-      if (!event.target.matches("button")) {
-        const dropdown = document.getElementById("profileDropdown");
-        if (dropdown && dropdown.style.display === "block") {
-          dropdown.style.display = "none";
-        }
-      }
-    };
 
     const auth = getAuth();
     onAuthStateChanged(auth, user => {

@@ -6,6 +6,7 @@
   <link rel="stylesheet" href="../styles.css" />
 </head>
 <body class="invoice-page">
+<?php include __DIR__ . '/../topbar.php'; ?>
 
 <div class="invoice-container" id="invoice">
   <h1>Order Invoice</h1>

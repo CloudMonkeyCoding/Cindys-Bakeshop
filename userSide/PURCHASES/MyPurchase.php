@@ -8,25 +8,7 @@
   <link rel="stylesheet" href="../styles.css" />
 </head>
 <body class="purchases-page">
-
-<header>
-    <div class="logo">
-      <img src="../Images/cindy_s logo.png" alt="Cindy's Logo">
-    </div>
-    <div class="nav">
-    <a href="../PRODUCT/MENU.php"><i class="fa-solid fa-bread-slice"></i> Menu</a>
-      <a href="../CART/cart_checkout_page.html"><i class="fa-solid fa-cart-shopping"></i> Cart</a>
-      <div class="dropdown">
-        <button onclick="toggleDropdown()"><i class="fa-solid fa-user"></i> Profile</button>
-        <div class="dropdown-content" id="profileDropdown">
-          <a href="../PROFILE/EditProfile.html">Edit Profile</a>
-          <a href="../PURCHASES/MyPurchase.html">My Purchases</a>
-          <a href="../PROFILE/Settings.php">Settings</a>
-        </div>
-      </div>
-      <a href="../HOME PAGING/HOME.HTML"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
-    </div>
-  </header>
+  <?php include __DIR__ . '/../topbar.php'; ?>
 
   <div class="container">
     <h2>MY PURCHASES</h2>
@@ -64,20 +46,6 @@
     import "../firebase-init.js";
 
     let cancelIndex = null;
-
-    function toggleDropdown() {
-      const dropdown = document.getElementById("profileDropdown");
-      dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
-    }
-
-    window.onclick = function(e) {
-      if (!e.target.matches("button")) {
-        const dropdown = document.getElementById("profileDropdown");
-        if (dropdown && dropdown.style.display === "block") {
-          dropdown.style.display = "none";
-        }
-      }
-    }
 
     function showTab(id) {
       document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));

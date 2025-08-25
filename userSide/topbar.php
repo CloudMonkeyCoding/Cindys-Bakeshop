@@ -79,12 +79,12 @@
   </div>
   <div class="nav">
     <a href="MENU.php" class="active">Menu</a>
-    <a href="../CART/cart_checkout_page.html">Cart</a>
+    <a href="../CART/cart_checkout_page.php">Cart</a>
     <div class="dropdown">
       <button onclick="toggleDropdown()">Profile</button>
       <div class="dropdown-content" id="profileDropdown">
-        <a href="../PROFILE/EditProfile.html">Edit Profile</a>
-        <a href="../PURCHASES/MyPurchase.html">My Purchases</a>
+          <a href="../PROFILE/EditProfile.php">Edit Profile</a>
+          <a href="../PURCHASES/MyPurchase.php">My Purchases</a>
         <a href="../PROFILE/Settings.php">Settings</a>
       </div>
     </div>

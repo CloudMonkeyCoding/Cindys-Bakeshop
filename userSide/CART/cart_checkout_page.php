@@ -6,25 +6,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="../styles.css" />
 </head>
-<body class="cart-page">
- <header>
-    <div class="logo">
-      <img src="../Images/cindy's logo.png" alt="Cindy's Logo">
-    </div>
-    <div class="nav">
-    <a href="../PRODUCT/MENU.php"><i class="fas fa-bread-slice"></i> Menu</a>
-      <a href="../CART/cart_checkout_page.html"><i class="fas fa-shopping-cart"></i> Cart</a>
-      <div class="dropdown">
-        <button onclick="toggleDropdown()"><i class="fas fa-user"></i> Profile</button>
-        <div class="dropdown-content" id="profileDropdown">
-          <a href="../PROFILE/EditProfile.html">Edit Profile</a>
-          <a href="../PURCHASES/MyPurchase.html">My Purchases</a>
-          <a href="../PROFILE/Settings.php">Settings</a>
-        </div>
-      </div>
-      <a href="../HOME PAGING/HOME.HTML"><i class="fas fa-sign-out-alt"></i> Logout</a>
-    </div>
-  </header>
+ <body class="cart-page">
+ <?php include __DIR__ . '/../topbar.php'; ?>
  
 
   <div class="container" id="cart-section">
@@ -92,21 +75,6 @@
   <script type="module">
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import "../firebase-init.js";
-
-    function toggleDropdown() {
-      const dropdown = document.getElementById("profileDropdown");
-      dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
-    }
-
-    // Close dropdown when clicking outside
-    window.onclick = function(event) {
-      if (!event.target.matches("button")) {
-        const dropdown = document.getElementById("profileDropdown");
-        if (dropdown && dropdown.style.display === "block") {
-          dropdown.style.display = "none";
-        }
-      }
-    };
 
     const cartContainer = document.getElementById('cart-items');
     const masterCheckbox = document.querySelector('.check-all input[type="checkbox"]');
@@ -411,7 +379,7 @@
       .then(res => res.json())
       .then(data => {
         document.getElementById("confirmationMsg").innerHTML =
-          `🎉 Thank you, <b>${name}</b>! Your order has been placed. <br><br><a href="../INVOICE/orderDetails.html?order_id=${data.order_id}" style="color:blue;text-decoration:underline;">👉 View Order Details</a>`;
+          `🎉 Thank you, <b>${name}</b>! Your order has been placed. <br><br><a href="../INVOICE/orderDetails.php?order_id=${data.order_id}" style="color:blue;text-decoration:underline;">👉 View Order Details</a>`;
         loadCart();
       });
     }

@@ -89,6 +89,6 @@ async function addToCart() {
 async function buyNow() {
   const success = await addToCart();
   if (success) {
-    window.location.href = "/userSide/CART/cart_checkout_page.html";
+    window.location.href = "/userSide/CART/cart_checkout_page.php";
   }
 }

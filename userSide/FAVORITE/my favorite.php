@@ -7,18 +7,7 @@
   <link rel="stylesheet" href="../styles.css" />
 </head>
 <body class="favorite-page">
-
-  <!-- HEADER -->
-  <header>
-    <div class="logo">
-      <img src="../Images/cindy's logo.png" alt="Cindy's Logo">
-    </div>
-    <div class="nav">
-      <a href="../HOME PAGING/HOME.HTML">Home</a>
-      <a href="../PRODUCT/MENU.php">Menu</a>
-      <a href="../PROFILE/EditProfile.html" class="active">Profile</a>
-    </div>
-  </header>
+  <?php include __DIR__ . '/../topbar.php'; ?>
 
   <section class="favorites-section">
     <div class="favorites-title">Your Favorite Products</div>
