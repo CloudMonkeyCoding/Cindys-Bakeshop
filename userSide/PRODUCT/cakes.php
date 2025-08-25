@@ -14,11 +14,16 @@ if ($pdo) {
   <title>Cakes - Cindy's Bakeshop</title>
   <link rel="stylesheet" href="../styles.css" />
 </head>
-<body class="product-category cakes-page">
-  <div class="content-wrapper">
-    <?php include __DIR__ . '/../topbar.php'; ?>
+  <body class="product-category cakes-page">
+    <div class="content-wrapper">
+      <div class="top-bar">
+        <a href="MENU.php" class="back-link">&larr; Back to Menu</a>
+        <div class="search-box">
+          <input id="searchInput" type="text" placeholder="Search cakes...">
+        </div>
+      </div>
 
-    <div class="products-grid">
+      <div class="products-grid">
       <?php foreach ($products as $product): ?>
         <div class="product-card" onclick="goToProduct(<?= htmlspecialchars($product['Product_ID']) ?>)">
           <?php if (!empty($product['Image_Path'])): ?>
@@ -32,15 +37,35 @@ if ($pdo) {
           </div>
         </div>
       <?php endforeach; ?>
+      </div>
+
+      <p id="no-results">No products found.</p>
+
     </div>
 
-  </div>
+    <script>
+      const searchInput = document.getElementById('searchInput');
+      const productCards = document.querySelectorAll('.product-card');
+      const noResults = document.getElementById('no-results');
 
-  <script>
-    function goToProduct(id) {
-      window.location.href = `product.php?id=${id}`;
-    }
-  </script>
+      searchInput.addEventListener('input', () => {
+        const searchTerm = searchInput.value.toLowerCase();
+        let matches = 0;
+
+        productCards.forEach(card => {
+          const productName = card.querySelector('.product-name').textContent.toLowerCase();
+          const isMatch = productName.includes(searchTerm);
+          card.style.display = isMatch ? 'block' : 'none';
+          if (isMatch) matches++;
+        });
+
+        noResults.style.display = matches === 0 ? 'block' : 'none';
+      });
+
+      function goToProduct(id) {
+        window.location.href = `product.php?id=${id}`;
+      }
+    </script>
 </body>
 </html>
 

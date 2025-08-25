@@ -1167,6 +1167,39 @@ body.product-category .content-wrapper {
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
 }
 
+body.product-category .top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+}
+
+body.product-category .top-bar a {
+  font-weight: bold;
+  color: red;
+  text-decoration: none;
+  font-size: 18px;
+}
+
+body.product-category .top-bar a:hover {
+  text-decoration: underline;
+}
+
+body.product-category .search-box input {
+  padding: 8px 15px;
+  width: 220px;
+  border-radius: 30px;
+  border: 2px solid black;
+  outline: none;
+}
+
+body.product-category #no-results {
+  text-align: center;
+  font-weight: bold;
+  font-size: 18px;
+  display: none;
+}
+
 body.product-category .products-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
