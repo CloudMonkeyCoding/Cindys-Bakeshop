@@ -43,34 +43,36 @@ if ($pdo) {
 </div> <!-- end .content-wrapper -->
 
 <script>
-  const searchInput = document.getElementById('searchInput');
-  const productCards = Array.from(document.querySelectorAll('.product-card'));
-  const noResults = document.getElementById('no-results');
+    const searchInput = document.getElementById('searchInput');
+    const productCards = Array.from(document.querySelectorAll('.product-card'));
+    const noResults = document.getElementById('no-results');
 
-  function applyFilter() {
-    const term = (searchInput.value || '').toLowerCase().trim();
-    let matches = 0;
+    function applyFilter() {
+      const term = searchInput ? (searchInput.value || '').toLowerCase().trim() : '';
+      let matches = 0;
 
-    productCards.forEach(card => {
-      const name = (card.querySelector('.product-name')?.textContent || '').toLowerCase();
-      const isMatch = !term || name.includes(term);
-      // Use '' to restore the element's natural display (keeps CSS grid intact)
-      card.style.display = isMatch ? '' : 'none';
-      if (isMatch) matches++;
-    });
+      productCards.forEach(card => {
+        const name = (card.querySelector('.product-name')?.textContent || '').toLowerCase();
+        const isMatch = !term || name.includes(term);
+        // Use '' to restore the element's natural display (keeps CSS grid intact)
+        card.style.display = isMatch ? '' : 'none';
+        if (isMatch) matches++;
+      });
 
-    // Show "No products found" only when there are zero matches
-    noResults.style.display = matches === 0 ? '' : 'none';
-  }
+      // Show "No products found" only when there are zero matches
+      noResults.style.display = matches === 0 ? '' : 'none';
+    }
 
-  searchInput.addEventListener('input', applyFilter);
-  // Run once on load
-  applyFilter();
+    if (searchInput) {
+      searchInput.addEventListener('input', applyFilter);
+    }
+    // Run once on load
+    applyFilter();
 
-  function goToProduct(id) {
-    window.location.href = `product.php?id=${encodeURIComponent(id)}`;
-  }
-</script>
+    function goToProduct(id) {
+      window.location.href = `product.php?id=${encodeURIComponent(id)}`;
+    }
+  </script>
 
 </body>
 </html>

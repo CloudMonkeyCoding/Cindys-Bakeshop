@@ -34,43 +34,43 @@ if ($pdo) {
       <?php endforeach; ?>
       </div>
 
-      <p id="no-results">No products found.</p>
+      <p id="no-results" style="text-align: center; font-weight: bold; font-size: 18px; display: none;">
+        No products found.
+      </p>
 
     </div>
 
-<p id="no-results" style="text-align: center; font-weight: bold; font-size: 18px; display: none;">
-  No products found.
-</p>
+  <script>
+    const searchInput = document.getElementById('searchInput');
+    const productCards = Array.from(document.querySelectorAll('.product-card'));
+    const noResults = document.getElementById('no-results');
 
-<script>
-  const searchInput = document.getElementById('searchInput');
-  const productCards = Array.from(document.querySelectorAll('.product-card'));
-  const noResults = document.getElementById('no-results');
+    function applyFilter() {
+      const searchTerm = searchInput ? (searchInput.value || '').toLowerCase().trim() : '';
+      let matches = 0;
 
-  function applyFilter() {
-    const searchTerm = (searchInput.value || '').toLowerCase().trim();
-    let matches = 0;
+      productCards.forEach(card => {
+        const nameEl = card.querySelector('.product-name');
+        const productName = (nameEl ? nameEl.textContent : '').toLowerCase();
+        const isMatch = !searchTerm || productName.includes(searchTerm);
+        // Use '' (empty string) to restore default display so the grid stays intact
+        card.style.display = isMatch ? '' : 'none';
+        if (isMatch) matches++;
+      });
 
-    productCards.forEach(card => {
-      const nameEl = card.querySelector('.product-name');
-      const productName = (nameEl ? nameEl.textContent : '').toLowerCase();
-      const isMatch = !searchTerm || productName.includes(searchTerm);
-      // Use '' (empty string) to restore default display so the grid stays intact
-      card.style.display = isMatch ? '' : 'none';
-      if (isMatch) matches++;
-    });
+      noResults.style.display = matches === 0 ? '' : 'none';
+    }
 
-    noResults.style.display = matches === 0 ? '' : 'none';
-  }
+    if (searchInput) {
+      searchInput.addEventListener('input', applyFilter);
+    }
+    // Run once on load in case list is empty or pre-filtered
+    applyFilter();
 
-  searchInput.addEventListener('input', applyFilter);
-  // Run once on load in case list is empty or pre-filtered
-  applyFilter();
-
-  function goToProduct(id) {
-    window.location.href = `product.php?id=${encodeURIComponent(id)}`;
-  }
-</script>
+    function goToProduct(id) {
+      window.location.href = `product.php?id=${encodeURIComponent(id)}`;
+    }
+  </script>
 
 </body>
 </html>
