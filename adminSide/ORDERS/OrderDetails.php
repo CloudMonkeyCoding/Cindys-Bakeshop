@@ -41,6 +41,7 @@ include '../header.php';
     <?php include $prefix . 'topbar.php'; ?>
 
     <div class="p-6">
+      <a href="ManageOrders.php" class="text-blue-500 hover:underline inline-block mb-4">&larr; Back to Orders</a>
       <?php if (!empty($message)): ?>
         <div class="mb-4 text-green-600"><?= $message; ?></div>
       <?php endif; ?>
