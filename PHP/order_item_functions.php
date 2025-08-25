@@ -17,10 +17,13 @@ function addOrderItem($pdo, $orderId, $productId, $quantity, $subtotal) {
 // 2) Get all order items for an order
 function getOrderItemsByOrderId($pdo, $orderId) {
     $stmt = $pdo->prepare("
-        SELECT * FROM Order_Item WHERE Order_ID = :order_id
+        SELECT oi.*, p.Name
+        FROM Order_Item oi
+        JOIN product p ON oi.Product_ID = p.Product_ID
+        WHERE oi.Order_ID = :order_id
     ");
     $stmt->execute([':order_id' => $orderId]);
-    return $stmt->fetchAll();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 // 3) Get all order items for a product

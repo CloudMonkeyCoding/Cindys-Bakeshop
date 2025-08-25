@@ -71,7 +71,7 @@ include '../header.php';
           <tbody>
             <?php foreach ($items as $item): ?>
               <tr class="border-b">
-                <td><?= htmlspecialchars($item['Name']); ?></td>
+                <td><?= htmlspecialchars($item['Name'] ?? 'Unknown Product'); ?></td>
                 <td><?= (int)$item['Quantity']; ?></td>
                 <td>₱ <?= number_format($item['Subtotal'], 2); ?></td>
               </tr>
