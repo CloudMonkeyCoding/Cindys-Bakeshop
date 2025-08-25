@@ -3,6 +3,14 @@ require_once 'db_connect.php';
 require_once 'user_functions.php';
 
 header('Content-Type: application/json');
+
+function normalizeFacePath($path) {
+    if (!$path) {
+        return null;
+    }
+    return $path[0] === '/' ? $path : '/' . ltrim($path, '/');
+}
+
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 switch ($action) {
@@ -15,11 +23,13 @@ switch ($action) {
                 echo json_encode(['error' => 'User not found']);
                 break;
             }
-            echo json_encode(['face_image_path' => $user['Face_Image_Path'] ?? null]);
+            $path = normalizeFacePath($user['Face_Image_Path'] ?? null);
+            echo json_encode(['face_image_path' => $path]);
         } else {
             $userId = (int)($_GET['user_id'] ?? 0);
             $user = getUserById($pdo, $userId);
-            echo json_encode(['face_image_path' => $user['Face_Image_Path'] ?? null]);
+            $path = normalizeFacePath($user['Face_Image_Path'] ?? null);
+            echo json_encode(['face_image_path' => $path]);
         }
         break;
     case 'set_face':
@@ -123,7 +133,7 @@ switch ($action) {
                 echo json_encode(['error' => 'Failed to save profile picture']);
                 break;
             }
-            $relativePath = 'user_faces/' . $filename;
+            $relativePath = '/user_faces/' . $filename;
             $sql .= ', Face_Image_Path = :face';
             $params[':face'] = $relativePath;
         }
@@ -132,9 +142,11 @@ switch ($action) {
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
 
+        $existing = normalizeFacePath($user['Face_Image_Path'] ?? null);
+
         echo json_encode([
             'message' => 'Profile updated successfully',
-            'face_image_path' => $relativePath ?? $user['Face_Image_Path']
+            'face_image_path' => $relativePath ?? $existing
         ]);
         break;
     default:
