@@ -24,13 +24,19 @@ async function addToCart() {
       ? `/PHP/cart_api.php?action=list&email=${encodeURIComponent(email)}`
       : `/PHP/cart_api.php?action=list`;
     const listResp = await fetch(listUrl);
+    const listType = listResp.headers.get('Content-Type') || '';
     const listText = await listResp.text();
+    if (!listResp.ok || !listType.includes('application/json')) {
+      console.error('Invalid cart list response', listText.slice(0, 200));
+      alert('Error retrieving cart.');
+      return false;
+    }
     let listData;
     try {
       listData = JSON.parse(listText);
     } catch (e) {
-      console.error("Invalid cart list response", listText);
-      alert("Error retrieving cart.");
+      console.error('Invalid cart list response', listText.slice(0, 200));
+      alert('Error retrieving cart.');
       return false;
     }
     const cartId = listData.cart_id;
@@ -59,17 +65,23 @@ async function addToCart() {
     if (email) params.set("email", email);
 
     const response = await fetch(`/PHP/cart_api.php?action=${action}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString()
     });
+    const respType = response.headers.get('Content-Type') || '';
     const respText = await response.text();
+    if (!response.ok || !respType.includes('application/json')) {
+      console.error('Invalid cart response', respText.slice(0, 200));
+      alert('Error adding item to cart.');
+      return false;
+    }
     let result;
     try {
       result = JSON.parse(respText);
     } catch (e) {
-      console.error("Invalid cart response", respText);
-      alert("Error adding item to cart.");
+      console.error('Invalid cart response', respText.slice(0, 200));
+      alert('Error adding item to cart.');
       return false;
     }
     if ((action === "add" && result.cart_item_id) || (action === "update" && result.updated)) {

@@ -105,12 +105,17 @@ $price = isset($product['Price']) ? number_format((float)$product['Price'], 2) :
           ? `/PHP/cart_api.php?action=list&email=${encodeURIComponent(email)}`
           : `/PHP/cart_api.php?action=list`;
         const resp = await fetch(listUrl);
+        const contentType = resp.headers.get('Content-Type') || '';
         const text = await resp.text();
+        if (!resp.ok || !contentType.includes('application/json')) {
+          console.error('Invalid cart list response', text.slice(0, 200));
+          return;
+        }
         let data;
         try {
           data = JSON.parse(text);
         } catch (e) {
-          console.error("Invalid cart list response", text);
+          console.error('Invalid cart list response', text.slice(0, 200));
           return;
         }
         if (data.items) {
