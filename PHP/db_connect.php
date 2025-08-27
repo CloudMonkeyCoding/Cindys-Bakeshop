@@ -1,22 +1,27 @@
 <?php
-$host = getenv('DB_HOST') ?: 'localhost';
+require __DIR__ . '/../vendor/autoload.php';
 
-$db = getenv('DB_NAME');
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv->load();
+
+$host = $_ENV['DB_HOST'] ?: 'localhost';
+
+$db = $_ENV['DB_NAME'];
 if (!$db) {
     throw new \RuntimeException('Database name not specified. Set the DB_NAME environment variable.');
 }
 
-$user = getenv('DB_USER');
+$user = $_ENV['DB_USER'];
 if (!$user) {
     throw new \RuntimeException('Database user not specified. Set the DB_USER environment variable.');
 }
 
-$pass = getenv('DB_PASSWORD');
+$pass = $_ENV['DB_PASSWORD'];
 if ($pass === false) {
     $pass = '';
 }
 
-$charset = getenv('DB_CHARSET') ?: 'utf8mb4';
+$charset = $_ENV['DB_CHARSET'] ?: 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 
