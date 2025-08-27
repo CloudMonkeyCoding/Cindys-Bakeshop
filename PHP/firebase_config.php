@@ -19,6 +19,24 @@ if ($expectedToken) {
     }
 }
 
+$requiredEnv = [
+    'FIREBASE_API_KEY',
+    'FIREBASE_AUTH_DOMAIN',
+    'FIREBASE_PROJECT_ID',
+    'FIREBASE_STORAGE_BUCKET',
+    'FIREBASE_MESSAGING_SENDER_ID',
+    'FIREBASE_APP_ID',
+    'FIREBASE_MEASUREMENT_ID',
+];
+
+foreach ($requiredEnv as $envKey) {
+    if (!isset($_ENV[$envKey]) || $_ENV[$envKey] === '') {
+        http_response_code(500);
+        echo json_encode(['error' => "Missing environment variable: {$envKey}"]);
+        exit;
+    }
+}
+
 $config = [
     'apiKey' => $_ENV['FIREBASE_API_KEY'],
     'authDomain' => $_ENV['FIREBASE_AUTH_DOMAIN'],
@@ -29,6 +47,6 @@ $config = [
     'measurementId' => $_ENV['FIREBASE_MEASUREMENT_ID'],
 ];
 
-
-
 echo json_encode($config);
+exit;
+
