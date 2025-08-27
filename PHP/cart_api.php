@@ -3,6 +3,8 @@ require_once 'db_connect.php';
 require_once 'cart_functions.php';
 require_once 'cart_item_functions.php';
 require_once 'user_functions.php';
+require_once 'product_functions.php';
+require_once 'inventory_functions.php';
 
 header('Content-Type: application/json');
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
@@ -45,6 +47,27 @@ switch ($action) {
         $userId = (int)($_POST['user_id'] ?? 0);
         $email = $_POST['email'] ?? '';
 
+        if ($qty <= 0) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Quantity must be greater than zero']);
+            break;
+        }
+
+        $product = getProductById($pdo, $productId);
+        if (!$product) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Product not found']);
+            break;
+        }
+
+        $inventory = getInventoryByProductId($pdo, $productId);
+        $available = $inventory ? (int)$inventory['Stock_Quantity'] : (int)($product['Stock_Quantity'] ?? 0);
+        if ($available <= 0) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Product out of stock']);
+            break;
+        }
+
         if ($userId <= 0 && $email) {
             $user = getUserByEmail($pdo, $email);
             if ($user) {
@@ -65,24 +88,77 @@ switch ($action) {
         }
 
         $existing = getCartItemByCartAndProduct($pdo, $cartId, $productId);
+        $existingQty = $existing ? (int)$existing['Quantity'] : 0;
+        $maxAdd = $available - $existingQty;
+        if ($maxAdd <= 0) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Requested quantity exceeds available stock']);
+            break;
+        }
+        $capped = false;
+        if ($qty > $maxAdd) {
+            $qty = $maxAdd;
+            $capped = true;
+        }
+
         if ($existing) {
-            $newQty = $existing['Quantity'] + $qty;
+            $newQty = $existingQty + $qty;
             $updated = updateCartItemQuantity($pdo, $existing['Cart_Item_ID'], $newQty);
-            echo json_encode(['cart_item_id' => $existing['Cart_Item_ID'], 'cart_id' => $cartId, 'updated' => $updated]);
+            $response = ['cart_item_id' => $existing['Cart_Item_ID'], 'cart_id' => $cartId, 'updated' => $updated, 'quantity' => $newQty];
         } else {
             $id = addCartItem($pdo, $cartId, $productId, $qty);
-            echo json_encode(['cart_item_id' => $id, 'cart_id' => $cartId]);
+            $response = ['cart_item_id' => $id, 'cart_id' => $cartId, 'quantity' => $qty];
         }
+        if ($capped) {
+            $response['capped'] = true;
+        }
+        echo json_encode($response);
         break;
     case 'update':
         $cartItemId = (int)($_POST['cart_item_id'] ?? 0);
         $qty = (int)($_POST['quantity'] ?? 1);
-        $result = updateCartItemQuantity($pdo, $cartItemId, $qty);
+
         if ($qty <= 0) {
-            echo json_encode(['deleted' => $result]);
-        } else {
-            echo json_encode(['updated' => $result]);
+            http_response_code(400);
+            echo json_encode(['error' => 'Quantity must be greater than zero']);
+            break;
         }
+
+        $cartItem = getCartItemById($pdo, $cartItemId);
+        if (!$cartItem) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Cart item not found']);
+            break;
+        }
+
+        $productId = (int)$cartItem['Product_ID'];
+        $product = getProductById($pdo, $productId);
+        if (!$product) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Product not found']);
+            break;
+        }
+
+        $inventory = getInventoryByProductId($pdo, $productId);
+        $available = $inventory ? (int)$inventory['Stock_Quantity'] : (int)($product['Stock_Quantity'] ?? 0);
+        if ($available <= 0) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Product out of stock']);
+            break;
+        }
+
+        $capped = false;
+        if ($qty > $available) {
+            $qty = $available;
+            $capped = true;
+        }
+
+        $result = updateCartItemQuantity($pdo, $cartItemId, $qty);
+        $response = ['updated' => $result, 'cart_item_id' => $cartItemId, 'quantity' => $qty];
+        if ($capped) {
+            $response['capped'] = true;
+        }
+        echo json_encode($response);
         break;
     case 'remove':
         $cartItemId = (int)($_POST['cart_item_id'] ?? 0);
