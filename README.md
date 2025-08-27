@@ -20,8 +20,9 @@ deliveries while administrators manage the catalogue and fulfilment.
 - `Database/` – SQL dump (`cindys_bakeshop.sql`) for database schema and sample data
 - `PHP/` – reusable PHP scripts that implement database functions
 - `adminSide/` – administrator dashboard pages
-- `user-cindysbakeshop/` – customer‑facing pages
-- `Admin Cindys/`, `UpdatedUser/`, `UpdatedUser1/` – legacy/alternate versions kept for reference
+- `userSide/` – customer‑facing pages
+- `user_faces/` – uploaded user face images
+- `vendor/` – Composer dependencies
 
 ## Database Schema Summary
 The SQL dump defines the following tables:
@@ -67,7 +68,7 @@ development server:
 ```sh
 php -S localhost:8000
 ```
-- Browse the customer-facing site at `http://localhost:8000/user-cindysbakeshop`.
+- Browse the customer-facing site at `http://localhost:8000/userSide`.
 - Access the admin dashboard at `http://localhost:8000/adminSide`.
 
 ## Firebase Configuration
