@@ -16,3 +16,6 @@ Thumbs.db
 .env
 # Uploaded files
 user_faces/
+
+vendor/
+
