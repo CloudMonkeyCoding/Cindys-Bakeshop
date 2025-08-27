@@ -10,7 +10,18 @@ function addNotification($pdo, $type, $referenceId, $message) {
 }
 
 function getUnreadNotifications($pdo) {
-    $stmt = $pdo->query("SELECT Notification_ID, Type, Reference_ID, Message, Created_At FROM notification WHERE Is_Read = 0 ORDER BY Created_At DESC");
+    $stmt = $pdo->query(
+        "SELECT Notification_ID, Type, Reference_ID, Message, Created_At " .
+        "FROM notification WHERE Is_Read = 0 ORDER BY Created_At DESC"
+    );
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function getAllNotifications($pdo) {
+    $stmt = $pdo->query(
+        "SELECT Notification_ID, Type, Reference_ID, Message, Created_At, Is_Read " .
+        "FROM notification ORDER BY Created_At DESC"
+    );
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 

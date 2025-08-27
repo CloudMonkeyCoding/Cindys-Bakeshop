@@ -14,6 +14,20 @@ switch ($action) {
         }
         echo json_encode($notifications);
         break;
+    case 'all':
+    case '':
+        $notifications = getAllNotifications($pdo);
+        $unreadIds = array_column(
+            array_filter($notifications, function ($n) {
+                return $n['Is_Read'] == 0;
+            }),
+            'Notification_ID'
+        );
+        if (!empty($unreadIds)) {
+            markNotificationsAsRead($pdo, $unreadIds);
+        }
+        echo json_encode($notifications);
+        break;
     default:
         http_response_code(400);
         echo json_encode(['error' => 'Invalid action']);
