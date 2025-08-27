@@ -9,6 +9,7 @@ require_once 'product_functions.php';
 require_once 'cart_functions.php';
 require_once 'cart_item_functions.php';
 require_once 'email_functions.php';
+require_once 'notification_functions.php';
 
 header('Content-Type: application/json');
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
@@ -71,6 +72,12 @@ switch ($action) {
             if ($inventory && $inventory['Stock_Quantity'] < 20) {
                 $product = getProductById($pdo, $it['product_id']);
                 sendLowStockEmail($product['Name'], (int)$inventory['Stock_Quantity']);
+                addNotification(
+                    $pdo,
+                    'low_stock',
+                    (int)$it['product_id'],
+                    "Stock for {$product['Name']} is low. Current level: {$inventory['Stock_Quantity']}."
+                );
             }
         }
         addTransaction($pdo, $orderId, $mop, 'Pending', date('Y-m-d'), $total, null);
@@ -79,6 +86,12 @@ switch ($action) {
             deleteCartItemsByCartId($pdo, $cart['Cart_ID']);
         }
         sendOrderNotificationEmail($orderId, $userId, $total);
+        addNotification(
+            $pdo,
+            'order',
+            $orderId,
+            "Order #{$orderId} has been placed by user ID {$userId}. Total amount: {$total}."
+        );
         echo json_encode(['order_id' => $orderId]);
         break;
     case 'view':

@@ -1,4 +1,14 @@
 <?php
+function addNotification($pdo, $type, $referenceId, $message) {
+    $stmt = $pdo->prepare('INSERT INTO notification (Type, Reference_ID, Message) VALUES (:type, :ref, :message)');
+    $stmt->execute([
+        ':type'    => $type,
+        ':ref'     => $referenceId,
+        ':message' => $message
+    ]);
+    return $pdo->lastInsertId();
+}
+
 function getUnreadNotifications($pdo) {
     $stmt = $pdo->query("SELECT Notification_ID, Type, Reference_ID, Message, Created_At FROM notification WHERE Is_Read = 0 ORDER BY Created_At DESC");
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
