@@ -50,7 +50,12 @@ The SQL dump defines the following tables:
    mysql -u root -p cindysdb < Database/cindys_bakeshop.sql
    ```
    Adjust the credentials or database name as needed.
-3. Update `PHP/db_connect.php` with your database credentials.
+3. Configure database credentials using environment variables instead of editing `PHP/db_connect.php`:
+   - `DB_HOST` – database host (defaults to `localhost`)
+   - `DB_NAME` – database name (**required**)
+   - `DB_USER` – database username (**required**)
+   - `DB_PASSWORD` – database password (defaults to an empty string)
+   - `DB_CHARSET` – character set (defaults to `utf8mb4`)
 
 ### Running MySQL as a Service (Windows/XAMPP)
 To avoid manually launching the XAMPP control panel each time:

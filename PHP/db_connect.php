@@ -1,9 +1,22 @@
 <?php
-$host = 'localhost';      
-$db   = 'cindysdb';  
-$user = 'root';           
-$pass = '';               
-$charset = 'utf8mb4';
+$host = getenv('DB_HOST') ?: 'localhost';
+
+$db = getenv('DB_NAME');
+if (!$db) {
+    throw new \RuntimeException('Database name not specified. Set the DB_NAME environment variable.');
+}
+
+$user = getenv('DB_USER');
+if (!$user) {
+    throw new \RuntimeException('Database user not specified. Set the DB_USER environment variable.');
+}
+
+$pass = getenv('DB_PASSWORD');
+if ($pass === false) {
+    $pass = '';
+}
+
+$charset = getenv('DB_CHARSET') ?: 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 
