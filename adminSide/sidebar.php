@@ -33,6 +33,7 @@ $prefix = str_repeat('../', $depth);
     </div>
 
     <a href="<?= $prefix ?>dashboard/user.php" class="flex items-center gap-2 p-2 rounded sidebar-link">👥 Users</a>
+    <a href="<?= $prefix ?>notifications.php" class="flex items-center gap-2 p-2 rounded <?php echo $activePage === 'notifications' ? 'bg-gray-200 font-semibold' : 'sidebar-link'; ?>">🔔 Notifications</a>
 
     <!-- Reports -->
     <div class="menu">
