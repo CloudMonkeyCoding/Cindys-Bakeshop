@@ -30,6 +30,11 @@ function sendAdminEmail(string $subject, string $body): void
         return;
     }
 
+    if (!class_exists(PHPMailer::class)) {
+        error_log('PHPMailer library missing. Email not sent.');
+        return;
+    }
+
     $mail = new PHPMailer(true);
 
     try {
