@@ -2,7 +2,7 @@
 // 1) Add inventory entry for a product
 function addInventory($pdo, $productId, $stockQuantity) {
     $stmt = $pdo->prepare("
-        INSERT INTO Inventory (Product_ID, Stock_Quantity)
+        INSERT INTO inventory (Product_ID, Stock_Quantity)
         VALUES (:product_id, :stock_quantity)
     ");
     $stmt->execute([
@@ -15,7 +15,7 @@ function addInventory($pdo, $productId, $stockQuantity) {
 // 2) Get inventory record by Product_ID
 function getInventoryByProductId($pdo, $productId) {
     $stmt = $pdo->prepare("
-        SELECT * FROM Inventory WHERE Product_ID = :product_id
+        SELECT * FROM inventory WHERE Product_ID = :product_id
     ");
     $stmt->execute([':product_id' => $productId]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -23,7 +23,7 @@ function getInventoryByProductId($pdo, $productId) {
 
 // 3) Get all inventory records
 function getAllInventory($pdo) {
-    $stmt = $pdo->query("SELECT * FROM Inventory");
+    $stmt = $pdo->query("SELECT * FROM inventory");
     return $stmt->fetchAll();
 }
 
@@ -31,8 +31,8 @@ function getAllInventory($pdo) {
 function getInventoryWithProducts($pdo) {
     $stmt = $pdo->query(
         "SELECT p.Product_ID, p.Name, p.Category, i.Stock_Quantity\n" .
-        "FROM Inventory i\n" .
-        "JOIN Product p ON i.Product_ID = p.Product_ID"
+        "FROM inventory i\n" .
+        "JOIN product p ON i.Product_ID = p.Product_ID"
     );
     return $stmt->fetchAll();
 }
@@ -40,7 +40,7 @@ function getInventoryWithProducts($pdo) {
 // 4) Update stock quantity for a product
 function updateInventoryStock($pdo, $productId, $stockQuantity) {
     $stmt = $pdo->prepare("
-        UPDATE Inventory
+        UPDATE inventory
         SET Stock_Quantity = :stock_quantity
         WHERE Product_ID = :product_id
     ");
@@ -54,7 +54,7 @@ function updateInventoryStock($pdo, $productId, $stockQuantity) {
 // 5) Adjust stock quantity (+/-)
 function adjustInventoryStock($pdo, $productId, $quantityChange) {
     $stmt = $pdo->prepare("
-        UPDATE Inventory
+        UPDATE inventory
         SET Stock_Quantity = Stock_Quantity + :quantity_change
         WHERE Product_ID = :product_id
     ");
@@ -68,7 +68,7 @@ function adjustInventoryStock($pdo, $productId, $quantityChange) {
 // 6) Delete an inventory record by Product_ID
 function deleteInventoryByProductId($pdo, $productId) {
     $stmt = $pdo->prepare("
-        DELETE FROM Inventory WHERE Product_ID = :product_id
+        DELETE FROM inventory WHERE Product_ID = :product_id
     ");
     $stmt->execute([':product_id' => $productId]);
     return $stmt->rowCount();

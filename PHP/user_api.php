@@ -46,7 +46,7 @@ switch ($action) {
             $userId = (int)($_POST['user_id'] ?? 0);
         }
         $path = $_POST['face_image_path'] ?? '';
-        $stmt = $pdo->prepare('UPDATE User SET Face_Image_Path = :path WHERE User_ID = :id');
+        $stmt = $pdo->prepare('UPDATE user SET Face_Image_Path = :path WHERE User_ID = :id');
         $stmt->execute([':path' => $path, ':id' => $userId]);
         echo json_encode(['updated' => $stmt->rowCount()]);
         break;
@@ -119,7 +119,7 @@ switch ($action) {
             ':name' => $fullName,
             ':id' => $user['User_ID']
         ];
-        $sql = 'UPDATE User SET Name = :name';
+        $sql = 'UPDATE user SET Name = :name';
 
         if ($password) {
             $hashed = password_hash($password, PASSWORD_DEFAULT);

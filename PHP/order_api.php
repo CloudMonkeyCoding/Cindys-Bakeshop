@@ -58,7 +58,7 @@ switch ($action) {
         $orderId = addOrder($pdo, $userId, date('Y-m-d'), 'Pending');
         $total = 0;
         foreach ($items as $it) {
-            $stmt = $pdo->prepare('SELECT Price FROM Product WHERE Product_ID = :id');
+            $stmt = $pdo->prepare('SELECT Price FROM product WHERE Product_ID = :id');
             $stmt->execute([':id' => $it['product_id']]);
             $price = $stmt->fetchColumn();
             $subtotal = $price * $it['quantity'];
@@ -85,10 +85,10 @@ switch ($action) {
         $orderId = (int)($_GET['order_id'] ?? 0);
         $order = getOrderById($pdo, $orderId);
         $user = $order ? getUserById($pdo, $order['User_ID']) : null;
-        $stmt = $pdo->prepare('SELECT oi.Quantity, oi.Subtotal, p.Name FROM Order_Item oi JOIN Product p ON oi.Product_ID = p.Product_ID WHERE oi.Order_ID = :order_id');
+        $stmt = $pdo->prepare('SELECT oi.Quantity, oi.Subtotal, p.Name FROM order_item oi JOIN product p ON oi.Product_ID = p.Product_ID WHERE oi.Order_ID = :order_id');
         $stmt->execute([':order_id' => $orderId]);
         $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $stmt = $pdo->prepare('SELECT Payment_Method, Payment_Status, Amount_Paid, Reference_Number FROM Transaction WHERE Order_ID = :order_id');
+        $stmt = $pdo->prepare('SELECT Payment_Method, Payment_Status, Amount_Paid, Reference_Number FROM transaction WHERE Order_ID = :order_id');
         $stmt->execute([':order_id' => $orderId]);
         $transaction = $stmt->fetch(PDO::FETCH_ASSOC);
         echo json_encode(['order' => $order, 'user' => $user, 'items' => $items, 'transaction' => $transaction]);

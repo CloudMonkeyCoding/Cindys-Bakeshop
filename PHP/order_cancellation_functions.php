@@ -20,7 +20,7 @@ function getAllOrderCancellations($pdo) {
     $stmt = $pdo->query(
         "SELECT oc.*, u.Name AS Customer
          FROM order_cancellation oc
-         LEFT JOIN User u ON oc.User_ID = u.User_ID"
+         LEFT JOIN user u ON oc.User_ID = u.User_ID"
     );
     return $stmt->fetchAll();
 }

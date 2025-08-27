@@ -2,7 +2,7 @@
 // 1) Add delivery personnel
 function addDeliveryPersonnel($pdo, $userId) {
     $stmt = $pdo->prepare("
-        INSERT INTO Delivery_Personnel (User_ID)
+        INSERT INTO delivery_personnel (User_ID)
         VALUES (:user_id)
     ");
     $stmt->execute([':user_id' => $userId]);
@@ -11,14 +11,14 @@ function addDeliveryPersonnel($pdo, $userId) {
 
 // 2) Get all delivery personnel
 function getAllDeliveryPersonnel($pdo) {
-    $stmt = $pdo->query("SELECT * FROM Delivery_Personnel");
+    $stmt = $pdo->query("SELECT * FROM delivery_personnel");
     return $stmt->fetchAll();
 }
 
 // 3) Get delivery personnel by ID
 function getDeliveryPersonnelById($pdo, $personnelId) {
     $stmt = $pdo->prepare("
-        SELECT * FROM Delivery_Personnel WHERE Delivery_Personnel_ID = :personnel_id
+        SELECT * FROM delivery_personnel WHERE Delivery_Personnel_ID = :personnel_id
     ");
     $stmt->execute([':personnel_id' => $personnelId]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -27,7 +27,7 @@ function getDeliveryPersonnelById($pdo, $personnelId) {
 // 4) Get delivery personnel by User_ID
 function getDeliveryPersonnelByUserId($pdo, $userId) {
     $stmt = $pdo->prepare("
-        SELECT * FROM Delivery_Personnel WHERE User_ID = :user_id
+        SELECT * FROM delivery_personnel WHERE User_ID = :user_id
     ");
     $stmt->execute([':user_id' => $userId]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -36,7 +36,7 @@ function getDeliveryPersonnelByUserId($pdo, $userId) {
 // 5) Delete delivery personnel by ID
 function deleteDeliveryPersonnelById($pdo, $personnelId) {
     $stmt = $pdo->prepare("
-        DELETE FROM Delivery_Personnel WHERE Delivery_Personnel_ID = :personnel_id
+        DELETE FROM delivery_personnel WHERE Delivery_Personnel_ID = :personnel_id
     ");
     $stmt->execute([':personnel_id' => $personnelId]);
     return $stmt->rowCount();
@@ -45,7 +45,7 @@ function deleteDeliveryPersonnelById($pdo, $personnelId) {
 // 6) Delete delivery personnel by User_ID
 function deleteDeliveryPersonnelByUserId($pdo, $userId) {
     $stmt = $pdo->prepare("
-        DELETE FROM Delivery_Personnel WHERE User_ID = :user_id
+        DELETE FROM delivery_personnel WHERE User_ID = :user_id
     ");
     $stmt->execute([':user_id' => $userId]);
     return $stmt->rowCount();

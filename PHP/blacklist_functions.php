@@ -2,7 +2,7 @@
 // 1) Add a user/IP to blacklist
 function addBlacklist($pdo, $userId, $reason, $ipAddress) {
     $stmt = $pdo->prepare("
-        INSERT INTO Blacklist (User_ID, Blacklist_reason, IP_Address)
+        INSERT INTO blacklist (User_ID, Blacklist_reason, IP_Address)
         VALUES (:user_id, :reason, :ip_address)
     ");
 
@@ -17,14 +17,14 @@ function addBlacklist($pdo, $userId, $reason, $ipAddress) {
 
 // 2) Get all blacklist entries
 function getAllBlacklist($pdo) {
-    $stmt = $pdo->query("SELECT * FROM Blacklist");
+    $stmt = $pdo->query("SELECT * FROM blacklist");
     return $stmt->fetchAll();
 }
 
 // 3) Get blacklist entries for a specific User_ID
 function getBlacklistByUserId($pdo, $userId) {
     $stmt = $pdo->prepare("
-        SELECT * FROM Blacklist
+        SELECT * FROM blacklist
         WHERE User_ID = :user_id
     ");
     $stmt->execute([':user_id' => $userId]);
@@ -34,7 +34,7 @@ function getBlacklistByUserId($pdo, $userId) {
 // 4) Get blacklist entries for a specific IP address
 function getBlacklistByIp($pdo, $ipAddress) {
     $stmt = $pdo->prepare("
-        SELECT * FROM Blacklist
+        SELECT * FROM blacklist
         WHERE IP_Address = :ip_address
     ");
     $stmt->execute([':ip_address' => $ipAddress]);
@@ -44,7 +44,7 @@ function getBlacklistByIp($pdo, $ipAddress) {
 // 5) Remove a blacklist entry by Blacklist_ID
 function deleteBlacklistById($pdo, $blacklistId) {
     $stmt = $pdo->prepare("
-        DELETE FROM Blacklist
+        DELETE FROM blacklist
         WHERE Blacklist_ID = :blacklist_id
     ");
     $stmt->execute([':blacklist_id' => $blacklistId]);
@@ -54,7 +54,7 @@ function deleteBlacklistById($pdo, $blacklistId) {
 // 6) Remove all blacklist entries for a specific User_ID
 function deleteBlacklistByUserId($pdo, $userId) {
     $stmt = $pdo->prepare("
-        DELETE FROM Blacklist
+        DELETE FROM blacklist
         WHERE User_ID = :user_id
     ");
     $stmt->execute([':user_id' => $userId]);
@@ -64,7 +64,7 @@ function deleteBlacklistByUserId($pdo, $userId) {
 // 7) Check if a specific User_ID is blacklisted
 function isUserBlacklisted($pdo, $userId) {
     $stmt = $pdo->prepare("
-        SELECT COUNT(*) FROM Blacklist WHERE User_ID = :user_id
+        SELECT COUNT(*) FROM blacklist WHERE User_ID = :user_id
     ");
     $stmt->execute([':user_id' => $userId]);
     return $stmt->fetchColumn() > 0;
@@ -73,7 +73,7 @@ function isUserBlacklisted($pdo, $userId) {
 // 8) Check if an IP address is blacklisted
 function isIpBlacklisted($pdo, $ipAddress) {
     $stmt = $pdo->prepare("
-        SELECT COUNT(*) FROM Blacklist WHERE IP_Address = :ip_address
+        SELECT COUNT(*) FROM blacklist WHERE IP_Address = :ip_address
     ");
     $stmt->execute([':ip_address' => $ipAddress]);
     return $stmt->fetchColumn() > 0;

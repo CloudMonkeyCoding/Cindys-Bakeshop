@@ -2,7 +2,7 @@
 // 1) Create a new order
 function addOrder($pdo, $userId, $orderDate, $status) {
     $stmt = $pdo->prepare("
-        INSERT INTO `Order` (User_ID, Order_Date, Status)
+        INSERT INTO `order` (User_ID, Order_Date, Status)
         VALUES (:user_id, :order_date, :status)
     ");
     $stmt->execute([
@@ -15,7 +15,7 @@ function addOrder($pdo, $userId, $orderDate, $status) {
 
 // 2) Get all orders
 function getAllOrders($pdo) {
-    $stmt = $pdo->query("SELECT * FROM `Order`");
+    $stmt = $pdo->query("SELECT * FROM `order`");
     return $stmt->fetchAll();
 }
 
@@ -27,9 +27,9 @@ function getOrdersByUserId($pdo, $userId) {
                o.Order_Date,
                o.Status,
                MIN(p.Image_Path) AS Image_Path
-        FROM `Order` o
-        LEFT JOIN Order_Item oi ON o.Order_ID = oi.Order_ID
-        LEFT JOIN Product p ON oi.Product_ID = p.Product_ID
+        FROM `order` o
+        LEFT JOIN order_item oi ON o.Order_ID = oi.Order_ID
+        LEFT JOIN product p ON oi.Product_ID = p.Product_ID
         WHERE o.User_ID = :user_id
         GROUP BY o.Order_ID, o.User_ID, o.Order_Date, o.Status
     ");
@@ -40,7 +40,7 @@ function getOrdersByUserId($pdo, $userId) {
 // 4) Get a single order by ID
 function getOrderById($pdo, $orderId) {
     $stmt = $pdo->prepare("
-        SELECT * FROM `Order` WHERE Order_ID = :order_id
+        SELECT * FROM `order` WHERE Order_ID = :order_id
     ");
     $stmt->execute([':order_id' => $orderId]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -49,7 +49,7 @@ function getOrderById($pdo, $orderId) {
 // 5) Update order status
 function updateOrderStatus($pdo, $orderId, $status) {
     $stmt = $pdo->prepare("
-        UPDATE `Order`
+        UPDATE `order`
         SET Status = :status
         WHERE Order_ID = :order_id
     ");
@@ -63,7 +63,7 @@ function updateOrderStatus($pdo, $orderId, $status) {
 // 6) Delete an order by ID
 function deleteOrderById($pdo, $orderId) {
     $stmt = $pdo->prepare("
-        DELETE FROM `Order` WHERE Order_ID = :order_id
+        DELETE FROM `order` WHERE Order_ID = :order_id
     ");
     $stmt->execute([':order_id' => $orderId]);
     return $stmt->rowCount();
@@ -71,14 +71,14 @@ function deleteOrderById($pdo, $orderId) {
 
 // 7) Count total orders
 function countOrders($pdo) {
-    $stmt = $pdo->query("SELECT COUNT(*) FROM `Order`");
+    $stmt = $pdo->query("SELECT COUNT(*) FROM `order`");
     return $stmt->fetchColumn();
 }
 
 // 8) Get orders by status
 function getOrdersByStatus($pdo, $status) {
     $stmt = $pdo->prepare("
-        SELECT * FROM `Order` WHERE Status = :status
+        SELECT * FROM `order` WHERE Status = :status
     ");
     $stmt->execute([':status' => $status]);
     return $stmt->fetchAll();
