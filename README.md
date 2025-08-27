@@ -21,7 +21,7 @@ deliveries while administrators manage the catalogue and fulfilment.
 - `PHP/` – reusable PHP scripts that implement database functions
 - `adminSide/` – administrator dashboard pages
 - `userSide/` – customer‑facing pages
-- `user_faces/` – uploaded user face images
+- `user_faces/` – uploaded user face images (generated at runtime and ignored by Git)
 - `vendor/` – Composer dependencies
 
 ## Database Schema Summary
