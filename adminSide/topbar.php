@@ -21,16 +21,24 @@ $avatarSrc = $avatarSrc ?? 'https://i.imgur.com/1Q2Z1ZL.png';
   </div>
 </div>
 <script>
+console.log('Topbar notification script initialized');
+
 function toggleDropdown() {
   const dropdown = document.getElementById('notificationDropdown');
+  console.log('toggleDropdown called');
   if (dropdown) {
     dropdown.classList.toggle('hidden');
+    console.log('Dropdown now', dropdown.classList.contains('hidden') ? 'hidden' : 'visible');
+  } else {
+    console.warn('notificationDropdown element not found');
   }
 }
+
 window.addEventListener('click', function (e) {
   const button = document.querySelector('button[onclick="toggleDropdown()"]');
   const dropdown = document.getElementById('notificationDropdown');
   if (button && dropdown && !button.contains(e.target) && !dropdown.contains(e.target)) {
+    console.log('Click outside dropdown detected, hiding notification menu');
     dropdown.classList.add('hidden');
   }
 });

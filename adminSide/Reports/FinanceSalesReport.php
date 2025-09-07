@@ -107,20 +107,29 @@ include '../header.php';
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
-  <script>
-    const notifications = [
-      "⚠️ Low Stock: Chocolate Cake (2 left)",
-      "🛒 New Order #1245 from Bulacan",
-      "💬 New customer feedback received"
-    ];
+    <script>
+      console.log('Initializing finance report notifications');
+      const notifications = [
+        "⚠️ Low Stock: Chocolate Cake (2 left)",
+        "🛒 New Order #1245 from Bulacan",
+        "💬 New customer feedback received"
+      ];
 
-    const notifList = document.getElementById("notifList");
-    notifications.forEach(note => {
-      const li = document.createElement("li");
-      li.className = "px-4 py-2 hover:bg-gray-100 cursor-pointer";
-      li.textContent = note;
-      notifList.appendChild(li);
-    });
+      const notifList = document.getElementById("notifList");
+      if (!notifList) {
+        console.warn('notifList element not found in finance report');
+      } else {
+        console.log('notifList element found in finance report');
+      }
+
+      notifications.forEach((note, index) => {
+        console.log(`Appending notification ${index + 1}:`, note);
+        const li = document.createElement("li");
+        li.className = "px-4 py-2 hover:bg-gray-100 cursor-pointer";
+        li.textContent = note;
+        notifList.appendChild(li);
+      });
+      console.log('Finished populating finance report notifications');
 
     const ctx = document.getElementById('salesChart').getContext('2d');
     const salesChart = new Chart(ctx, {

@@ -89,20 +89,29 @@ include '../header.php';
   </div>
 
   <!-- Script Section -->
-  <script>
-    const notifications = [
-      "⚠️ Low Stock: Chocolate Cake (2 left)",
-      "🛒 New Order #1245 from Bulacan",
-      "💬 New customer feedback received"
-    ];
+    <script>
+      console.log('Initializing dashboard notifications');
+      const notifications = [
+        "⚠️ Low Stock: Chocolate Cake (2 left)",
+        "🛒 New Order #1245 from Bulacan",
+        "💬 New customer feedback received"
+      ];
 
-    const notifList = document.getElementById("notifList");
-    notifications.forEach(note => {
-      const li = document.createElement("li");
-      li.className = "px-4 py-2 hover:bg-gray-100 cursor-pointer";
-      li.textContent = note;
-      notifList.appendChild(li);
-    });
+      const notifList = document.getElementById("notifList");
+      if (!notifList) {
+        console.warn('notifList element not found on dashboard');
+      } else {
+        console.log('notifList element found on dashboard');
+      }
+
+      notifications.forEach((note, index) => {
+        console.log(`Appending notification ${index + 1}:`, note);
+        const li = document.createElement("li");
+        li.className = "px-4 py-2 hover:bg-gray-100 cursor-pointer";
+        li.textContent = note;
+        notifList.appendChild(li);
+      });
+      console.log('Finished populating dashboard notifications');
 
     // Sales filter simulation
     const salesAmount = document.getElementById("salesAmount");
