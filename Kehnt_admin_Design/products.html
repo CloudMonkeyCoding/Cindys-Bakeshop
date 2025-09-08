@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cindy's Bakeshop Admin - Products</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    :root {
+      --primary: #e74c3c;
+      --secondary: #f1c40f;
+      --dark: #2c3e50;
+      --light: #fdfdfd;
+      --card-bg: #fff;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    body {
+      display: flex;
+      background: var(--light);
+      color: #333;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px;
+      height: 100vh;
+      background: linear-gradient(180deg, #2c3e50, #34495e, #2c3e50);
+      color: #fff;
+      position: fixed;
+      top: 0;
+      left: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 0;
+    }
+
+    .sidebar h2 {
+      text-align: center;
+      margin-bottom: 40px;
+      font-size: 22px;
+      font-weight: bold;
+      color: var(--secondary);
+    }
+
+    .sidebar ul {
+      list-style: none;
+      flex-grow: 1;
+    }
+
+    .sidebar ul li {
+      margin: 10px 0;
+    }
+
+    .sidebar ul li a {
+      color: #ddd;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
+      border-left: 4px solid transparent;
+      font-size: 15px;
+      position: relative;
+      overflow: hidden;
+      transition: color 0.3s, background 0.3s;
+    }
+
+    .sidebar ul li a::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 20px;
+      width: 0;
+      height: 3px;
+      background: var(--secondary);
+      transition: width 0.3s ease;
+      border-radius: 2px;
+    }
+
+    .sidebar ul li a:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+      border-left: 4px solid var(--secondary);
+    }
+
+    .sidebar ul li a:hover::after {
+      width: 70%;
+    }
+
+    .sidebar ul li a.active {
+      color: #fff;
+      background: rgba(231, 76, 60, 0.25);
+      border-left: 4px solid var(--primary);
+    }
+
+    .sidebar ul li a.active::after {
+      width: 70%;
+      background: var(--primary);
+    }
+
+    .sidebar ul li a span {
+      margin-right: 10px;
+      font-size: 18px;
+    }
+
+    /* Dropdown */
+    .sidebar .dropdown>a {
+      cursor: pointer;
+    }
+
+    .sidebar .submenu {
+      display: none;
+      list-style: none;
+      padding-left: 30px;
+    }
+
+    .sidebar .submenu li a {
+      font-size: 14px;
+      padding: 8px 20px;
+      color: #ccc;
+    }
+
+    .sidebar .submenu li a:hover {
+      color: #fff;
+    }
+
+    .sidebar .dropdown.active .submenu {
+      display: block;
+    }
+
+    /* Main */
+    .main {
+      margin-left: 240px;
+      flex: 1;
+      padding: 20px 30px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      color: black;
+    }
+
+    .header .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #333;
+      font-weight: 500;
+      transition: opacity 0.2s ease;
+    }
+
+    .header .user-info:hover {
+      opacity: 0.8;
+    }
+
+    .header .user-info img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--primary);
+    }
+
+    /* Table */
+    .table-container {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 14px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .table-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .table-actions input,
+    .table-actions select {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    table thead {
+      background: var(--primary);
+      color: white;
+    }
+
+    table th,
+    table td {
+      padding: 12px;
+      text-align: left;
+      font-size: 14px;
+      border-bottom: 1px solid #eee;
+    }
+
+    table tr:hover {
+      background: rgba(241, 196, 15, 0.1);
+      transition: 0.3s;
+    }
+
+    table img {
+      width: 50px;
+      height: 50px;
+      border-radius: 6px;
+      object-fit: cover;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: 0.3s;
+    }
+
+    .btn-add {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-add:hover {
+      background: #c0392b;
+    }
+
+    .btn-edit {
+      background: var(--secondary);
+      color: black;
+    }
+
+    .btn-edit:hover {
+      background: #d4ac0d;
+    }
+
+    .btn-delete {
+      background: #7f8c8d;
+      color: white;
+    }
+
+    .btn-delete:hover {
+      background: #636e72;
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      /* keep hidden until JS shows it */
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      align-items: center;
+      justify-content: center;
+      /* will work when display:flex is set via JS */
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      width: 400px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-content h2 {
+      margin-bottom: 15px;
+      color: var(--primary);
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .image-preview {
+      width: 100%;
+      height: 150px;
+      border: 2px dashed #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 10px;
+      color: #999;
+    }
+
+    .image-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .sidebar-logo {
+      width: 120px;
+      height: 60px;
+      margin: 0 auto 20px auto;
+      overflow: hidden;
+    }
+
+    .sidebar-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <!-- Replace 'Cindys.png' with your actual logo path later -->
+      <img src="Cindys.png" alt="Cindy's Bakeshop Logo" />
+    </div>
+
+    <ul>
+      <li>
+        <a href="dashboard.html"><span><i class="fa-solid fa-chart-pie"></i></span> Dashboard</a>
+      </li>
+      <li>
+        <a href="users.html"><span><i class="fa-solid fa-users"></i></span> Users</a>
+      </li>
+      <li>
+        <a href="products.html" class="active"><span><i class="fa-solid fa-box-open"></i></span> Products</a>
+      </li>
+      <li class="dropdown">
+  <a href="#"><span><i class="fa-solid fa-cart-shopping"></i></span> Orders
+    <i class="fa-solid fa-caret-down" style="margin-left:auto;"></i>
+  </a>
+  <ul class="submenu">
+    <li>
+      <a href="orders.html"><i class="fa-solid fa-list-check"></i> Manage Orders</a>
+    </li>
+    <li>
+      <a href="delivery.html"><i class="fa-solid fa-truck"></i> Delivery</a>
+    </li>
+  </ul>
+</li>
+
+      <li>
+        <a href="report.html"><span><i class="fa-solid fa-chart-line"></i></span> Reports</a>
+      </li>
+      <li>
+        <a href="notifications.html"><span><i class="fa-solid fa-bell"></i></span> Notifications</a>
+      </li>
+      <li>
+        <a href="#"><span><i class="fa-solid fa-gear"></i></span> Settings</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="header">
+      <h1>Products</h1>
+      <!-- Profile Link -->
+      <a href="edit-profile.html" class="user-info">
+        <span>Admin</span>
+        <img src="https://via.placeholder.com/40" alt="User" />
+      </a>
+    </div>
+
+    <div class="table-container">
+      <div class="table-actions">
+        <button class="btn btn-add" id="openModal">
+          <i class="fa fa-plus"></i> Add New Product
+        </button>
+        <input type="text" id="searchBox" placeholder="🔍 Search product..." />
+        <select id="filterCategory">
+          <option value="all">All Categories</option>
+          <option value="Cakes">Cakes</option>
+          <option value="Breads">Breads</option>
+          <option value="Muffins">Muffins</option>
+        </select>
+      </div>
+      <table id="productTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Image</th>
+            <th>Product</th>
+            <th>Stock</th>
+            <th>Price</th>
+            <th>Category</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>
+              <img src="https://via.placeholder.com/50" alt="Product" />
+            </td>
+            <td>Chocolate Cake</td>
+            <td>5</td>
+            <td>₱450</td>
+            <td>Cakes</td>
+            <td>
+              <button class="btn btn-edit">Edit</button>
+              <button class="btn btn-delete">Delete</button>
+            </td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>
+              <img src="https://via.placeholder.com/50" alt="Product" />
+            </td>
+            <td>Cheese Bread</td>
+            <td>15</td>
+            <td>₱10</td>
+            <td>Breads</td>
+            <td>
+              <button class="btn btn-edit">Edit</button>
+              <button class="btn btn-delete">Delete</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal" id="productModal">
+    <div class="modal-content">
+      <h2 id="modalTitle">Add New Product</h2>
+      <div class="form-group">
+        <label>Product Image</label>
+        <div class="image-preview" id="preview">
+          <span>📷 Upload Image</span>
+        </div>
+        <input type="file" id="imageUpload" accept="image/*" />
+      </div>
+      <div class="form-group">
+        <label>Product Name</label>
+        <input type="text" id="productName" placeholder="Enter product name" />
+      </div>
+      <div class="form-group">
+        <label>Stock</label>
+        <input type="number" id="productStock" placeholder="Enter stock" />
+      </div>
+      <div class="form-group">
+        <label>Price</label>
+        <input type="number" id="productPrice" placeholder="Enter price" />
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="productCategory">
+          <option>Cakes</option>
+          <option>Breads</option>
+          <option>Muffins</option>
+        </select>
+      </div>
+      <button class="btn btn-add" id="saveBtn">Save</button>
+      <!-- Cancel button inside modal -->
+      <button class="btn btn-delete" id="closeModal">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    // Sidebar dropdown toggle
+    document.querySelectorAll(".sidebar .dropdown > a").forEach((menu) => {
+      menu.addEventListener("click", (e) => {
+        e.preventDefault();
+        menu.parentElement.classList.toggle("active");
+      });
+    });
+
+    const modal = document.getElementById("productModal");
+    const modalTitle = document.getElementById("modalTitle");
+    const openModalBtn = document.getElementById("openModal");
+    const closeModalBtn = document.getElementById("closeModal");
+    const saveBtn = document.getElementById("saveBtn");
+    const preview = document.getElementById("preview");
+    const imageUpload = document.getElementById("imageUpload");
+
+    const productName = document.getElementById("productName");
+    const productStock = document.getElementById("productStock");
+    const productPrice = document.getElementById("productPrice");
+    const productCategory = document.getElementById("productCategory");
+
+    const searchBox = document.getElementById("searchBox");
+    const filterCategory = document.getElementById("filterCategory");
+    const productTable = document
+      .getElementById("productTable")
+      .querySelector("tbody");
+
+    let editRow = null;
+
+    // Open modal for Add
+    openModalBtn.onclick = () => {
+      modal.style.display = "flex"; // show overlay
+      modalTitle.textContent = "Add New Product";
+      saveBtn.textContent = "Save";
+      editRow = null;
+      resetForm();
+    };
+
+    // Close modal (Cancel button)
+    closeModalBtn.onclick = () => {
+      modal.style.display = "none";
+      resetForm(); // clear form when cancelled
+    };
+
+    // Reset form
+    function resetForm() {
+      preview.innerHTML = "<span>📷 Upload Image</span>";
+      imageUpload.value = "";
+      productName.value = "";
+      productStock.value = "";
+      productPrice.value = "";
+      productCategory.value = "Cakes";
+    }
+
+    // Image preview
+    imageUpload.addEventListener("change", () => {
+      const file = imageUpload.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Save (Add / Edit)
+    saveBtn.onclick = () => {
+      const name = productName.value.trim();
+      const stock = productStock.value;
+      const price = productPrice.value;
+      const category = productCategory.value;
+      const imgSrc = preview.querySelector("img")
+        ? preview.querySelector("img").src
+        : "https://via.placeholder.com/50";
+
+      if (!name || !stock || !price) {
+        alert("Please fill all fields.");
+        return;
+      }
+
+      if (editRow) {
+        // Update row
+        editRow.cells[1].querySelector("img").src = imgSrc;
+        editRow.cells[2].textContent = name;
+        editRow.cells[3].textContent = stock;
+        editRow.cells[4].textContent = "₱" + price;
+        editRow.cells[5].textContent = category;
+      } else {
+        // Add new row
+        const newRow = productTable.insertRow();
+        const rowIndex = productTable.rows.length;
+        newRow.innerHTML = `
+            <td>${rowIndex}</td>
+            <td><img src="${imgSrc}" alt="Product"></td>
+            <td>${name}</td>
+            <td>${stock}</td>
+            <td>₱${price}</td>
+            <td>${category}</td>
+            <td>
+              <button class="btn btn-edit">Edit</button>
+              <button class="btn btn-delete">Delete</button>
+            </td>
+          `;
+      }
+
+      attachRowEvents();
+      modal.style.display = "none";
+    };
+
+    // Edit/Delete handlers (scoped ONLY to table buttons)
+    function attachRowEvents() {
+      document.querySelectorAll("#productTable .btn-edit").forEach((btn) => {
+        btn.onclick = (e) => {
+          editRow = e.target.closest("tr");
+          modal.style.display = "flex";
+          modalTitle.textContent = "Edit Product";
+          saveBtn.textContent = "Update";
+
+          // Fill form with row data
+          productName.value = editRow.cells[2].textContent;
+          productStock.value = editRow.cells[3].textContent;
+          productPrice.value = editRow.cells[4].textContent.replace("₱", "");
+          productCategory.value = editRow.cells[5].textContent;
+
+          const imgSrc = editRow.cells[1].querySelector("img").src;
+          preview.innerHTML = `<img src="${imgSrc}" alt="Preview">`;
+        };
+      });
+
+      document
+        .querySelectorAll("#productTable .btn-delete")
+        .forEach((btn) => {
+          btn.onclick = (e) => {
+            const row = e.target.closest("tr");
+            if (row) row.remove();
+          };
+        });
+    }
+
+    // Search & Filter
+    function filterProducts() {
+      const searchValue = searchBox.value.toLowerCase();
+      const categoryValue = filterCategory.value;
+
+      Array.from(productTable.rows).forEach((row) => {
+        const name = row.cells[2].textContent.toLowerCase();
+        const category = row.cells[5].textContent;
+
+        if (
+          (categoryValue === "all" || category === categoryValue) &&
+          name.includes(searchValue)
+        ) {
+          row.style.display = "";
+        } else {
+          row.style.display = "none";
+        }
+      });
+    }
+
+    searchBox.addEventListener("input", filterProducts);
+    filterCategory.addEventListener("change", filterProducts);
+
+    // Initial wiring for default rows
+    attachRowEvents();
+  </script>
+</body>
+
+</html>

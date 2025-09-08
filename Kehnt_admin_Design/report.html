@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cindy's Bakeshop Admin - Reports</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <style>
+    :root {
+      --primary: #e74c3c;
+      --secondary: #f1c40f;
+      --dark: #2c3e50;
+      --light: #fdfdfd;
+      --card-bg: #fff;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Segoe UI", Arial, sans-serif; }
+    body { display: flex; background: var(--light); color: #333; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px; height: 100vh;
+      background: linear-gradient(180deg, #2c3e50, #34495e, #2c3e50);
+      color: #fff; position: fixed; top: 0; left: 0;
+      display: flex; flex-direction: column; padding: 20px 0;
+    }
+    .sidebar h2 {
+      text-align: center; margin-bottom: 40px;
+      font-size: 22px; font-weight: bold; color: var(--secondary);
+    }
+    .sidebar ul { list-style: none; flex-grow: 1; }
+    .sidebar ul li { margin: 10px 0; }
+    .sidebar ul li a {
+      color: #ddd; text-decoration: none; display: flex; align-items: center;
+      padding: 12px 20px; border-left: 4px solid transparent;
+      font-size: 15px; position: relative; overflow: hidden;
+      transition: color 0.3s, background 0.3s;
+    }
+    .sidebar ul li a::after {
+      content: ""; position: absolute; bottom: 0; left: 20px;
+      width: 0; height: 3px; background: var(--secondary);
+      transition: width 0.3s ease; border-radius: 2px;
+    }
+    .sidebar ul li a:hover {
+      color: #fff; background: rgba(255, 255, 255, 0.05);
+      border-left: 4px solid var(--secondary);
+    }
+    .sidebar ul li a:hover::after { width: 70%; }
+    .sidebar ul li a.active {
+      color: #fff; background: rgba(231, 76, 60, 0.25);
+      border-left: 4px solid var(--primary);
+    }
+    .sidebar ul li a.active::after { width: 70%; background: var(--primary); }
+    .sidebar ul li a span { margin-right: 10px; font-size: 18px; }
+
+    /* Dropdown */
+    .sidebar .dropdown > a { cursor: pointer; }
+    .sidebar .submenu { display: none; list-style: none; padding-left: 30px; }
+    .sidebar .submenu li a { font-size: 14px; padding: 8px 20px; color: #ccc; }
+    .sidebar .submenu li a:hover { color: #fff; }
+    .sidebar .dropdown.active .submenu { display: block; }
+
+    /* Main */
+    .main { margin-left: 240px; flex: 1; padding: 30px; background: var(--light); }
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 25px;
+    }
+    .header h1 {
+        font-size: 24px;
+        color: black;
+      }
+    /* Profile Section */
+    .header .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #333;
+      font-weight: 500;
+      transition: opacity 0.2s ease;
+    }
+    .header .user-info:hover { opacity: 0.8; }
+    .header .user-info img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--primary);
+    }
+
+    .report-filters { display: flex; gap: 10px; }
+    .report-filters select, .report-filters input {
+      padding: 8px 12px; border: 1px solid #ddd;
+      border-radius: 6px; font-size: 14px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin-bottom: 25px;
+    }
+    .card h2 { font-size: 20px; margin-bottom: 15px; font-weight: 600; color: #444; }
+    .card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    table thead { background: var(--primary); color: white; }
+    table th, table td {
+      text-align: left; padding: 12px 15px; font-size: 14px;
+      border-bottom: 1px solid #eee;
+    }
+    table tr:hover { background: rgba(241,196,15,0.1); transition: 0.3s; }
+
+    .btn-generate {
+      background: var(--primary);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+      font-size: 14px;
+    }
+    .btn-generate:hover { background: #c0392b; }
+    .sidebar-logo {
+  width: 120px;
+  height: 60px;
+  margin: 0 auto 20px auto;
+  overflow: hidden;
+}
+
+.sidebar-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+        <img src="Cindys.png" alt="Cindy's Bakeshop Logo" />
+      </div>
+    <ul>
+      <li><a href="dashboard.html"><span><i class="fa-solid fa-chart-pie"></i></span> Dashboard</a></li>
+      <li><a href="users.html"><span><i class="fa-solid fa-users"></i></span> Users</a></li>
+      <li><a href="products.html"><span><i class="fa-solid fa-box-open"></i></span> Products</a></li>
+      <li class="dropdown">
+  <a href="#"><span><i class="fa-solid fa-cart-shopping"></i></span> Orders
+    <i class="fa-solid fa-caret-down" style="margin-left:auto;"></i>
+  </a>
+  <ul class="submenu">
+    <li><a href="orders.html"><i class="fa-solid fa-list-check"></i> Manage Orders</a></li>
+    <li><a href="delivery.html"><i class="fa-solid fa-truck"></i> Delivery</a></li>
+  </ul>
+</li>
+
+      <li><a href="report.html" class="active"><span><i class="fa-solid fa-chart-line"></i></span> Reports</a></li>
+      <li><a href="notifications.html"><span><i class="fa-solid fa-bell"></i></span> Notifications</a></li>
+      <li><a href="settings.html"><span><i class="fa-solid fa-gear"></i></span> Settings</a></li>
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main">
+    <div class="header">
+      <h1>Reports</h1>
+      <a href="edit-profile.html" class="user-info">
+        <span>Admin</span>
+        <img src="https://via.placeholder.com/40" alt="User">
+      </a>
+    </div>
+
+    <div class="report-filters">
+      <select>
+        <option>Daily</option>
+        <option>Weekly</option>
+        <option>Monthly</option>
+      </select>
+      <input type="date"/>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-header">
+          <h2>Sales Overview</h2>
+          <button class="btn-generate" onclick="generateSalesPDF()">📊 Generate Report</button>
+        </div>
+        <canvas id="salesChart"></canvas>
+      </div>
+
+      <div class="card">
+        <h2>Summary</h2>
+        <p><strong>Total Sales:</strong> ₱25,430</p>
+        <p><strong>Orders:</strong> 320</p>
+        <p><strong>Best Seller:</strong> Chocolate Cake</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Recent Transactions</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Customer</th>
+            <th>Order ID</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>2025-09-01</td><td>Juan Dela Cruz</td><td>#1023</td><td>₱1,250</td></tr>
+          <tr><td>2025-09-02</td><td>Maria Santos</td><td>#1024</td><td>₱980</td></tr>
+          <tr><td>2025-09-02</td><td>Jose Rizal</td><td>#1025</td><td>₱1,540</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>Inventory Report</h2>
+        <button class="btn-generate" onclick="generateInventoryPDF()">📄 Generate Report</button>
+      </div>
+      <table id="inventoryTable">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Stock</th>
+            <th>Price (₱)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Chocolate Cake</td><td>12</td><td>₱450</td></tr>
+          <tr><td>Vanilla Cupcake</td><td>25</td><td>₱80</td></tr>
+          <tr><td>Strawberry Tart</td><td>8</td><td>₱150</td></tr>
+          <tr><td>Blueberry Muffin</td><td>20</td><td>₱90</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // Sales Chart
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(231, 76, 60, 0.4)');
+    gradient.addColorStop(1, 'rgba(231, 76, 60, 0)');
+
+    const salesChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [{
+          label: 'Sales (₱)',
+          data: [3000, 4500, 3800, 6000, 7200, 5000, 4200],
+          borderColor: '#e74c3c',
+          borderWidth: 3,
+          backgroundColor: gradient,
+          pointBackgroundColor: '#fff',
+          pointBorderColor: '#e74c3c',
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          tension: 0.4,
+          fill: true,
+        }]
+      },
+      options: { responsive: true }
+    });
+
+    async function generateSalesPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFontSize(18);
+      doc.text("Cindy's Bakeshop - Sales Report", 14, 20);
+      doc.setFontSize(12);
+      doc.text("Sales Overview (This Week)", 14, 30);
+      const chartImage = salesChart.toBase64Image();
+      doc.addImage(chartImage, "PNG", 15, 40, 180, 80);
+      doc.text("Summary:", 14, 130);
+      doc.text("Total Sales: ₱25,430", 14, 140);
+      doc.text("Orders: 320", 14, 150);
+      doc.text("Best Seller: Chocolate Cake", 14, 160);
+      doc.save("sales_report.pdf");
+    }
+
+    function generateInventoryPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFontSize(18);
+      doc.text("Cindy's Bakeshop - Inventory Report", 14, 20);
+      doc.setFontSize(12);
+      doc.text("Current Stock Overview", 14, 30);
+
+      const inventoryTable = document.getElementById("inventoryTable");
+      const rows = [];
+      for (let i = 1; i < inventoryTable.rows.length; i++) {
+        const row = Array.from(inventoryTable.rows[i].cells).map(cell => cell.innerText);
+        rows.push(row);
+      }
+
+      doc.autoTable({
+        head: [['Product', 'Stock', 'Price (₱)']],
+        body: rows,
+        startY: 40
+      });
+
+      doc.save("inventory_report.pdf");
+    }
+  </script>
+</body>
+</html>

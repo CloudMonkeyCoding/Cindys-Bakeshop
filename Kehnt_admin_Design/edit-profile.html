@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cindy's Bakeshop Admin - Edit Profile</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #e74c3c;
+      --secondary: #f1c40f;
+      --dark: #2c3e50;
+      --light: #fdfdfd;
+      --card-bg: #fff;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    body {
+      display: flex;
+      background: var(--light);
+      color: #333;
+    }
+/* Main menu link hover animation */
+.sidebar ul li a {
+  position: relative;
+  color: #ddd;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  border-left: 4px solid transparent;
+  font-size: 15px;
+  transition: color 0.3s, background 0.3s;
+}
+.sidebar ul li a::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 20px;
+  width: 0;
+  height: 3px;
+  background: var(--secondary);
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+.sidebar ul li a:hover::after {
+  width: 70%;
+}
+
+/* Submenu link hover animation */
+.sidebar .submenu li a {
+  position: relative; /* needed for ::after */
+  font-size: 13px;
+  padding: 6px 20px;
+  color: #ccc;
+  transition: color 0.3s, background 0.3s;
+}
+.sidebar .submenu li a::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 20px;
+  width: 0;
+  height: 2px;
+  background: var(--secondary);
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+.sidebar .submenu li a:hover {
+  color: #fff;
+}
+.sidebar .submenu li a:hover::after {
+  width: 70%;
+}
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px;
+      height: 100vh;
+      background: linear-gradient(180deg, #2c3e50, #34495e, #2c3e50);
+      color: #fff;
+      position: fixed;
+      top: 0;
+      left: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 0;
+    }
+
+    .sidebar-logo {
+      width: 120px;
+      height: 60px;
+      margin: 0 auto 20px auto;
+      overflow: hidden;
+    }
+
+    .sidebar-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      flex-grow: 1;
+    }
+
+    .sidebar ul li {
+      margin: 10px 0;
+    }
+
+    .sidebar ul li a {
+      color: #ddd;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
+      border-left: 4px solid transparent;
+      font-size: 15px;
+      transition: color 0.3s, background 0.3s;
+    }
+
+    .sidebar ul li a:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+      border-left: 4px solid var(--secondary);
+    }
+
+    .sidebar ul li a.active {
+      color: #fff;
+      background: rgba(231, 76, 60, 0.25);
+      border-left: 4px solid var(--primary);
+    }
+
+    .sidebar ul li a span {
+      margin-right: 10px;
+      font-size: 18px;
+    }
+
+    /* Main */
+    .main {
+      margin-left: 240px;
+      flex: 1;
+      padding: 20px 30px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+        font-size: 24px;
+        color: black;
+      }
+
+    /* Profile Card */
+    .profile-card {
+      background: var(--card-bg);
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .profile-header {
+      text-align: center;
+      position: relative;
+      display: inline-block;
+    }
+
+    .profile-header img {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--primary);
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    /* Edit Icon Overlay */
+    .edit-photo-btn {
+      position: absolute;
+      bottom: 10px;
+      right: 20px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      cursor: pointer;
+      border: 2px solid white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      transition: background 0.2s;
+    }
+
+    .edit-photo-btn:hover {
+      background: #c0392b;
+    }
+
+    .profile-header h2 {
+      margin-bottom: 5px;
+      color: var(--dark);
+    }
+
+    .profile-header p {
+      color: #777;
+      font-size: 14px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-group label {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--dark);
+    }
+
+    .form-group input {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .btn-save {
+      background: var(--primary);
+      color: #fff;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.3s ease;
+    }
+
+    .btn-save:hover {
+      background: #c0392b;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+    .sidebar-logo {
+  width: 120px;
+  height: 60px;
+  margin: 0 auto 20px auto;
+  overflow: hidden;
+}
+
+.sidebar-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sidebar .submenu {
+  display: none; /* hidden by default */
+}
+.sidebar .dropdown.active .submenu {
+  display: block; /* shows only when .active is added */
+}
+
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+  <div class="sidebar-logo">
+    <img src="Cindys.png" alt="Cindy's Bakeshop Logo">
+  </div>
+  <ul>
+    <li><a href="dashboard.html"><span><i class="fa-solid fa-chart-pie"></i></span> Dashboard</a></li>
+    <li><a href="users.html"><span><i class="fa-solid fa-users"></i></span> Users</a></li>
+    <li><a href="products.html"><span><i class="fa-solid fa-box-open"></i></span> Products</a></li>
+    <li class="dropdown">
+  <a href="#"><span><i class="fa-solid fa-cart-shopping"></i></span> Orders
+    <i class="fa-solid fa-caret-down" style="margin-left:auto;"></i>
+  </a>
+  <ul class="submenu">
+    <li><a href="orders.html"><i class="fa-solid fa-list-check"></i> Manage Orders</a></li>
+    <li><a href="delivery.html"><i class="fa-solid fa-truck"></i> Delivery</a></li>
+  </ul>
+</li>
+
+    <li><a href="report.html"><span><i class="fa-solid fa-chart-line"></i></span> Reports</a></li>
+    <li><a href="notifications.html"><span><i class="fa-solid fa-bell"></i></span> Notifications</a></li>
+    <li><a href="settings.html"><span><i class="fa-solid fa-gear"></i></span> Settings</a></li>
+  </ul>
+</div>
+
+  <!-- Main Content -->
+  <div class="main">
+    <div class="header">
+      <h1>Edit Profile</h1>
+    </div>
+
+    <div class="profile-card">
+      <div class="profile-header">
+        <img id="profileImage" src="https://via.placeholder.com/100" alt="Profile Picture">
+        <label for="fileInput" class="edit-photo-btn">
+          <i class="fa-solid fa-camera"></i>
+        </label>
+        <input type="file" id="fileInput" accept="image/*">
+        <h2>Admin</h2>
+        <p>Administrator</p>
+      </div>
+
+      <form>
+        <div class="form-group">
+          <label for="fullname">Full Name</label>
+          <input type="text" id="fullname" value="Admin">
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" value="admin@cindysbakeshop.com">
+        </div>
+
+        <div class="form-group">
+          <label for="password">Change Password</label>
+          <input type="password" id="password" placeholder="Enter new password">
+        </div>
+
+        <button type="submit" class="btn-save">Save Changes</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const profileImage = document.getElementById('profileImage');
+
+    fileInput.addEventListener('change', function () {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          profileImage.src = e.target.result;
+        }
+        reader.readAsDataURL(file);
+      }
+    });
+
+   document.querySelectorAll(".sidebar .dropdown > a").forEach(menu => {
+  menu.addEventListener("click", e => {
+    e.preventDefault();
+    menu.parentElement.classList.toggle("active"); // toggle open/close
+  });
+});
+
+  </script>
+</body>
+</html>
