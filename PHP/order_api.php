@@ -43,6 +43,7 @@ switch ($action) {
             $userId = (int)$user['User_ID'];
         } else {
             $userId = (int)($_POST['user_id'] ?? 0);
+            $user = getUserById($pdo, $userId);
         }
         $items = json_decode($_POST['items'] ?? '[]', true);
         $mop   = $_POST['mop'] ?? '';
@@ -86,6 +87,9 @@ switch ($action) {
             deleteCartItemsByCartId($pdo, $cart['Cart_ID']);
         }
         sendOrderNotificationEmail($orderId, $userId, $total);
+        if ($user && isset($user['Email'])) {
+            sendOrderConfirmationEmail($user['Email'], $orderId, $total);
+        }
         addNotification(
             $pdo,
             'order',
