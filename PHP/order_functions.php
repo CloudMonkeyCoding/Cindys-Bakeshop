@@ -83,4 +83,31 @@ function getOrdersByStatus($pdo, $status) {
     $stmt->execute([':status' => $status]);
     return $stmt->fetchAll();
 }
+
+// --- API Endpoints -------------------------------------------------------
+// Allows this file to handle status updates via AJAX.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    require_once __DIR__ . '/db_connect.php';
+    if (!$pdo) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+        exit;
+    }
+
+    header('Content-Type: application/json');
+    $action = filter_input(INPUT_POST, 'action', FILTER_SANITIZE_SPECIAL_CHARS);
+
+    switch ($action) {
+        case 'updateStatus':
+            $orderId = filter_input(INPUT_POST, 'order_id', FILTER_VALIDATE_INT) ?? 0;
+            $status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_SPECIAL_CHARS) ?? '';
+            $success = updateOrderStatus($pdo, $orderId, $status) > 0;
+            echo json_encode(['success' => $success]);
+            break;
+        default:
+            echo json_encode(['success' => false, 'message' => 'Invalid action']);
+            break;
+    }
+    exit;
+}
 ?>

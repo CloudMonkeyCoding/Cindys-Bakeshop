@@ -71,7 +71,13 @@ include '../header.php';
                 <td><?= htmlspecialchars($user['Name'] ?? 'User '.$order['User_ID']); ?></td>
                 <td><?= $itemCount; ?> item<?= $itemCount === 1 ? '' : 's'; ?></td>
                 <td>₱<?= number_format($total ?? 0, 2); ?></td>
-                <td class="<?= $statusClass ?> font-medium"><?= htmlspecialchars($order['Status']); ?></td>
+                <td>
+                  <select class="status-dropdown <?= $statusClass ?> font-medium" data-order-id="<?= $order['Order_ID']; ?>">
+                    <option value="Pending" <?= $status === 'pending' ? 'selected' : '' ?>>Pending</option>
+                    <option value="Shipped" <?= $status === 'shipped' ? 'selected' : '' ?>>Shipped</option>
+                    <option value="Delivered" <?= $status === 'delivered' ? 'selected' : '' ?>>Delivered</option>
+                  </select>
+                </td>
                 <td><a href="OrderDetails.php?order_id=<?= $order['Order_ID']; ?>" class="text-blue-500 hover:underline">View</a></td>
               </tr>
             <?php endforeach; ?>
@@ -146,6 +152,33 @@ include '../header.php';
 
     document.getElementById('startDate').addEventListener('change', applyFilters);
     document.getElementById('endDate').addEventListener('change', applyFilters);
+
+    document.querySelectorAll('.status-dropdown').forEach(select => {
+      select.addEventListener('change', function() {
+        const orderId = this.dataset.orderId;
+        const newStatus = this.value;
+        const fd = new FormData();
+        fd.append('action', 'updateStatus');
+        fd.append('order_id', orderId);
+        fd.append('status', newStatus);
+        fetch('../../PHP/order_functions.php', { method: 'POST', body: fd })
+          .then(r => r.json())
+          .then(data => {
+            if (data.success) {
+              const row = this.closest('tr');
+              row.dataset.status = newStatus.toLowerCase();
+              let statusClass = '';
+              if (newStatus === 'Pending') { statusClass = 'text-yellow-500'; }
+              else if (newStatus === 'Shipped') { statusClass = 'text-blue-500'; }
+              else if (newStatus === 'Delivered') { statusClass = 'text-green-500'; }
+              this.className = 'status-dropdown ' + statusClass + ' font-medium';
+              applyFilters();
+            } else {
+              alert('Failed to update status');
+            }
+          });
+      });
+    });
   </script>
 </body>
 </html>
