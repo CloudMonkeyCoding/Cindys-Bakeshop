@@ -20,7 +20,46 @@ function build_sort_link($column, $label, $sortBy, $sortDir, $queryParams) {
     $queryParams['sort_dir'] = ($sortBy === $column && $sortDir === 'ASC') ? 'desc' : 'asc';
     $url = '?' . http_build_query($queryParams);
     $url = htmlspecialchars($url, ENT_QUOTES);
-    return "<a href=\"$url\">$label</a>";
+    return "<a href=\"$url\" class=\"sort-link\">$label</a>";
+}
+
+function render_report_table($reportData, $sortBy, $sortDir, $queryParams) {
+    ob_start();
+    ?>
+    <table id="reportTable">
+      <thead>
+        <tr>
+          <th><?= build_sort_link('Transaction_ID', 'Transaction ID', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Order_ID', 'Order ID', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Order_Date', 'Date', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Customer', 'Customer', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Product_Total', 'Product Total', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Amount_Paid', 'Amount Paid', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Payment_Method', 'Payment Method', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Payment_Status', 'Status', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Payment_Date', 'Payment Date', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Reference_Number', 'Reference Number', $sortBy, $sortDir, $queryParams) ?></th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($reportData as $row): ?>
+          <tr>
+            <td><?= htmlspecialchars($row['Transaction_ID']) ?></td>
+            <td><?= htmlspecialchars($row['Order_ID']) ?></td>
+            <td><?= htmlspecialchars($row['Order_Date']) ?></td>
+            <td><?= htmlspecialchars($row['Customer'] ?? '') ?></td>
+            <td>₱<?= number_format($row['Product_Total'], 2) ?></td>
+            <td>₱<?= number_format($row['Amount_Paid'], 2) ?></td>
+            <td><?= htmlspecialchars($row['Payment_Method']) ?></td>
+            <td><?= htmlspecialchars($row['Payment_Status']) ?></td>
+            <td><?= htmlspecialchars($row['Payment_Date']) ?></td>
+            <td><?= htmlspecialchars($row['Reference_Number'] ?? '--') ?></td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+    <?php
+    return ob_get_clean();
 }
 if ($pdo) {
     $filterClause = '';
@@ -66,6 +105,12 @@ if ($pdo) {
     $reportData = $stmt->fetchAll();
 } else {
     error_log('Database connection failed in FinanceSalesReport.php');
+}
+
+$tableHtml = render_report_table($reportData, $sortBy, $sortDir, $queryParams);
+if (isset($_GET['ajax'])) {
+    echo $tableHtml;
+    exit;
 }
 
 $pageTitle = 'Finance & Sales Report - Admin';
@@ -119,38 +164,7 @@ include '../header.php';
       </div>
     </div>
 
-    <table id="reportTable">
-      <thead>
-        <tr>
-          <th><?= build_sort_link('Transaction_ID', 'Transaction ID', $sortBy, $sortDir, $queryParams) ?></th>
-          <th><?= build_sort_link('Order_ID', 'Order ID', $sortBy, $sortDir, $queryParams) ?></th>
-          <th><?= build_sort_link('Order_Date', 'Date', $sortBy, $sortDir, $queryParams) ?></th>
-          <th><?= build_sort_link('Customer', 'Customer', $sortBy, $sortDir, $queryParams) ?></th>
-          <th><?= build_sort_link('Product_Total', 'Product Total', $sortBy, $sortDir, $queryParams) ?></th>
-          <th><?= build_sort_link('Amount_Paid', 'Amount Paid', $sortBy, $sortDir, $queryParams) ?></th>
-          <th><?= build_sort_link('Payment_Method', 'Payment Method', $sortBy, $sortDir, $queryParams) ?></th>
-          <th><?= build_sort_link('Payment_Status', 'Status', $sortBy, $sortDir, $queryParams) ?></th>
-          <th><?= build_sort_link('Payment_Date', 'Payment Date', $sortBy, $sortDir, $queryParams) ?></th>
-          <th><?= build_sort_link('Reference_Number', 'Reference Number', $sortBy, $sortDir, $queryParams) ?></th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($reportData as $row): ?>
-          <tr>
-            <td><?php echo htmlspecialchars($row['Transaction_ID']); ?></td>
-            <td><?php echo htmlspecialchars($row['Order_ID']); ?></td>
-            <td><?php echo htmlspecialchars($row['Order_Date']); ?></td>
-            <td><?php echo htmlspecialchars($row['Customer'] ?? ''); ?></td>
-            <td>₱<?php echo number_format($row['Product_Total'], 2); ?></td>
-            <td>₱<?php echo number_format($row['Amount_Paid'], 2); ?></td>
-            <td><?php echo htmlspecialchars($row['Payment_Method']); ?></td>
-            <td><?php echo htmlspecialchars($row['Payment_Status']); ?></td>
-            <td><?php echo htmlspecialchars($row['Payment_Date']); ?></td>
-            <td><?php echo htmlspecialchars($row['Reference_Number'] ?? '--'); ?></td>
-          </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
+    <?= $tableHtml ?>
   </main>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -178,6 +192,21 @@ include '../header.php';
         notifList.appendChild(li);
       });
       console.log('Finished populating finance report notifications');
+
+      document.addEventListener('click', function(e) {
+        const link = e.target.closest('a.sort-link');
+        if (link) {
+          e.preventDefault();
+          fetch(link.href + '&ajax=1')
+            .then(resp => resp.text())
+            .then(html => {
+              const table = document.getElementById('reportTable');
+              table.outerHTML = html;
+              window.history.replaceState({}, '', link.href);
+            })
+            .catch(err => console.error('Sort fetch failed', err));
+        }
+      });
 
     const ctx = document.getElementById('salesChart').getContext('2d');
     const salesChart = new Chart(ctx, {
