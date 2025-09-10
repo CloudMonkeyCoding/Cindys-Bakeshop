@@ -4,6 +4,21 @@ require_once '../../PHP/db_connect.php';
 
 $reportData = [];
 $dateFilter = $_GET['date_filter'] ?? 'today';
+$sortBy = $_GET['sort_by'] ?? 'Transaction_ID';
+$allowedSorts = ['Transaction_ID','Order_ID','Order_Date','Customer','Product_Total','Amount_Paid','Payment_Method','Payment_Status','Payment_Date','Reference_Number'];
+if (!in_array($sortBy, $allowedSorts, true)) {
+    $sortBy = 'Transaction_ID';
+}
+$sortDir = strtolower($_GET['sort_dir'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
+$orderClause = "ORDER BY $sortBy $sortDir";
+$queryParams = $_GET;
+function build_sort_link($column, $label, $sortBy, $sortDir, $queryParams) {
+    $queryParams['sort_by'] = $column;
+    $queryParams['sort_dir'] = ($sortBy === $column && $sortDir === 'ASC') ? 'desc' : 'asc';
+    $url = '?' . http_build_query($queryParams);
+    $url = htmlspecialchars($url, ENT_QUOTES);
+    return "<a href=\"$url\">$label</a>";
+}
 if ($pdo) {
     $filterClause = '';
     switch ($dateFilter) {
@@ -43,7 +58,7 @@ if ($pdo) {
         GROUP BY t.Transaction_ID, o.Order_ID, o.Order_Date, u.Name,
                  t.Amount_Paid, t.Payment_Method, t.Payment_Status,
                  t.Payment_Date, t.Reference_Number
-        ORDER BY o.Order_Date DESC"
+        {$orderClause}"
     );
     $reportData = $stmt->fetchAll();
 } else {
@@ -104,16 +119,16 @@ include '../header.php';
     <table id="reportTable">
       <thead>
         <tr>
-          <th>Transaction ID</th>
-          <th>Order ID</th>
-          <th>Date</th>
-          <th>Customer</th>
-          <th>Product Total</th>
-          <th>Amount Paid</th>
-          <th>Payment Method</th>
-          <th>Status</th>
-          <th>Payment Date</th>
-          <th>Reference Number</th>
+          <th><?= build_sort_link('Transaction_ID', 'Transaction ID', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Order_ID', 'Order ID', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Order_Date', 'Date', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Customer', 'Customer', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Product_Total', 'Product Total', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Amount_Paid', 'Amount Paid', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Payment_Method', 'Payment Method', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Payment_Status', 'Status', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Payment_Date', 'Payment Date', $sortBy, $sortDir, $queryParams) ?></th>
+          <th><?= build_sort_link('Reference_Number', 'Reference Number', $sortBy, $sortDir, $queryParams) ?></th>
         </tr>
       </thead>
       <tbody>
