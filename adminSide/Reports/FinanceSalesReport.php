@@ -3,7 +3,24 @@ $activePage = 'reports';
 require_once '../../PHP/db_connect.php';
 
 $reportData = [];
+$dateFilter = $_GET['date_filter'] ?? 'today';
 if ($pdo) {
+    $filterClause = '';
+    switch ($dateFilter) {
+        case 'today':
+            $filterClause = "AND DATE(o.Order_Date) = CURDATE()";
+            break;
+        case 'last7':
+            $filterClause = "AND o.Order_Date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+            break;
+        case 'last30':
+            $filterClause = "AND o.Order_Date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
+            break;
+        case 'month':
+            $filterClause = "AND MONTH(o.Order_Date) = MONTH(CURDATE()) AND YEAR(o.Order_Date) = YEAR(CURDATE())";
+            break;
+    }
+
     $stmt = $pdo->query(
         "SELECT t.Transaction_ID, o.Order_ID, o.Order_Date,
                u.Name AS Customer, IFNULL(SUM(oi.Subtotal), 0) AS Product_Total,
@@ -13,6 +30,7 @@ if ($pdo) {
         JOIN `Order` o ON t.Order_ID = o.Order_ID
         LEFT JOIN `User` u ON o.User_ID = u.User_ID
         LEFT JOIN `Order_Item` oi ON o.Order_ID = oi.Order_ID
+        WHERE 1=1 $filterClause
         GROUP BY t.Transaction_ID, o.Order_ID, o.Order_Date, u.Name,
                  t.Amount_Paid, t.Payment_Method, t.Payment_Status,
                  t.Payment_Date, t.Reference_Number
@@ -38,15 +56,15 @@ include '../header.php';
     <p class="px-6 py-2 text-sm text-gray-700">Overview of store sales and finance performance</p>
 
     <!-- Sales Filter -->
-    <div class="filter-bar">
-      <select>
-        <option>Today</option>
-        <option>Last 7 days</option>
-        <option>Last 30 days</option>
-        <option>This Month</option>
+    <form method="get" class="filter-bar">
+      <select name="date_filter" onchange="this.form.submit()">
+        <option value="today" <?= $dateFilter === 'today' ? 'selected' : '' ?>>Today</option>
+        <option value="last7" <?= $dateFilter === 'last7' ? 'selected' : '' ?>>Last 7 days</option>
+        <option value="last30" <?= $dateFilter === 'last30' ? 'selected' : '' ?>>Last 30 days</option>
+        <option value="month" <?= $dateFilter === 'month' ? 'selected' : '' ?>>This Month</option>
       </select>
-      <button class="export-btn" onclick="exportTableToPDF()">Export PDF</button>
-    </div>
+      <button type="button" class="export-btn" onclick="exportTableToPDF()">Export PDF</button>
+    </form>
 
     <!-- Sales Summary Cards -->
     <div class="summary-cards">
