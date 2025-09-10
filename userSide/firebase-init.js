@@ -1,5 +1,28 @@
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const INACTIVITY_LIMIT = 15 * 60 * 1000; // 15 minutes
+let inactivityTimer;
+
+function resetInactivityTimer(auth) {
+  clearTimeout(inactivityTimer);
+  inactivityTimer = setTimeout(async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error('Auto logout failed:', err);
+    } finally {
+      window.location.href = '../LOGIN_SIGNUP/user_login.html';
+    }
+  }, INACTIVITY_LIMIT);
+}
+
+function startInactivityTimer(auth) {
+  ['click', 'mousemove', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+    document.addEventListener(event, () => resetInactivityTimer(auth));
+  });
+  resetInactivityTimer(auth);
+}
 
 try {
   if (!getApps().length) {
@@ -16,6 +39,7 @@ try {
   onAuthStateChanged(auth, user => {
     if (user) {
       console.log('Logged in as:', user.email);
+      startInactivityTimer(auth);
     } else {
       console.log('Not logged in');
     }
