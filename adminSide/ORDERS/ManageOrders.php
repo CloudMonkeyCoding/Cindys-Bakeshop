@@ -28,7 +28,7 @@ include '../header.php';
         <h2 class="text-lg font-semibold mb-4">Manage Orders</h2>
         <div class="bg-white p-4 rounded shadow">
           <div class="flex items-center gap-4 mb-4">
-            <input type="text" id="searchOrder" placeholder="Search Order ID" class="border rounded px-2 py-1 text-sm">
+            <input type="text" id="searchOrder" placeholder="Search Order ID or Customer" class="border rounded px-2 py-1 text-sm">
             <input type="date" id="startDate" class="border rounded px-2 py-1 text-sm">
             <input type="date" id="endDate" class="border rounded px-2 py-1 text-sm">
             <button onclick="exportOrdersToPDF()" class="bg-gray-300 px-4 py-1 rounded text-sm">Export Orders</button>
@@ -126,6 +126,7 @@ include '../header.php';
     }
 
     let currentStatus = 'all';
+    let searchTerm = '';
 
     function filterOrders(status) {
       currentStatus = status;
@@ -139,10 +140,13 @@ include '../header.php';
       rows.forEach(row => {
         const rowStatus = row.dataset.status;
         const rowDate = row.dataset.date;
+        const orderId = row.cells[1].innerText.toLowerCase();
+        const customer = row.cells[3].innerText.toLowerCase();
+        const matchesSearch = !searchTerm || orderId.includes(searchTerm) || customer.includes(searchTerm);
         const statusMatch = currentStatus === 'all' || rowStatus === currentStatus;
         const afterStart = !start || rowDate >= start;
         const beforeEnd = !end || rowDate <= end;
-        if (statusMatch && afterStart && beforeEnd) {
+        if (statusMatch && afterStart && beforeEnd && matchesSearch) {
           row.style.display = '';
         } else {
           row.style.display = 'none';
@@ -152,6 +156,10 @@ include '../header.php';
 
     document.getElementById('startDate').addEventListener('change', applyFilters);
     document.getElementById('endDate').addEventListener('change', applyFilters);
+    document.getElementById('searchOrder').addEventListener('input', function() {
+      searchTerm = this.value.trim().toLowerCase();
+      applyFilters();
+    });
 
     document.querySelectorAll('.status-dropdown').forEach(select => {
       select.addEventListener('change', function() {
