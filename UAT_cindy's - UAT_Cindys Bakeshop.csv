@@ -5,37 +5,37 @@ PBI ITEM NO.,TEST SCENARIO ID,TEST CASE ID,PREREQUISITE,TEST DESCRIPTION,MODULE,
 2. Click login",Invalid credentials,System denies access and shows error,,Not Run,,,,,,,,,
 3,1_TS00003,1_TS00001_TC003,System connected to database,Verify adding a new product,Inventory Management,Admin,"1. Open add product form
 2. Input name, description, price, category, image
-3. Save product",Product details,Product is saved and appears in inventory list,,Pass,,,,,,,,,
+3. Save product",Product details,Product is saved and appears in inventory list,Product is saved and appears in inventory list,Pass,,,,,,,,,
 4,1_TS00004,1_TS00001_TC004,Product exists in inventory,Verify editing an existing product,Inventory Management,Admin,"1. Open product list
 2. Select product
 3. Update details
-4. Save changes",Updated product details,Product details are updated successfully,,Pass,,,,,,,,,
+4. Save changes",Updated product details,Product details are updated successfully,Product details are updated successfully,Pass,,,,,,,,,
 5,1_TS00005,1_TS00001_TC005,Product exists in inventory,Verify deleting a product,Inventory Management,Admin,"1. Open product list
 2. Select product
 3. Delete product
-4. Confirm deletion",Product ID,Product is removed from inventory list,,Pass,,,,,,,,,
+4. Confirm deletion",Product ID,Product is removed from inventory list,Product is removed from inventory list,Pass,,,,,,,,,
 6,1_TS00006,1_TS00001_TC006,Orders exist in system,Verify viewing customer orders,Order Management,Admin,"1. Open order management module
-2. View order details (items, quantity, customer info, status)",Existing order data,Orders are displayed correctly with details,,Pass,,,,,,,,,
+2. View order details (items, quantity, customer info, status)",Existing order data,Orders are displayed correctly with details,Orders are displayed correctly with details,Pass,,,,,,,,,
 7,1_TS00007,1_TS00001_TC007,Orders exist in system,Verify updating order status,Order Management,Admin,"1. Open order list
 2. Select order
 3. Change status (preparing, delivered, cancelled)
-4. Save",Order ID with status change,Order status is updated successfully,,Pass,,,,,,,,,
+4. Save",Order ID with status change,Order status is updated successfully,Order status is updated successfully,Pass,,,,,,,,,
 8,1_TS00008,1_TS00001_TC008,System has sales data,Verify generating sales report,Reporting,Admin,"1. Open reports module
 2. Select date range
 3. Generate report
-4. Export report",Date range,Sales report is generated and exportable,,Pass,,,,,,,,,
+4. Export report",Date range,Sales report is generated and exportable,Sales report is generated and exportable,Pass,,,,,,,,,
 9,1_TS00009,1_TS00001_TC009,Products exist in inventory,Verify generating inventory report,Reporting,Admin,"1. Open reports module
 2. Select filter options
-3. Generate inventory report",Product stock data,Inventory report is generated with correct stock details,,Pass,,,,,,,,,
+3. Generate inventory report",Product stock data,Inventory report is generated with correct stock details,Inventory report is generated with correct stock details,Pass,,,,,,,,,
 10,1_TS00010,1_TS00001_TC010,Users exist in system,Verify managing user roles,Access Control,Admin,"1. Open user management module
 2. Assign roles or blacklist/restore user
-3. Save changes",User account data,User roles are updated and restrictions applied,,Pass,,,,,,,,,
+3. Save changes",User account data,User roles are updated and restrictions applied,User roles are updated and restrictions applied,Pass,,,,,,,,,
 11,1_TS00011,1_TS00001_TC011,Access to registration page,Verify user registration with new email,Authentication,User,"1. Go to Registration page
 2. Enter valid details
-3. Submit",Valid email & password,Account is successfully created,,Pass,,,,,,,,,
+3. Submit",Valid email & password,Account is successfully created,Account is successfully created,Pass,,,,,,,,,
 12,1_TS00012,1_TS00001_TC012,Access to registration page,Verify registration with existing email,Authentication,User,"1. Go to Registration page
 2. Enter already registered email
-3. Submit",Existing email,System rejects duplicate registration,,Pass,,,,,,,,,
+3. Submit",Existing email,System rejects duplicate registration,System rejects duplicate registration,Pass,,,,,,,,,
 13,1_TS00013,1_TS00001_TC013,Access to login page,Verify login with valid credentials,Authentication,User,"1. Enter valid email
 2. Enter valid password
 3. Click Login",Valid credentials,User is logged in and redirected to dashboard,"Redirected to userSide/PRODUCT/MENU.php; header shows “Welcome, Admin”; can access Inventory menu",Pass,0,,Quance,,,,,,
@@ -43,78 +43,121 @@ PBI ITEM NO.,TEST SCENARIO ID,TEST CASE ID,PREREQUISITE,TEST DESCRIPTION,MODULE,
 2. Click Login",Invalid credentials,System denies access and displays error,The following error appeared in an alert popup: Firebase: Error (auth/invalid-credential).,Pass,0,,Quance,,,,,,
 15,1_TS00015,1_TS00001_TC015,User logged in,Verify browsing products,Product Catalog,User,"1. Open Product Catalog
 2. Browse by category
-3. View product details",Product list,"Products are displayed correctly with images, price, and category",,Pass,,,,,,,,,
+3. View product details",Product list,"Products are displayed correctly with images, price, and category","Products are displayed correctly with images, price, and category",Pass,,,,,,,,,
 16,1_TS00016,1_TS00001_TC016,Items exist in catalog,Verify placing an order,Ordering,User,"1. Add items to cart
 2. Enter delivery info
-3. Place order",Product + delivery details,Order is placed and recorded,,Pass,,,,,,,,,
+3. Place order",Product + delivery details,Order is placed and recorded,Order is placed and recorded,Pass,,,,,,,,,
 17,1_TS00017,1_TS00001_TC017,User has placed an order,Verify order confirmation,Ordering,User,"1. Complete checkout
-2. View confirmation page",Order details,Confirmation shows summary + reference number,,Pass,,,,,,,,,
-18,1_TS00018,1_TS00001_TC018,Orders exist,Verify viewing order history,Ordering,User,2. View confirmation page,Existing order data,Order details and status are displayed,,Pass,,,,,,,,,
+2. View confirmation page",Order details,Confirmation shows summary + reference number,Confirmation shows summary + reference number,Pass,,,,,,,,,
+18,1_TS00018,1_TS00001_TC018,Orders exist,Verify viewing order history,Ordering,User,2. View confirmation page,Existing order data,Order details and status are displayed,Order details and status are displayed,Pass,,,,,,,,,
 19,1_TS00019,1_TS00001_TC019,Orders exist,Verify receiving order notifications,Notifications,User,"1. Place order
 2. Change status
-3. Check notifications",Order status,User receives in-app notification,,Pass,,,,,,,,,
+3. Check notifications",Order status,User receives in-app notification,User receives in-app notification,Pass,,,,,,,,,
 20,1_TS00020,1_TS00001_TC020,User forgot password,Verify password recovery,Authentication,User,"1. Click “Forgot Password”
 2. Enter email
 3. Open reset link
-4. Set new password",Registered email,User receives reset link and password is updated,,Pass,,,,,,,,,
+4. Set new password",Registered email,User receives reset link and password is updated,User receives reset link and password is updated,Pass,,,,,,,,,
 21,1_TS00021,1_TS00001_TC021,User logged in,Verify logout,Authentication,User,"1. Click Logout
-2. Attempt to access restricted page",User session,"Session ends, redirected to login page",,Pass,,,,,,,,,
+2. Attempt to access restricted page",User session,"Session ends, redirected to login page","Session ends, redirected to login page",Pass,,,,,,,,,
 22,1_TS00022,1_TS00001_TC022,Access to registration page,Verify registration with face image,Authentication,User,"1. Fill registration form
 2. Capture/upload face image
-3. Submit",User info + face image,Registration successful with face image saved,,Pass,,,,,,,,,
+3. Submit",User info + face image,Registration successful with face image saved,Registration successful with face image saved,Pass,,,,,,,,,
 23,1_TS00023,1_TS00001_TC023,User logged in,Verify editing profile,Profile Management,User,"1. Open Profile page
 2. Update details
-3. Save changes",Profile data,Profile is updated successfully,,Pass,,,,,,,,,
+3. Save changes",Profile data,Profile is updated successfully,Profile is updated successfully,Pass,,,,,,,,,
 24,1_TS00024,1_TS00001_TC024,User logged in,Verify saving product to favorites,Favorites,User,"1. Browse product
-2. Click “Add to Favorites",Product ID,Product is saved in Favorites,,Pass,,,,,,,,,
-25,1_TS00025,1_TS00001_TC025,User has favorites,Verify viewing favorites list,Favorites,User,1. Open Favorites page,Saved products,User sees list of favorite products,,Pass,,,,,,,,,
+2. Click “Add to Favorites",Product ID,Product is saved in Favorites,Product is saved in Favorites,Pass,,,,,,,,,
+25,1_TS00025,1_TS00001_TC025,User has favorites,Verify viewing favorites list,Favorites,User,1. Open Favorites page,Saved products,User sees list of favorite products,User sees list of favorite products,Pass,,,,,,,,,
 26,1_TS00026,1_TS00001_TC026,User has favorites,Verify removing product from favorites,Favorites,User,"1. Open Favorites page
-2. Remove selected product",Product ID,Product is removed from Favorites,,Pass,,,,,,,,,
+2. Remove selected product",Product ID,Product is removed from Favorites,Product is removed from Favorites,Pass,,,,,,,,,
 27,1_TS00027,1_TS00001_TC027,Products exist in catalog,Verify product search,Product Catalog,User,"1. Enter keyword in search bar
-2. Click Search",Search keyword,Relevant products are listed,,Pass,,,,,,,,,
+2. Click Search",Search keyword,Relevant products are listed,Relevant products are listed,Pass,,,,,,,,,
 28,1_TS00028,1_TS00001_TC028,User logged in,Verify updating language preference,Profile Management,User,"1. Go to Profile Settings
 2. Select interface language
-3. Save changes",Language option,System saves language preference and reloads with new language,,Pass,,,,,,,,,
+3. Save changes",Language option,System saves language preference and reloads with new language,System saves language preference and reloads with new language,Pass,,,,,,,,,
 29,1_TS00029,1_TS00001_TC029,User logged in,Verify changing theme (light/dark),Profile Management,User,"1. Go to Profile Settings
 2. Select theme (light/dark)
-3. Save",Theme option,Theme is applied and displayed correctly,,Pass,,,,,,,,,
+3. Save",Theme option,Theme is applied and displayed correctly,Theme is applied and displayed correctly,Pass,,,,,,,,,
 30,1_TS00030,1_TS00001_TC030,User logged in,Verify toggling order status notifications,Profile Management,User,"1. Go to Settings
-2. Enable/Disable order notifications",Notification toggle,Notifications are enabled/disabled as per selection,,Pass,,,,,,,,,
+2. Enable/Disable order notifications",Notification toggle,Notifications are enabled/disabled as per selection,Notifications are enabled/disabled as per selection,Pass,,,,,,,,,
 31,1_TS00031,1_TS00001_TC031,User logged in,Verify toggling promotions notifications,Profile Management,User,"1. Go to Settings
-2. Enable/Disable promotion notifications",Notification toggle,Promotion alerts enabled/disabled as per selection,,Pass,,,,,,,,,
+2. Enable/Disable promotion notifications",Notification toggle,Promotion alerts enabled/disabled as per selection,Promotion alerts enabled/disabled as per selection,Pass,,,,,,,,,
 32,1_TS00032,1_TS00001_TC032,User logged in,Verify toggling feedback notifications,Profile Management,User,"1. Go to Settings
-2. Enable/Disable feedback notifications",Notification toggle,Feedback reminders enabled/disabled as per selection,,Pass,,,,,,,,,
+2. Enable/Disable feedback notifications",Notification toggle,Feedback reminders enabled/disabled as per selection,Feedback reminders enabled/disabled as per selection,Pass,,,,,,,,,
 33,1_TS00033,1_TS00001_TC033,"User logged in, product exists",Verify sharing product link,Product Catalog,User,"1. Open Product page
 2. Click Share
-3. Copy link",Product ID,Product link copied to clipboard,,Pass,,,,,,,,,
+3. Copy link",Product ID,Product link copied to clipboard,Product link copied to clipboard,Pass,,,,,,,,,
 34,1_TS00034,1_TS00001_TC034,Admin logged in,Verify managing product complaints,Feedback Management,Admin,"1. Go to Complaints Dashboard
 2. View complaints
-3. Delete unwanted complaint",Product rating entry,Ratings list displayed and review deleted successfully,,Pass,,,,,,,,,
+3. Delete unwanted complaint",Product rating entry,Ratings list displayed and review deleted successfully,Ratings list displayed and review deleted successfully,Pass,,,,,,,,,
 35,1_TS00035,1_TS00001_TC035,Admin logged in,Verify viewing notifications,Notifications,Admin,"1. Go to Notifications page
-2. Review messages and timestamps",Notification data,Notifications are listed with message and timestamp,,Pass,,,,,,,,,
+2. Review messages and timestamps",Notification data,Notifications are listed with message and timestamp,Notifications are listed with message and timestamp,Pass,,,,,,,,,
 36,1_TS00036, 1_TS00001_TC036,Products exist in catalog,Verify product search with filters,Inventory Management,User,"1. Enter product name in search bar
 2. Apply filters
-3. Search again",Product name + filters,System lists relevant products based on search and filters,,Pass,,,,,,,,,
+3. Search again",Product name + filters,System lists relevant products based on search and filters,System lists relevant products based on search and filters,Pass,,,,,,,,,
 37,1_TS00037, 1_TS00001_TC037,Admin logged in,Verify searching users by name or email,Access Control,Admin,"1. Open User Dashboard
 2. Enter name/email in search bar
-3. Click Search",Username or email,User list filtered by input criteria,,Pass,,,,,,,,,
+3. Click Search",Username or email,User list filtered by input criteria,User list filtered by input criteria,Pass,,,,,,,,,
 38,1_TS00038,1_TS00001_TC038,Admin logged in,Verify searching orders by order ID,Order Management,Admin,"1. Open Orders page
 2. Enter order ID in search bar
-3. Click Search",Order ID,Orders filtered and displayed by entered ID ,,Pass,,,,,,,,,
+3. Click Search",Order ID,Orders filtered and displayed by entered ID ,Orders filtered and displayed by entered ID ,Pass,,,,,,,,,
 39,1_TS00039,1_TS00001_TC039,Admin logged in,Verify filtering orders by status & date,Order Management,Admin,"1. Open Orders page
 2. Apply status filter
-3. Apply date range filter",Status + date range,Orders displayed as per selected filters,,Pass,,,,,,,,,
+3. Apply date range filter",Status + date range,Orders displayed as per selected filters,Orders displayed as per selected filters,Pass,,,,,,,,,
 40,1_TS00040,1_TS00001_TC040,Orders exist,Verify exporting orders to PDF,Reporting,Admin,"1. Open Orders page
-2. Click “Export to PDF”",Order list,Orders exported into downloadable PDF file,,Pass,,,,,,,,,
+2. Click “Export to PDF”",Order list,Orders exported into downloadable PDF file,Orders exported into downloadable PDF file,Pass,,,,,,,,,
 41,1_TS00041,1_TS00001_TC041,Inventory data exists,Verify exporting inventory report to PDF,Reporting,Admin,"1. Open Inventory Report page
-2. Click “Export to PDF",Inventory report data,Inventory report exported into PDF file,,Pass,,,,,,,,,
+2. Click “Export to PDF",Inventory report data,Inventory report exported into PDF file,Inventory report exported into PDF file,Pass,,,,,,,,,
 42,1_TS00042,1_TS00001_TC042,Products exist in catalog,Verify searching products by name,Product Catalog,User,"1. Open Category Page
 2. Enter product name in search bar
-3. Click Search",Product name,Products matching search name are displayed,,Pass,,,,,,,,,
+3. Click Search",Product name,Products matching search name are displayed,Products matching search name are displayed,Pass,,,,,,,,,
 43,1_TS00043,1_TS00001_TC043,Products exist in catalog,Verify viewing product details,Product Catalog,User,"1. Open Product Catalog
 2. Select a product
-3. View details",Product ID,"Product page displays name, price, stock, and description",,Pass,,,,,,,,,
+3. View details",Product ID,"Product page displays name, price, stock, and description","Product page displays name, price, stock, and description",Pass,,,,,,,,,
 44,1_TS00044,1_TS00001_TC044,Product available,Verify adjusting product quantity before purchase,Ordering,User,"1. Open Product page
 2. Adjust quantity using + / - buttons
-3. Add to Car",Product ID + quantity,System updates quantity and adds correct amount to cart,,Pass,,,,,,,,,
-,1_TS00045,1_TS00001_TC045,,,,,,,,,,,,,,,,,,
+3. Add to Car",Product ID + quantity,System updates quantity and adds correct amount to cart,System updates quantity and adds correct amount to cart,Pass,,,,,,,,,
+45,1_TS00045,1_TS00001_TC045,User purchased product,Verify leaving a product review,Feedback,User,"1. Open product page
+2. Leave rating and comment
+3. Submit review",Product ID + review,Review is saved and displayed under product,,Not Run,,,,,,,,,
+46,1_TS00046,1_TS00001_TC046,User has review,Verify editing a product review,Feedback,User,"1. Open review
+2. Edit comment
+3. Save changes",Existing review,Review is updated successfully,,Not Run,,,,,,,,,
+47,1_TS00047,1_TS00001_TC047,User has review,Verify deleting a product review,Feedback,User,"1. Open review
+2. Delete review
+3. Confirm deletion",Existing review,Review is removed from product,,Not Run,,,,,,,,,
+48,1_TS00048,1_TS00001_TC048,Admin logged in,Verify viewing daily sales chart,Reporting,Admin,"1. Open dashboard
+2. View sales chart",Sales data,Daily sales chart displays correct totals,,Not Run,,,,,,,,,
+49,1_TS00049,1_TS00001_TC049,Product stock below threshold,Verify low stock alert,Inventory Management,Admin,1. Check inventory list,Low stock product,System highlights items below stock threshold,,Not Run,,,,,,,,,
+50,1_TS00050,1_TS00001_TC050,Admin logged in,Verify backing up database,Maintenance,Admin,"1. Open settings
+2. Click backup database",,Backup file is generated,,Not Run,,,,,,,,,
+51,1_TS00051,1_TS00001_TC051,User has items in cart,Verify updating cart item quantity,Ordering,User,"1. Open cart
+2. Change item quantity
+3. Save",Cart items,Cart updates item quantity,,Not Run,,,,,,,,,
+52,1_TS00052,1_TS00001_TC052,User has items in cart,Verify removing item from cart,Ordering,User,"1. Open cart
+2. Remove item",Cart item,Item is removed from cart,,Not Run,,,,,,,,,
+53,1_TS00053,1_TS00001_TC053,User has valid coupon,Verify applying discount code,Ordering,User,"1. Open cart
+2. Enter discount code
+3. Apply",Coupon code,Order total reflects discount,,Not Run,,,,,,,,,
+54,1_TS00054,1_TS00001_TC054,User checking out,Verify selecting payment method,Ordering,User,"1. Proceed to checkout
+2. Choose payment method
+3. Place order",Payment option,Order placed with selected payment method,,Not Run,,,,,,,,,
+55,1_TS00055,1_TS00001_TC055,User has placed order,Verify tracking order status,Ordering,User,"1. Open Orders page
+2. View status",Order ID,Order status is displayed,,Not Run,,,,,,,,,
+56,1_TS00056,1_TS00001_TC056,Order placed,Verify receiving order confirmation email,Notifications,User,"1. Place order
+2. Check email",Order details,Confirmation email received,,Not Run,,,,,,,,,
+57,1_TS00057,1_TS00001_TC057,Order delivered,Verify leaving delivery feedback,Feedback,User,"1. Open past orders
+2. Leave feedback",Order ID + feedback,Feedback is saved,,Not Run,,,,,,,,,
+58,1_TS00058,1_TS00001_TC058,Admin logged in,Verify viewing feedback list,Feedback Management,Admin,1. Open feedback dashboard,Feedback entries,Feedback entries are listed,,Not Run,,,,,,,,,
+59,1_TS00059,1_TS00001_TC059,Feedback entries exist,Verify filtering feedback by rating,Feedback Management,Admin,"1. Open feedback dashboard
+2. Apply rating filter",Rating value,Feedback is filtered by rating,,Not Run,,,,,,,,,
+60,1_TS00060,1_TS00001_TC060,User logged in,Verify adding new shipping address,Profile Management,User,"1. Open addresses
+2. Add new address
+3. Save",Address info,Address is added to profile,,Not Run,,,,,,,,,
+61,1_TS00061,1_TS00001_TC061,User has multiple addresses,Verify deleting shipping address,Profile Management,User,"1. Open addresses
+2. Delete an address",Address entry,Address is removed from profile,,Not Run,,,,,,,,,
+62,1_TS00062,1_TS00001_TC062,Admin logged in,Verify viewing system logs,Maintenance,Admin,1. Open system logs page,Log data,Logs are displayed,,Not Run,,,,,,,,,
+63,1_TS00063,1_TS00001_TC063,Sales data exists,Verify exporting sales summary to CSV,Reporting,Admin,"1. Open sales summary
+2. Export to CSV",Date range,CSV file is downloaded,,Not Run,,,,,,,,,
+64,1_TS00064,1_TS00001_TC064,Inventory data prepared,Verify bulk import of inventory,Inventory Management,Admin,"1. Open inventory module
+2. Import CSV file",Inventory CSV,Items are added to inventory from file,,Not Run,,,,,,,,,
