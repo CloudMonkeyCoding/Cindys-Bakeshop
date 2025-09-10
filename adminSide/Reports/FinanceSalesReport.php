@@ -11,6 +11,9 @@ if (!in_array($sortBy, $allowedSorts, true)) {
 }
 $sortDir = strtolower($_GET['sort_dir'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
 $orderClause = "ORDER BY $sortBy $sortDir";
+if ($sortBy !== 'Transaction_ID') {
+    $orderClause .= ", Transaction_ID DESC";
+}
 $queryParams = $_GET;
 function build_sort_link($column, $label, $sortBy, $sortDir, $queryParams) {
     $queryParams['sort_by'] = $column;
