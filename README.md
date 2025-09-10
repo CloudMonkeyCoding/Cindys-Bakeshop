@@ -29,8 +29,7 @@ The SQL dump defines the following tables:
 
 - **blacklist** – banned users with reason and IP (`Blacklist_ID`, `User_ID`, `Blacklist_reason`, `IP_Address`)
 - **cart_item** – items placed in a shopping cart (`Cart_Item_ID`, `Cart_ID`, `Product_ID`, `Quantity`)
-- **delivery** – delivery status for orders (`Delivery_ID`, `Order_ID`, `Status`, `Delivery_Date`, `Delivery_Personnel`)
-- **delivery_personnel** – links delivery staff to user accounts (`Delivery_Personnel_ID`, `User_ID`)
+- **delivery** – delivery status for orders (`Delivery_ID`, `Order_ID`, `Status`, `Delivery_Date`, `Delivery_Personnel` [User_ID])
 - **inventory** – stock levels for products (`Inventory_ID`, `Product_ID`, `Stock_Quantity`)
 - **order** – customer orders (`Order_ID`, `User_ID`, `Order_Date`, `Status`)
 - **order_item** – products within an order (`Order_Item_ID`, `Order_ID`, `Product_ID`, `Quantity`, `Subtotal`)

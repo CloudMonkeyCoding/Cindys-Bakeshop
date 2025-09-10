@@ -1,6 +1,7 @@
 <?php
 // 1) Add delivery info for an order
 function addDelivery($pdo, $orderId, $status, $deliveryDate, $deliveryPersonnel) {
+    // $deliveryPersonnel is the User_ID of the staff or admin assigned to deliver the order
     $stmt = $pdo->prepare("
         INSERT INTO delivery (Order_ID, Status, Delivery_Date, Delivery_Personnel)
         VALUES (:order_id, :status, :delivery_date, :delivery_personnel)
@@ -40,6 +41,7 @@ function getDeliveryById($pdo, $deliveryId) {
 
 // 5) Update delivery details (status, date, personnel)
 function updateDelivery($pdo, $deliveryId, $status, $deliveryDate, $deliveryPersonnel) {
+    // $deliveryPersonnel is the User_ID of the staff or admin assigned to deliver the order
     $stmt = $pdo->prepare("
         UPDATE delivery
         SET Status = :status,
@@ -76,6 +78,7 @@ function getDeliveriesByStatus($pdo, $status) {
 
 // 8) Get deliveries by personnel
 function getDeliveriesByPersonnel($pdo, $personnel) {
+    // $personnel is the User_ID of the staff or admin handling deliveries
     $stmt = $pdo->prepare("
         SELECT * FROM delivery WHERE Delivery_Personnel = :personnel
     ");

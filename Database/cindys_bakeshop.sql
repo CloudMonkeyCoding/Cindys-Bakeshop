@@ -64,17 +64,6 @@ CREATE TABLE `delivery` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `delivery_personnel`
---
-
-CREATE TABLE `delivery_personnel` (
-  `Delivery_Personnel_ID` int(11) NOT NULL,
-  `User_ID` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `inventory`
 --
 
@@ -214,13 +203,6 @@ ALTER TABLE `delivery`
   ADD KEY `fk_delivery_order` (`Order_ID`);
 
 --
--- Indexes for table `delivery_personnel`
---
-ALTER TABLE `delivery_personnel`
-  ADD PRIMARY KEY (`Delivery_Personnel_ID`),
-  ADD KEY `User_ID` (`User_ID`);
-
---
 -- Indexes for table `inventory`
 --
 ALTER TABLE `inventory`
@@ -299,12 +281,6 @@ ALTER TABLE `delivery`
   MODIFY `Delivery_ID` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `delivery_personnel`
---
-ALTER TABLE `delivery_personnel`
-  MODIFY `Delivery_Personnel_ID` int(11) NOT NULL AUTO_INCREMENT;
-
---
 -- AUTO_INCREMENT for table `inventory`
 --
 ALTER TABLE `inventory`
@@ -373,14 +349,8 @@ ALTER TABLE `cart_item`
 -- Constraints for table `delivery`
 --
 ALTER TABLE `delivery`
-  ADD CONSTRAINT `delivery_ibfk_1` FOREIGN KEY (`Delivery_Personnel`) REFERENCES `delivery_personnel` (`Delivery_Personnel_ID`),
+  ADD CONSTRAINT `delivery_ibfk_1` FOREIGN KEY (`Delivery_Personnel`) REFERENCES `user` (`User_ID`),
   ADD CONSTRAINT `fk_delivery_order` FOREIGN KEY (`Order_ID`) REFERENCES `order` (`Order_ID`);
-
---
--- Constraints for table `delivery_personnel`
---
-ALTER TABLE `delivery_personnel`
-  ADD CONSTRAINT `delivery_personnel_ibfk_1` FOREIGN KEY (`User_ID`) REFERENCES `user` (`User_ID`);
 
 --
 -- Constraints for table `inventory`
