@@ -49,6 +49,7 @@ include '../header.php';
       <div class="bg-white p-4 rounded shadow">
         <p><strong>Date:</strong> <?= htmlspecialchars($order['Order_Date']); ?></p>
         <p><strong>Customer:</strong> <?= htmlspecialchars($user['Name'] ?? 'User ' . $order['User_ID']); ?></p>
+        <p><strong>Address:</strong> <?= htmlspecialchars($user['Address'] ?? 'Address not available'); ?></p>
         <p><strong>Status:</strong> <?= htmlspecialchars($order['Status']); ?></p>
         <form method="post" class="mt-4 flex gap-2 items-center">
           <label for="status" class="font-medium">Update Status:</label>
