@@ -16,8 +16,17 @@ if ($pdo) {
         case 'last30':
             $filterClause = "AND o.Order_Date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
             break;
+        case 'last90':
+            $filterClause = "AND o.Order_Date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)";
+            break;
         case 'month':
             $filterClause = "AND MONTH(o.Order_Date) = MONTH(CURDATE()) AND YEAR(o.Order_Date) = YEAR(CURDATE())";
+            break;
+        case 'year':
+            $filterClause = "AND o.Order_Date >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)";
+            break;
+        case 'all':
+            // no additional filter
             break;
     }
 
@@ -61,7 +70,10 @@ include '../header.php';
         <option value="today" <?= $dateFilter === 'today' ? 'selected' : '' ?>>Today</option>
         <option value="last7" <?= $dateFilter === 'last7' ? 'selected' : '' ?>>Last 7 days</option>
         <option value="last30" <?= $dateFilter === 'last30' ? 'selected' : '' ?>>Last 30 days</option>
+        <option value="last90" <?= $dateFilter === 'last90' ? 'selected' : '' ?>>Last 3 months</option>
         <option value="month" <?= $dateFilter === 'month' ? 'selected' : '' ?>>This Month</option>
+        <option value="year" <?= $dateFilter === 'year' ? 'selected' : '' ?>>Past Year</option>
+        <option value="all" <?= $dateFilter === 'all' ? 'selected' : '' ?>>All Time</option>
       </select>
       <button type="button" class="export-btn" onclick="exportTableToPDF()">Export PDF</button>
     </form>
