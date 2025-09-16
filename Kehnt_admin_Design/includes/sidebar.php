@@ -30,7 +30,7 @@ function isDropdownActive(array $pages, $activePage) {
         Products
       </a>
     </li>
-    <li class="dropdown <?= isDropdownActive(['orders', 'delivery', 'cancellations'], $activePage); ?>">
+    <li class="dropdown <?= isDropdownActive(['orders', 'delivery'], $activePage); ?>">
       <a href="#">
         <span><i class="fa-solid fa-cart-shopping"></i></span>
         Orders
@@ -41,12 +41,6 @@ function isDropdownActive(array $pages, $activePage) {
           <a href="orders.php" class="<?= isActive('orders', $activePage); ?>">
             <i class="fa-solid fa-list-check"></i>
             Manage Orders
-          </a>
-        </li>
-        <li>
-          <a href="cancellations.php" class="<?= isActive('cancellations', $activePage); ?>">
-            <i class="fa-solid fa-ban"></i>
-            Cancellations
           </a>
         </li>
         <li>

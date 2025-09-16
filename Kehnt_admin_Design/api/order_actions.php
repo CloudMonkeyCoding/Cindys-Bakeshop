@@ -10,7 +10,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 require_once '../../PHP/db_connect.php';
 require_once '../../PHP/order_functions.php';
-require_once '../../PHP/order_cancellation_functions.php';
 
 if (!$pdo) {
     http_response_code(500);
@@ -38,19 +37,6 @@ switch ($action) {
         }
         updateOrderStatus($pdo, $orderId, $status);
         echo json_encode(['success' => true, 'status' => $status]);
-        break;
-
-    case 'approve_cancellation':
-    case 'reject_cancellation':
-        $cancelId = filter_input(INPUT_POST, 'cancel_id', FILTER_VALIDATE_INT);
-        if (!$cancelId) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Invalid cancellation ID']);
-            exit;
-        }
-        $newStatus = $action === 'approve_cancellation' ? 'Approved' : 'Rejected';
-        updateOrderCancellationStatus($pdo, $cancelId, $newStatus);
-        echo json_encode(['success' => true, 'status' => $newStatus]);
         break;
 
     default:
