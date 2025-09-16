@@ -150,6 +150,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     $action = filter_input(INPUT_POST, 'action', FILTER_SANITIZE_SPECIAL_CHARS);
     switch ($action) {
+        case 'add':
+            $name = filter_input(INPUT_POST, 'name', FILTER_SANITIZE_SPECIAL_CHARS) ?? '';
+            $description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_SPECIAL_CHARS) ?? '';
+            $price = filter_input(INPUT_POST, 'price', FILTER_VALIDATE_FLOAT);
+            $price = $price !== false ? $price : 0;
+            $stock = filter_input(INPUT_POST, 'stock_quantity', FILTER_VALIDATE_INT);
+            $stock = $stock !== false ? $stock : 0;
+            $category = filter_input(INPUT_POST, 'category', FILTER_SANITIZE_SPECIAL_CHARS) ?? '';
+            $imageFile = $_FILES['image'] ?? null;
+            $productId = addProduct($pdo, $name, $description, $price, $stock, $category, $imageFile);
+            echo json_encode(['success' => (bool)$productId]);
+            break;
+
         case 'update':
             $id = filter_input(INPUT_POST, 'product_id', FILTER_VALIDATE_INT) ?? 0;
             $name = filter_input(INPUT_POST, 'name', FILTER_SANITIZE_SPECIAL_CHARS) ?? '';
