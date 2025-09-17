@@ -41,6 +41,7 @@ $prefix = str_repeat('../', $depth);
       <div class="submenu hidden ml-6 space-y-1">
         <a href="<?= $prefix ?>Reports/FinanceSalesReport.php" class="block p-2 hover:bg-gray-100 rounded">Finance & Sales Report</a>
         <a href="<?= $prefix ?>Reports/InventoryReport.php" class="block p-2 hover:bg-gray-100 rounded">Inventory Report</a>
+        <a href="<?= $prefix ?>Reports/ProductSalesReport.php" class="block p-2 hover:bg-gray-100 rounded">Product Sales Report</a>
       </div>
     </div>
     <a href="<?= $prefix ?>reset_database.php" class="flex items-center gap-2 p-2 rounded <?php echo $activePage === 'reset' ? 'bg-gray-200 font-semibold' : 'sidebar-link'; ?>">🗑️ Reset Database</a>
