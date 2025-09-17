@@ -21,10 +21,12 @@ $recentSaleTimestamp = null;
 $recentSaleDisplay = 'No sales recorded yet';
 
 $productSales = [];
-$monthlySales = [];
 $statusBreakdown = [];
 $categoryRevenue = [];
 $categoryUnits = [];
+$weeklyRevenueMap = [];
+$weeklyLabels = [];
+$weeklyRevenueValues = [];
 
 if ($pdo) {
     $allowedStatuses = ['Pending', 'Confirmed', 'Shipped', 'Delivered'];
@@ -61,34 +63,25 @@ if ($pdo) {
         $totalOrders = (int)($stmtOrders->fetchColumn() ?? 0);
     }
 
-    $monthlySql = "
+    $weeklySql = "
         SELECT
-            DATE_FORMAT(o.Order_Date, '%Y-%m') AS period,
-            COALESCE(SUM(oi.Subtotal), 0) AS revenue,
-            COALESCE(SUM(oi.Quantity), 0) AS units
+            DATE(o.Order_Date) AS sale_date,
+            COALESCE(SUM(oi.Subtotal), 0) AS revenue
         FROM order_item oi
         JOIN `order` o ON o.Order_ID = oi.Order_ID
-        WHERE o.Status IN ($statusList) AND o.Order_Date IS NOT NULL
-        GROUP BY period
-        ORDER BY period ASC
+        WHERE o.Status IN ($statusList)
+          AND o.Order_Date IS NOT NULL
+          AND DATE(o.Order_Date) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+        GROUP BY sale_date
+        ORDER BY sale_date ASC
     ";
-    $stmtMonthly = $pdo->query($monthlySql);
-    if ($stmtMonthly) {
-        while ($row = $stmtMonthly->fetch(PDO::FETCH_ASSOC)) {
-            $period = $row['period'] ?? null;
-            if ($period) {
-                $labelDate = strtotime($period . '-01');
-                $label = $labelDate ? date('M Y', $labelDate) : $period;
-            } else {
-                $label = 'Unknown';
+    $stmtWeekly = $pdo->query($weeklySql);
+    if ($stmtWeekly) {
+        while ($row = $stmtWeekly->fetch(PDO::FETCH_ASSOC)) {
+            $saleDate = $row['sale_date'] ?? null;
+            if ($saleDate) {
+                $weeklyRevenueMap[$saleDate] = (float)($row['revenue'] ?? 0);
             }
-
-            $monthlySales[] = [
-                'period' => $period,
-                'label' => $label,
-                'revenue' => (float)($row['revenue'] ?? 0),
-                'units' => (int)($row['units'] ?? 0)
-            ];
         }
     }
 
@@ -163,13 +156,16 @@ $averageOrderValue = $totalOrders > 0 ? $totalRevenue / $totalOrders : 0.0;
 $averageUnitsPerOrder = $totalOrders > 0 ? $totalUnits / $totalOrders : 0.0;
 $averageSellingPrice = $totalUnits > 0 ? $totalRevenue / max($totalUnits, 1) : 0.0;
 
-$monthlyLabels = [];
-$monthlyRevenueValues = [];
-$monthlyUnitValues = [];
-foreach ($monthlySales as $month) {
-    $monthlyLabels[] = $month['label'];
-    $monthlyRevenueValues[] = round($month['revenue'], 2);
-    $monthlyUnitValues[] = (int)$month['units'];
+$weeklyLabels = [];
+$weeklyRevenueValues = [];
+for ($i = 6; $i >= 0; $i--) {
+    $timestamp = strtotime("-{$i} day");
+    if ($timestamp === false) {
+        continue;
+    }
+    $dateKey = date('Y-m-d', $timestamp);
+    $weeklyLabels[] = date('D', $timestamp);
+    $weeklyRevenueValues[] = round($weeklyRevenueMap[$dateKey] ?? 0, 2);
 }
 
 $topProductChartData = array_slice(array_values(array_filter($productSales, function ($product) {
@@ -198,9 +194,8 @@ foreach ($sortedCategoryRevenue as $category => $revenue) {
 }
 
 $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
-$monthlyLabelsJson = json_encode($monthlyLabels, $jsonFlags) ?: '[]';
-$monthlyRevenueJson = json_encode($monthlyRevenueValues, $jsonFlags) ?: '[]';
-$monthlyUnitsJson = json_encode($monthlyUnitValues, $jsonFlags) ?: '[]';
+$weeklyLabelsJson = json_encode($weeklyLabels, $jsonFlags) ?: '[]';
+$weeklyRevenueJson = json_encode($weeklyRevenueValues, $jsonFlags) ?: '[]';
 $topProductLabelsJson = json_encode($topProductLabels, $jsonFlags) ?: '[]';
 $topProductRevenueJson = json_encode($topProductRevenueValues, $jsonFlags) ?: '[]';
 $topProductUnitsJson = json_encode($topProductUnitValues, $jsonFlags) ?: '[]';
@@ -260,8 +255,8 @@ include 'includes/sidebar.php';
 
   <div class="stats-grid columns-4" style="margin-top:24px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));">
     <div class="card">
-      <h2 style="font-size:18px;margin-bottom:16px;">Monthly Product Performance</h2>
-      <canvas id="monthlySalesChart" height="220"></canvas>
+      <h2 style="font-size:18px;margin-bottom:16px;">Sales Trend (Last 7 Days)</h2>
+      <canvas id="salesChart" height="220"></canvas>
     </div>
     <div class="card">
       <h2 style="font-size:18px;margin-bottom:16px;">Top Selling Products</h2>
@@ -311,60 +306,57 @@ include 'includes/sidebar.php';
     </div>
   </div>
 
-  <div class="card" style="margin-top:24px;">
+  <div class="table-container" style="margin-top:24px;">
     <div class="table-actions">
       <input type="text" id="productSalesSearch" placeholder="🔍 Search product or category...">
     </div>
-    <div class="table-responsive">
-      <?php if (empty($productSales)): ?>
-        <p class="table-empty">No products found.</p>
-      <?php else: ?>
-        <table id="productSalesTable">
-          <thead>
+    <?php if (empty($productSales)): ?>
+      <p class="table-empty">No products found.</p>
+    <?php else: ?>
+      <table id="productSalesTable">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Category</th>
+            <th>Units Sold</th>
+            <th>Revenue</th>
+            <th>Orders</th>
+            <th>First Sale</th>
+            <th>Last Sale</th>
+            <th>Avg Item Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($productSales as $product): ?>
+            <?php
+              $unitsSold = $product['units_sold'];
+              $revenue = $product['revenue'];
+              $avgPrice = $unitsSold > 0 ? $revenue / max($unitsSold, 1) : 0;
+              $firstSale = $product['first_sale'] ? strtotime($product['first_sale']) : false;
+              $lastSale = $product['last_sale'] ? strtotime($product['last_sale']) : false;
+            ?>
             <tr>
-              <th>Product</th>
-              <th>Category</th>
-              <th>Units Sold</th>
-              <th>Revenue</th>
-              <th>Orders</th>
-              <th>First Sale</th>
-              <th>Last Sale</th>
-              <th>Avg Item Price</th>
+              <td><?= htmlspecialchars($product['Name']); ?></td>
+              <td><?= htmlspecialchars($product['Category']); ?></td>
+              <td><?= number_format($unitsSold); ?></td>
+              <td>₱<?= number_format($revenue, 2); ?></td>
+              <td><?= number_format($product['order_count']); ?></td>
+              <td><?= $firstSale ? htmlspecialchars(date('M d, Y', $firstSale)) : '—'; ?></td>
+              <td><?= $lastSale ? htmlspecialchars(date('M d, Y', $lastSale)) : '—'; ?></td>
+              <td><?= $unitsSold > 0 ? '₱' . number_format($avgPrice, 2) : '—'; ?></td>
             </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($productSales as $product): ?>
-              <?php
-                $unitsSold = $product['units_sold'];
-                $revenue = $product['revenue'];
-                $avgPrice = $unitsSold > 0 ? $revenue / max($unitsSold, 1) : 0;
-                $firstSale = $product['first_sale'] ? strtotime($product['first_sale']) : false;
-                $lastSale = $product['last_sale'] ? strtotime($product['last_sale']) : false;
-              ?>
-              <tr>
-                <td><?= htmlspecialchars($product['Name']); ?></td>
-                <td><?= htmlspecialchars($product['Category']); ?></td>
-                <td><?= number_format($unitsSold); ?></td>
-                <td>₱<?= number_format($revenue, 2); ?></td>
-                <td><?= number_format($product['order_count']); ?></td>
-                <td><?= $firstSale ? htmlspecialchars(date('M d, Y', $firstSale)) : '—'; ?></td>
-                <td><?= $lastSale ? htmlspecialchars(date('M d, Y', $lastSale)) : '—'; ?></td>
-                <td><?= $unitsSold > 0 ? '₱' . number_format($avgPrice, 2) : '—'; ?></td>
-              </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      <?php endif; ?>
-    </div>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    <?php endif; ?>
   </div>
 </div>
 
 <?php
 $extraScripts = <<<JS
 <script>
-  const monthlyLabels = $monthlyLabelsJson;
-  const monthlyRevenue = $monthlyRevenueJson;
-  const monthlyUnits = $monthlyUnitsJson;
+  const weeklyLabels = $weeklyLabelsJson;
+  const weeklyRevenue = $weeklyRevenueJson;
   const topProductLabels = $topProductLabelsJson;
   const topProductRevenue = $topProductRevenueJson;
   const topProductUnits = $topProductUnitsJson;
@@ -372,54 +364,51 @@ $extraScripts = <<<JS
   const categoryRevenue = $categoryRevenueJson;
   const categoryUnits = $categoryUnitsJson;
 
-  const monthlyChartEl = document.getElementById('monthlySalesChart');
-  if (monthlyChartEl) {
-    const hasMonthlyData = Array.isArray(monthlyLabels) && monthlyLabels.length > 0;
-    const labels = hasMonthlyData ? monthlyLabels : ['No Data'];
-    const revenueData = hasMonthlyData ? monthlyRevenue : [0];
-    const unitData = hasMonthlyData ? monthlyUnits : [0];
+  const salesChartCanvas = document.getElementById('salesChart');
+  if (salesChartCanvas) {
+    const labels = Array.isArray(weeklyLabels) && weeklyLabels.length > 0 ? weeklyLabels : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const revenueData = Array.isArray(weeklyRevenue) && weeklyRevenue.length === labels.length ? weeklyRevenue : new Array(labels.length).fill(0);
+    const ctx = salesChartCanvas.getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, salesChartCanvas.height || 400);
+    gradient.addColorStop(0, 'rgba(231, 76, 60, 0.4)');
+    gradient.addColorStop(1, 'rgba(231, 76, 60, 0)');
 
-    new Chart(monthlyChartEl, {
-      type: 'bar',
+    const salesChart = new Chart(ctx, {
+      type: 'line',
       data: {
         labels,
-        datasets: [
-          {
-            type: 'line',
-            label: 'Revenue (₱)',
-            data: revenueData,
-            borderColor: '#e67e22',
-            backgroundColor: 'rgba(230, 126, 34, 0.25)',
-            tension: 0.3,
-            yAxisID: 'y'
-          },
-          {
-            type: 'bar',
-            label: 'Units Sold',
-            data: unitData,
-            backgroundColor: 'rgba(46, 204, 113, 0.6)',
-            borderRadius: 6,
-            yAxisID: 'yUnits'
-          }
-        ]
+        datasets: [{
+          label: 'Sales (₱)',
+          data: revenueData,
+          borderColor: '#e74c3c',
+          borderWidth: 3,
+          backgroundColor: gradient,
+          pointBackgroundColor: '#fff',
+          pointBorderColor: '#e74c3c',
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          tension: 0.4,
+          fill: true,
+        }]
       },
       options: {
         responsive: true,
-        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: context => {
+                const value = context.parsed.y ?? 0;
+                return 'Sales: ₱' + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              }
+            }
+          }
+        },
         scales: {
           y: {
             beginAtZero: true,
-            position: 'left',
             ticks: {
               callback: value => '₱' + Number(value).toLocaleString()
-            }
-          },
-          yUnits: {
-            beginAtZero: true,
-            position: 'right',
-            grid: { drawOnChartArea: false },
-            ticks: {
-              callback: value => Number(value).toLocaleString()
             }
           }
         }
