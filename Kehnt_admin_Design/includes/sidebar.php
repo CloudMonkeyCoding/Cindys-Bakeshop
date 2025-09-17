@@ -51,11 +51,26 @@ function isDropdownActive(array $pages, $activePage) {
         </li>
       </ul>
     </li>
-    <li>
-      <a href="report.php" class="<?= isActive('reports', $activePage); ?>">
+    <li class="dropdown <?= isDropdownActive(['inventory-report', 'financial-report'], $activePage); ?>">
+      <a href="#">
         <span><i class="fa-solid fa-chart-line"></i></span>
         Reports
+        <i class="fa-solid fa-caret-down" style="margin-left:auto;"></i>
       </a>
+      <ul class="submenu">
+        <li>
+          <a href="report.php" class="<?= isActive('inventory-report', $activePage); ?>">
+            <i class="fa-solid fa-boxes-stacked"></i>
+            Inventory Report
+          </a>
+        </li>
+        <li>
+          <a href="financial-report.php" class="<?= isActive('financial-report', $activePage); ?>">
+            <i class="fa-solid fa-peso-sign"></i>
+            Financial Report
+          </a>
+        </li>
+      </ul>
     </li>
     <li>
       <a href="notifications.php" class="<?= isActive('notifications', $activePage); ?>">
