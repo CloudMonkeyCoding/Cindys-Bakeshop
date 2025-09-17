@@ -11,6 +11,7 @@ $activePage = 'orders';
 $pageTitle = "Manage Orders - Cindy's Bakeshop";
 
 $orders = [];
+$statusOptions = ['Pending', 'Confirmed', 'Shipped', 'Delivered'];
 if ($pdo) {
     $sql = "SELECT o.Order_ID, o.Order_Date, o.Status, u.Name, 
                    COALESCE(SUM(oi.Quantity), 0) AS Item_Count,
@@ -44,10 +45,9 @@ include 'includes/sidebar.php';
       <input type="text" id="searchBox" placeholder="🔍 Search order...">
       <select id="filterStatus">
         <option value="all">All Status</option>
-        <option value="Pending">Pending</option>
-        <option value="Shipped">Shipped</option>
-        <option value="Delivered">Delivered</option>
-        <option value="Cancelled">Cancelled</option>
+        <?php foreach ($statusOptions as $statusOption): ?>
+          <option value="<?= htmlspecialchars($statusOption); ?>"><?= htmlspecialchars($statusOption); ?></option>
+        <?php endforeach; ?>
       </select>
     </div>
     <table id="orderTable">
@@ -83,7 +83,6 @@ include 'includes/sidebar.php';
               <td style="display:flex;gap:8px;flex-wrap:wrap;">
                 <button class="btn btn-primary btn-view" data-order="<?= $order['Order_ID']; ?>">View</button>
                 <button class="btn btn-secondary btn-edit" data-order="<?= $order['Order_ID']; ?>">Update</button>
-                <button class="btn btn-muted btn-cancel" data-order="<?= $order['Order_ID']; ?>">Cancel</button>
               </td>
             </tr>
           <?php endforeach; ?>
@@ -102,10 +101,9 @@ include 'includes/sidebar.php';
       <div class="form-group">
         <label for="modalStatus">Status</label>
         <select name="status" id="modalStatus">
-          <option value="Pending">Pending</option>
-          <option value="Shipped">Shipped</option>
-          <option value="Delivered">Delivered</option>
-          <option value="Cancelled">Cancelled</option>
+          <?php foreach ($statusOptions as $statusOption): ?>
+            <option value="<?= htmlspecialchars($statusOption); ?>"><?= htmlspecialchars($statusOption); ?></option>
+          <?php endforeach; ?>
         </select>
       </div>
       <div style="display:flex;gap:12px;justify-content:flex-end;">
@@ -166,13 +164,6 @@ $extraScripts = <<<JS
     button.addEventListener('click', () => {
       const orderId = button.dataset.order;
       window.location.href = `order-details.php?order_id=\${orderId}`;
-    });
-  });
-
-  document.querySelectorAll('.btn-cancel').forEach(button => {
-    button.addEventListener('click', () => {
-      const orderId = button.dataset.order;
-      updateStatus(orderId, 'Cancelled');
     });
   });
 

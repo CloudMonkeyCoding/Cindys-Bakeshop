@@ -312,7 +312,9 @@ button,
   color: #d68910;
 }
 
-.status-processing {
+.status-processing,
+.status-confirmed,
+.status-shipped {
   background: rgba(52, 152, 219, 0.16);
   color: #1f618d;
 }

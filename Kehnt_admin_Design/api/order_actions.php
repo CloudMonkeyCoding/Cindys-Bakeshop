@@ -30,9 +30,15 @@ switch ($action) {
     case 'update_status':
         $orderId = filter_input(INPUT_POST, 'order_id', FILTER_VALIDATE_INT);
         $status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_SPECIAL_CHARS) ?: 'Pending';
+        $allowedStatuses = ['Pending', 'Confirmed', 'Shipped', 'Delivered'];
         if (!$orderId) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Invalid order ID']);
+            exit;
+        }
+        if (!in_array($status, $allowedStatuses, true)) {
+            http_response_code(422);
+            echo json_encode(['success' => false, 'message' => 'Unsupported status value']);
             exit;
         }
         updateOrderStatus($pdo, $orderId, $status);
