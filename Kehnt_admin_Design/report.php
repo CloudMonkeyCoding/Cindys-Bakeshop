@@ -63,11 +63,6 @@ if ($pdo) {
             }
         }
 
-        $status = $logRow['Status'] ?? 'Pending';
-        if (!$status) {
-            $status = 'Pending';
-        }
-
         $orderCode = $orderId ? '#' . str_pad((string)$orderId, 5, '0', STR_PAD_LEFT) : '—';
 
         $inventoryLogEntries[] = [
@@ -78,7 +73,6 @@ if ($pdo) {
             'product_name' => $logRow['Product_Name'] ?? '',
             'quantity' => $quantity,
             'change' => $changeValue,
-            'status' => $status,
             'order_date' => $rawDate,
             'order_date_formatted' => $formattedDate,
             'customer_name' => $logRow['Customer_Name'] ?? '',
@@ -195,13 +189,12 @@ include 'includes/sidebar.php';
           <th>Customer</th>
           <th>Product</th>
           <th>Change</th>
-          <th>Status</th>
         </tr>
       </thead>
       <tbody id="inventoryLogBody">
         <?php if (empty($inventoryLogEntries)): ?>
           <tr>
-            <td colspan="6" class="table-empty">No inventory changes recorded.</td>
+            <td colspan="5" class="table-empty">No inventory changes recorded.</td>
           </tr>
         <?php else: ?>
           <?php foreach ($inventoryLogEntries as $entry): ?>
@@ -209,9 +202,6 @@ include 'includes/sidebar.php';
               $changeValue = (int)($entry['change'] ?? 0);
               $changeLabel = ($changeValue > 0 ? '+' : '') . number_format($changeValue) . ' pcs';
               $changeClass = $changeValue > 0 ? 'stock-change-positive' : ($changeValue < 0 ? 'stock-change-negative' : 'stock-change-zero');
-              $status = $entry['status'] ?? 'Pending';
-              $statusClass = strtolower($status);
-              $statusClass = preg_replace('/[^a-z0-9]+/', '-', $statusClass ?? '') ?: 'pending';
               $customerName = $entry['customer_name'] ?? '';
             ?>
             <tr data-order-id="<?= (int)($entry['order_id'] ?? 0); ?>">
@@ -220,11 +210,6 @@ include 'includes/sidebar.php';
               <td><?= htmlspecialchars($customerName !== '' ? $customerName : '—'); ?></td>
               <td class="log-product"><?= htmlspecialchars($entry['product_name'] ?? ''); ?></td>
               <td><span class="<?= $changeClass; ?>"><?= htmlspecialchars($changeLabel); ?></span></td>
-              <td>
-                <span class="status-pill status-<?= htmlspecialchars($statusClass); ?>">
-                  <?= htmlspecialchars($status); ?>
-                </span>
-              </td>
             </tr>
           <?php endforeach; ?>
         <?php endif; ?>
@@ -836,7 +821,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!entries.length) {
       const emptyRow = document.createElement('tr');
       const emptyCell = document.createElement('td');
-      emptyCell.colSpan = 6;
+      emptyCell.colSpan = 5;
       emptyCell.className = 'table-empty';
       emptyCell.textContent = 'No inventory changes recorded.';
       emptyRow.appendChild(emptyCell);
@@ -882,10 +867,6 @@ document.addEventListener('DOMContentLoaded', () => {
       changeCell.appendChild(changeSpan);
       row.appendChild(changeCell);
 
-      const statusCell = document.createElement('td');
-      statusCell.appendChild(createStatusPill(entry.status));
-      row.appendChild(statusCell);
-
       fragment.appendChild(row);
     });
 
@@ -899,7 +880,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const haystack = [
       entry.referenceLabel,
       entry.productName,
-      entry.status,
       entry.orderDateFormatted,
       entry.orderDate,
       entry.customerName,
@@ -920,18 +900,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return 'stock-change-negative';
     }
     return 'stock-change-zero';
-  }
-
-  function createStatusPill(statusText) {
-    const status = (statusText || 'Pending').toString();
-    const slug = status
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'pending';
-    const pill = document.createElement('span');
-    pill.className = `status-pill status-\${slug}`;
-    pill.textContent = status;
-    return pill;
   }
 
   function formatDateForDisplay(dateString) {
@@ -989,7 +957,6 @@ document.addEventListener('DOMContentLoaded', () => {
         productName: entry?.product_name ?? entry?.Product_Name ?? '',
         quantity,
         change: changeValue,
-        status: entry?.status ?? entry?.Status ?? 'Pending',
         orderDate,
         orderDateFormatted,
         customerName: entry?.customer_name ?? entry?.Customer_Name ?? '',
