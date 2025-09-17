@@ -37,6 +37,28 @@ function getInventoryWithProducts($pdo) {
     return $stmt->fetchAll();
 }
 
+// 3c) Get inventory changes derived from order line items
+function getInventoryChangeLog($pdo) {
+    $stmt = $pdo->query(
+        "SELECT\n" .
+        "    oi.Order_Item_ID,\n" .
+        "    o.Order_ID AS Order_ID,\n" .
+        "    o.Order_Date,\n" .
+        "    o.Status,\n" .
+        "    oi.Product_ID,\n" .
+        "    p.Name AS Product_Name,\n" .
+        "    oi.Quantity,\n" .
+        "    u.Name AS Customer_Name\n" .
+        "FROM order_item oi\n" .
+        "JOIN `order` o ON oi.Order_ID = o.Order_ID\n" .
+        "JOIN product p ON oi.Product_ID = p.Product_ID\n" .
+        "LEFT JOIN user u ON o.User_ID = u.User_ID\n" .
+        "ORDER BY o.Order_Date DESC, o.Order_ID DESC, oi.Order_Item_ID DESC"
+    );
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 // 4) Update stock quantity for a product
 function updateInventoryStock($pdo, $productId, $stockQuantity) {
     $stmt = $pdo->prepare("

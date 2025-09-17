@@ -10,6 +10,7 @@ $categoryTotals = [];
 $totalTracked = 0;
 $preOrderCount = 0;
 $lowStockCount = 0;
+$inventoryLogEntries = [];
 
 if ($pdo) {
     $rows = getInventoryWithProducts($pdo);
@@ -45,11 +46,55 @@ if ($pdo) {
 
     ksort($inventoryData);
     ksort($categoryTotals);
+
+    $logRows = getInventoryChangeLog($pdo);
+    foreach ($logRows as $logRow) {
+        $orderId = isset($logRow['Order_ID']) ? (int)$logRow['Order_ID'] : 0;
+        $rawQuantity = isset($logRow['Quantity']) ? (int)$logRow['Quantity'] : 0;
+        $quantity = $rawQuantity < 0 ? abs($rawQuantity) : max(0, $rawQuantity);
+        $changeValue = $quantity > 0 ? -$quantity : 0;
+
+        $rawDate = $logRow['Order_Date'] ?? null;
+        $formattedDate = null;
+        if ($rawDate) {
+            $timestamp = strtotime($rawDate);
+            if ($timestamp !== false) {
+                $formattedDate = date('M j, Y', $timestamp);
+            }
+        }
+
+        $status = $logRow['Status'] ?? 'Pending';
+        if (!$status) {
+            $status = 'Pending';
+        }
+
+        $orderCode = $orderId ? '#' . str_pad((string)$orderId, 5, '0', STR_PAD_LEFT) : '—';
+
+        $inventoryLogEntries[] = [
+            'order_item_id' => (int)($logRow['Order_Item_ID'] ?? 0),
+            'order_id' => $orderId,
+            'order_code' => $orderCode,
+            'product_id' => (int)($logRow['Product_ID'] ?? 0),
+            'product_name' => $logRow['Product_Name'] ?? '',
+            'quantity' => $quantity,
+            'change' => $changeValue,
+            'status' => $status,
+            'order_date' => $rawDate,
+            'order_date_formatted' => $formattedDate,
+            'customer_name' => $logRow['Customer_Name'] ?? '',
+            'change_type' => 'Order Placement'
+        ];
+    }
 }
 
 $inventoryJson = json_encode($inventoryData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 if ($inventoryJson === '[]' || $inventoryJson === 'null') {
     $inventoryJson = '{}';
+}
+
+$inventoryLogJson = json_encode($inventoryLogEntries, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+if ($inventoryLogJson === 'null') {
+    $inventoryLogJson = '[]';
 }
 
 $extraHead = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>';
@@ -136,6 +181,56 @@ include 'includes/sidebar.php';
       </noscript>
     </div>
   </div>
+
+  <div class="card" style="margin-top:24px;">
+    <div class="table-actions">
+      <h2 style="margin:0;font-size:18px;font-weight:600;">Inventory Change Log</h2>
+      <input type="text" id="inventoryLogSearch" placeholder="🔍 Search change log...">
+    </div>
+    <table class="inventory-log-table" id="inventoryLogTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Order</th>
+          <th>Customer</th>
+          <th>Product</th>
+          <th>Change</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="inventoryLogBody">
+        <?php if (empty($inventoryLogEntries)): ?>
+          <tr>
+            <td colspan="6" class="table-empty">No inventory changes recorded.</td>
+          </tr>
+        <?php else: ?>
+          <?php foreach ($inventoryLogEntries as $entry): ?>
+            <?php
+              $changeValue = (int)($entry['change'] ?? 0);
+              $changeLabel = ($changeValue > 0 ? '+' : '') . number_format($changeValue) . ' pcs';
+              $changeClass = $changeValue > 0 ? 'stock-change-positive' : ($changeValue < 0 ? 'stock-change-negative' : 'stock-change-zero');
+              $status = $entry['status'] ?? 'Pending';
+              $statusClass = strtolower($status);
+              $statusClass = preg_replace('/[^a-z0-9]+/', '-', $statusClass ?? '') ?: 'pending';
+              $customerName = $entry['customer_name'] ?? '';
+            ?>
+            <tr data-order-id="<?= (int)($entry['order_id'] ?? 0); ?>">
+              <td><?= htmlspecialchars($entry['order_date_formatted'] ?? $entry['order_date'] ?? '—'); ?></td>
+              <td class="log-order"><?= htmlspecialchars($entry['order_code'] ?? ('#' . str_pad((string)($entry['order_id'] ?? 0), 5, '0', STR_PAD_LEFT))); ?></td>
+              <td><?= htmlspecialchars($customerName !== '' ? $customerName : '—'); ?></td>
+              <td class="log-product"><?= htmlspecialchars($entry['product_name'] ?? ''); ?></td>
+              <td><span class="<?= $changeClass; ?>"><?= htmlspecialchars($changeLabel); ?></span></td>
+              <td>
+                <span class="status-pill status-<?= htmlspecialchars($statusClass); ?>">
+                  <?= htmlspecialchars($status); ?>
+                </span>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <?php
@@ -146,6 +241,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const inventoryContainer = document.getElementById('inventoryContainer');
   const searchInput = document.getElementById('inventorySearch');
   const exportBtn = document.getElementById('exportInventory');
+  const logSearchInput = document.getElementById('inventoryLogSearch');
+  const logTableBody = document.getElementById('inventoryLogBody');
   const statsEls = {
     categoryCount: document.getElementById('inventoryCategoryCount'),
     skuCount: document.getElementById('inventorySkuCount'),
@@ -155,10 +252,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const numberFormatter = new Intl.NumberFormat();
   let currentSearchTerm = '';
+  let currentLogSearchTerm = '';
   let latestUpdateToken = 0;
   let categoryChartInstance = null;
   let inventoryIndex = new Map();
   let inventoryData = {};
+  let inventoryLogEntries = [];
 
   if (searchInput) {
     currentSearchTerm = searchInput.value.toLowerCase();
@@ -214,6 +313,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (exportBtn) {
     exportBtn.addEventListener('click', () => {
       exportInventoryToPDF();
+    });
+  }
+
+  if (logSearchInput) {
+    currentLogSearchTerm = logSearchInput.value.trim().toLowerCase();
+    logSearchInput.addEventListener('input', () => {
+      currentLogSearchTerm = logSearchInput.value.trim().toLowerCase();
+      renderInventoryLogTable();
     });
   }
 
@@ -717,8 +824,184 @@ document.addEventListener('DOMContentLoaded', () => {
     doc.save('inventory-report.pdf');
   }
 
+  function renderInventoryLogTable() {
+    if (!logTableBody) {
+      return;
+    }
+
+    const entries = inventoryLogEntries.filter((entry) => matchesLogSearch(entry));
+
+    logTableBody.innerHTML = '';
+
+    if (!entries.length) {
+      const emptyRow = document.createElement('tr');
+      const emptyCell = document.createElement('td');
+      emptyCell.colSpan = 6;
+      emptyCell.className = 'table-empty';
+      emptyCell.textContent = 'No inventory changes recorded.';
+      emptyRow.appendChild(emptyCell);
+      logTableBody.appendChild(emptyRow);
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    entries.forEach((entry) => {
+      const row = document.createElement('tr');
+      if (entry.orderId) {
+        row.dataset.orderId = String(entry.orderId);
+      }
+
+      const dateCell = document.createElement('td');
+      dateCell.textContent = entry.orderDateFormatted || entry.orderDate || '—';
+      row.appendChild(dateCell);
+
+      const orderCell = document.createElement('td');
+      orderCell.className = 'log-order';
+      orderCell.textContent = entry.referenceLabel || '—';
+      row.appendChild(orderCell);
+
+      const customerCell = document.createElement('td');
+      customerCell.textContent = entry.customerName || '—';
+      row.appendChild(customerCell);
+
+      const productCell = document.createElement('td');
+      productCell.className = 'log-product';
+      productCell.textContent = entry.productName || '—';
+      row.appendChild(productCell);
+
+      const changeCell = document.createElement('td');
+      const changeSpan = document.createElement('span');
+      const changeValue = typeof entry.change === 'number' ? entry.change : 0;
+      const changeClass = getStockChangeClass(changeValue);
+      if (changeClass) {
+        changeSpan.className = changeClass;
+      }
+      const formattedChange = `\${changeValue > 0 ? '+' : ''}\${numberFormatter.format(changeValue)} pcs`;
+      changeSpan.textContent = formattedChange;
+      changeCell.appendChild(changeSpan);
+      row.appendChild(changeCell);
+
+      const statusCell = document.createElement('td');
+      statusCell.appendChild(createStatusPill(entry.status));
+      row.appendChild(statusCell);
+
+      fragment.appendChild(row);
+    });
+
+    logTableBody.appendChild(fragment);
+  }
+
+  function matchesLogSearch(entry) {
+    if (!currentLogSearchTerm) {
+      return true;
+    }
+    const haystack = [
+      entry.referenceLabel,
+      entry.productName,
+      entry.status,
+      entry.orderDateFormatted,
+      entry.orderDate,
+      entry.customerName,
+      entry.changeType,
+      entry.orderId ? `#\${entry.orderId}` : ''
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return haystack.includes(currentLogSearchTerm);
+  }
+
+  function getStockChangeClass(changeValue) {
+    if (changeValue > 0) {
+      return 'stock-change-positive';
+    }
+    if (changeValue < 0) {
+      return 'stock-change-negative';
+    }
+    return 'stock-change-zero';
+  }
+
+  function createStatusPill(statusText) {
+    const status = (statusText || 'Pending').toString();
+    const slug = status
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'pending';
+    const pill = document.createElement('span');
+    pill.className = `status-pill status-\${slug}`;
+    pill.textContent = status;
+    return pill;
+  }
+
+  function formatDateForDisplay(dateString) {
+    if (!dateString) {
+      return '—';
+    }
+    const isoMatch = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(dateString);
+    if (isoMatch) {
+      const [, year, month, day] = isoMatch;
+      const monthIndex = Number(month) - 1;
+      const dayNumber = Number(day);
+      if (monthIndex >= 0 && monthIndex < 12 && !Number.isNaN(dayNumber)) {
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `\${monthNames[monthIndex]} \${dayNumber}, \${year}`;
+      }
+    }
+    const parsed = new Date(dateString);
+    if (!Number.isNaN(parsed.getTime())) {
+      return new Intl.DateTimeFormat(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      }).format(parsed);
+    }
+    return dateString;
+  }
+
+  function normalizeInventoryLog(raw) {
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+
+    return raw.map((entry) => {
+      const orderId = Number(entry?.order_id ?? entry?.Order_ID ?? 0);
+      const productId = Number(entry?.product_id ?? entry?.Product_ID ?? 0);
+      const quantityRaw = entry?.quantity ?? entry?.Quantity;
+      const parsedQuantity = parseInt(quantityRaw, 10);
+      const quantity = Number.isNaN(parsedQuantity) ? 0 : Math.max(0, parsedQuantity);
+      const changeRaw = entry?.change ?? entry?.Change;
+      const parsedChange = parseInt(changeRaw, 10);
+      const changeValue = !Number.isNaN(parsedChange)
+        ? parsedChange
+        : quantity > 0
+          ? -quantity
+          : 0;
+      const orderCode = entry?.order_code ?? entry?.Order_Code ?? (orderId ? `#\${String(orderId).padStart(5, '0')}` : '—');
+      const orderDate = entry?.order_date ?? entry?.Order_Date ?? '';
+      const orderDateFormatted = entry?.order_date_formatted ?? entry?.Order_Date_Formatted ?? formatDateForDisplay(orderDate);
+
+      return {
+        id: Number(entry?.order_item_id ?? entry?.Order_Item_ID ?? 0),
+        orderId,
+        referenceLabel: orderCode,
+        productId,
+        productName: entry?.product_name ?? entry?.Product_Name ?? '',
+        quantity,
+        change: changeValue,
+        status: entry?.status ?? entry?.Status ?? 'Pending',
+        orderDate,
+        orderDateFormatted,
+        customerName: entry?.customer_name ?? entry?.Customer_Name ?? '',
+        changeType: entry?.change_type ?? entry?.Change_Type ?? 'Order Placement'
+      };
+    });
+  }
+
   inventoryData = normalizeInventoryData({$inventoryJson});
+  inventoryLogEntries = normalizeInventoryLog({$inventoryLogJson});
   renderInventoryUI();
+  renderInventoryLogTable();
 });
 </script>
 JS;

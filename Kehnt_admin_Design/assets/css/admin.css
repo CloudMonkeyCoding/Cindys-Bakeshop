@@ -376,6 +376,34 @@ table tbody tr:hover {
   color: #a93226;
 }
 
+.inventory-log-table .log-order {
+  font-weight: 600;
+}
+
+.inventory-log-table .log-product {
+  font-weight: 500;
+}
+
+.inventory-log-table .stock-change-negative {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.inventory-log-table .stock-change-positive {
+  color: #1e8449;
+  font-weight: 600;
+}
+
+.inventory-log-table .stock-change-zero {
+  color: var(--muted-text);
+  font-weight: 600;
+}
+
+.inventory-log-table td,
+.inventory-log-table th {
+  vertical-align: middle;
+}
+
 .btn,
 button,
 .button {
