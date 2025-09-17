@@ -1,49 +1,83 @@
 <?php
+require_once '../PHP/db_connect.php';
+require_once '../PHP/notification_functions.php';
+
 $activePage = 'notifications';
-$pageTitle = 'Notifications';
-$headerTitle = 'Notifications';
-$bodyClass = 'dashboard-page';
-include 'header.php';
+$pageTitle = "Notifications - Cindy's Bakeshop";
+
+$notifications = [];
+if ($pdo) {
+    $notifications = getAllNotifications($pdo);
+}
+
+include 'includes/header.php';
+include 'includes/sidebar.php';
 ?>
-<div class="flex min-h-screen">
-  <?php include $prefix . 'sidebar.php'; ?>
-  <main class="flex-1 p-6 overflow-y-auto">
-    <?php include $prefix . 'topbar.php'; ?>
-    <div class="mt-6">
-      <h2 class="text-lg font-semibold mb-4">All Notifications</h2>
-      <ul id="notificationsList" class="bg-white rounded shadow divide-y"></ul>
-    </div>
-  </main>
+
+<div class="main">
+  <div class="header">
+    <h1>Notifications</h1>
+    <button class="btn btn-primary" id="markAll">Mark all as read</button>
+  </div>
+
+  <div class="table-container">
+    <table id="notificationTable">
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Message</th>
+          <th>Reference</th>
+          <th>Date</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php if (empty($notifications)): ?>
+          <tr><td colspan="5" class="table-empty">No notifications yet.</td></tr>
+        <?php else: ?>
+          <?php foreach ($notifications as $notification): ?>
+            <tr data-id="<?= $notification['Notification_ID']; ?>" data-read="<?= (int)$notification['Is_Read']; ?>">
+              <td><?= htmlspecialchars(ucfirst($notification['Type'] ?? 'System')); ?></td>
+              <td><?= htmlspecialchars($notification['Message'] ?? ''); ?></td>
+              <td><?= htmlspecialchars($notification['Reference_ID'] ?? ''); ?></td>
+              <td><?= htmlspecialchars($notification['Created_At'] ?? ''); ?></td>
+              <td>
+                <span class="badge <?= $notification['Is_Read'] ? 'badge-success' : 'badge-warning'; ?>">
+                  <?= $notification['Is_Read'] ? 'Read' : 'Unread'; ?>
+                </span>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </tbody>
+    </table>
+  </div>
 </div>
+
+<?php
+$extraScripts = <<<JS
 <script>
-  console.log('Fetching all notifications for admin');
-  fetch('../PHP/notification_api.php?action=all')
-  .then(response => {
-    console.log('Fetch response received', response);
-    return response.json();
-  })
-  .then(data => {
-    console.log('Fetched data:', data);
-    const list = document.getElementById('notificationsList');
-    if (!Array.isArray(data) || data.length === 0) {
-      console.log('No notifications returned from API');
-      const li = document.createElement('li');
-      li.className = 'p-4 text-sm text-gray-500';
-      li.textContent = 'No notifications.';
-      list.appendChild(li);
-      return;
+  document.getElementById('markAll').addEventListener('click', async () => {
+    const ids = Array.from(document.querySelectorAll('#notificationTable tbody tr')).map(row => row.dataset.id);
+    if (!ids.length) return;
+    try {
+      const response = await fetch('api/notification_actions.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'mark_read', ids })
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || 'Failed to update notifications');
+      document.querySelectorAll('#notificationTable tbody tr').forEach(row => {
+        row.dataset.read = '1';
+        const badge = row.querySelector('.badge');
+        badge.className = 'badge badge-success';
+        badge.textContent = 'Read';
+      });
+    } catch (error) {
+      alert(error.message);
     }
-    console.log(`Rendering ${data.length} notifications`);
-    data.forEach((n, index) => {
-      console.log(`Adding notification ${index + 1}:`, n);
-      const li = document.createElement('li');
-      li.className = 'p-4 text-sm hover:bg-gray-50';
-      li.textContent = `${n.Message} (${n.Created_At})`;
-      list.appendChild(li);
-    });
-    console.log('Finished rendering notifications');
-  })
-  .catch(err => console.error('Error fetching notifications:', err));
+  });
 </script>
-</body>
-</html>
+JS;
+include 'includes/footer.php';
