@@ -42,16 +42,22 @@ if ($pdo) {
     $stmtTopProduct = $pdo->query("SELECT p.Name, SUM(oi.Quantity) AS total_qty FROM order_item oi JOIN product p ON oi.Product_ID = p.Product_ID GROUP BY p.Product_ID ORDER BY total_qty DESC LIMIT 1");
     $topProduct = $stmtTopProduct ? $stmtTopProduct->fetch(PDO::FETCH_ASSOC) : null;
 
-    $stmtMonthly = $pdo->query("SELECT DATE_FORMAT(Payment_Date, '%Y-%m') AS period, COALESCE(SUM(Amount_Paid),0) AS total FROM transaction WHERE Payment_Date IS NOT NULL GROUP BY period ORDER BY period DESC LIMIT 6");
+    $monthlyTotals = [];
+    $stmtMonthly = $pdo->query("SELECT DATE_FORMAT(Payment_Date, '%Y-%m') AS period, COALESCE(SUM(Amount_Paid), 0) AS total FROM transaction WHERE Payment_Date IS NOT NULL AND Payment_Date >= DATE_SUB(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 11 MONTH) GROUP BY period");
     if ($stmtMonthly) {
-        $rows = $stmtMonthly->fetchAll(PDO::FETCH_ASSOC);
-        $rows = array_reverse($rows);
-        foreach ($rows as $row) {
-            $monthlySales[] = [
-                'label' => date('M Y', strtotime($row['period'] . '-01')),
-                'value' => (float)$row['total']
-            ];
+        foreach ($stmtMonthly->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $monthlyTotals[$row['period']] = (float)$row['total'];
         }
+    }
+
+    $currentMonth = new DateTime('first day of this month');
+    for ($i = 11; $i >= 0; $i--) {
+        $month = (clone $currentMonth)->modify("-{$i} months");
+        $periodKey = $month->format('Y-m');
+        $monthlySales[] = [
+            'label' => $month->format('M Y'),
+            'value' => round($monthlyTotals[$periodKey] ?? 0, 2)
+        ];
     }
 
     $stmtPayment = $pdo->query("SELECT Payment_Method, COALESCE(SUM(Amount_Paid),0) AS total FROM transaction GROUP BY Payment_Method");
