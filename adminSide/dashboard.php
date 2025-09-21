@@ -22,6 +22,7 @@ $topProductName = null;
 $topProductQty = null;
 $monthlySales = [];
 $paymentBreakdown = [];
+$categoryRevenueShare = [];
 $recentOrders = [];
 
 if ($pdo) {
@@ -64,6 +65,53 @@ if ($pdo) {
         ];
     }
 
+    $categoryExpression = "COALESCE(NULLIF(TRIM(p.Category), ''), 'Uncategorized')";
+    $statusFilter = ['Delivered', 'Completed'];
+    $statusList = implode(',', array_map([$pdo, 'quote'], $statusFilter));
+
+    $categoryQuery = "
+        SELECT
+            $categoryExpression AS category_name,
+            COALESCE(SUM(oi.Subtotal), 0) AS total_revenue
+        FROM order_item oi
+        JOIN product p ON oi.Product_ID = p.Product_ID
+        JOIN `order` o ON o.Order_ID = oi.Order_ID
+        WHERE o.Status IN ($statusList)
+        GROUP BY $categoryExpression
+        ORDER BY total_revenue DESC
+        LIMIT 5
+    ";
+
+    $stmtCategory = $pdo->query($categoryQuery);
+    if ($stmtCategory) {
+        $categoryRevenueShare = $stmtCategory->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    $categoryRevenueShare = array_values(array_filter($categoryRevenueShare, function ($row) {
+        return isset($row['total_revenue']) && (float)$row['total_revenue'] > 0;
+    }));
+
+    if (empty($categoryRevenueShare)) {
+        $fallbackQuery = "
+            SELECT
+                $categoryExpression AS category_name,
+                COALESCE(SUM(oi.Subtotal), 0) AS total_revenue
+            FROM order_item oi
+            JOIN product p ON oi.Product_ID = p.Product_ID
+            JOIN `order` o ON o.Order_ID = oi.Order_ID
+            GROUP BY $categoryExpression
+            ORDER BY total_revenue DESC
+            LIMIT 5
+        ";
+        $stmtFallback = $pdo->query($fallbackQuery);
+        if ($stmtFallback) {
+            $categoryRevenueShare = $stmtFallback->fetchAll(PDO::FETCH_ASSOC);
+            $categoryRevenueShare = array_values(array_filter($categoryRevenueShare, function ($row) {
+                return isset($row['total_revenue']) && (float)$row['total_revenue'] > 0;
+            }));
+        }
+    }
+
     $stmtPayment = $pdo->query("SELECT Payment_Method, COALESCE(SUM(Amount_Paid),0) AS total FROM transaction GROUP BY Payment_Method");
     if ($stmtPayment) {
         $paymentBreakdown = $stmtPayment->fetchAll(PDO::FETCH_ASSOC);
@@ -79,6 +127,12 @@ $salesLabels = json_encode(!empty($monthlySales) ? array_column($monthlySales, '
 $salesValues = json_encode(!empty($monthlySales) ? array_map(function ($item) { return round($item['value'], 2); }, $monthlySales) : [0]);
 $paymentLabels = json_encode(!empty($paymentBreakdown) ? array_map(function ($item) { return $item['Payment_Method'] ?: 'Unknown'; }, $paymentBreakdown) : ['No Data']);
 $paymentValues = json_encode(!empty($paymentBreakdown) ? array_map(function ($item) { return round((float)$item['total'], 2); }, $paymentBreakdown) : [0]);
+$categoryLabels = json_encode(!empty($categoryRevenueShare) ? array_map(function ($item) {
+    return $item['category_name'] ?? 'Uncategorized';
+}, $categoryRevenueShare) : ['No Data']);
+$categoryValues = json_encode(!empty($categoryRevenueShare) ? array_map(function ($item) {
+    return round((float)($item['total_revenue'] ?? 0), 2);
+}, $categoryRevenueShare) : [0]);
 
 include 'includes/header.php';
 include 'includes/sidebar.php';
@@ -181,6 +235,14 @@ include 'includes/sidebar.php';
       <?php endif; ?>
     </div>
     <div class="card">
+      <h2 style="font-size:18px;margin-bottom:16px;">Top Category Revenue Share</h2>
+      <?php if (empty($categoryRevenueShare)): ?>
+        <p class="table-empty">No revenue recorded by category yet.</p>
+      <?php else: ?>
+        <canvas id="categoryChart" height="220"></canvas>
+      <?php endif; ?>
+    </div>
+    <div class="card">
       <h2 style="font-size:18px;margin-bottom:16px;">Recent Orders</h2>
       <?php if (empty($recentOrders)): ?>
         <p class="table-empty">No recent orders found.</p>
@@ -223,6 +285,8 @@ $extraScripts = <<<JS
   const salesValues = $salesValues;
   const paymentLabels = $paymentLabels;
   const paymentValues = $paymentValues;
+  const categoryLabels = $categoryLabels;
+  const categoryValues = $categoryValues;
 
   if (document.getElementById('salesChart')) {
     const salesCanvas = document.getElementById('salesChart');
@@ -299,6 +363,65 @@ $extraScripts = <<<JS
       options: {
         plugins: {
           legend: { position: 'bottom' }
+        }
+      }
+    });
+  }
+
+  if (document.getElementById('categoryChart')) {
+    const categoryCanvas = document.getElementById('categoryChart');
+    const categoryCtx = categoryCanvas.getContext('2d');
+    const labelsData = Array.isArray(categoryLabels) ? categoryLabels : [];
+    const valuesData = Array.isArray(categoryValues) ? categoryValues : [];
+    const categoryChartLabels = labelsData.length ? labelsData : ['No Data'];
+    const categoryChartValues = valuesData.length ? valuesData : [0];
+    const palette = ['#e74c3c', '#f39c12', '#3498db', '#2ecc71', '#9b59b6', '#16a085', '#e67e22'];
+    const barColors = categoryChartLabels.map((_, index) => palette[index % palette.length]);
+    const totalCategoryRevenue = categoryChartValues.reduce((sum, value) => sum + Number(value || 0), 0);
+
+    new Chart(categoryCtx, {
+      type: 'bar',
+      data: {
+        labels: categoryChartLabels,
+        datasets: [{
+          label: 'Revenue (₱)',
+          data: categoryChartValues,
+          backgroundColor: barColors,
+          borderRadius: 8,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                const numericValue = Number(context.raw || 0);
+                const formattedValue = numericValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                if (totalCategoryRevenue > 0) {
+                  const percentage = (numericValue / totalCategoryRevenue) * 100;
+                  return '₱' + formattedValue + ' (' + percentage.toFixed(1) + '%)';
+                }
+                return '₱' + formattedValue;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#2c3e50' },
+            grid: { display: false }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: '#2c3e50',
+              callback: value => '₱' + Number(value).toLocaleString()
+            },
+            grid: { color: 'rgba(0,0,0,0.05)' }
+          }
         }
       }
     });
