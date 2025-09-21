@@ -213,11 +213,6 @@ include 'includes/sidebar.php';
       <div class="meta">Across <?= number_format($totalTransactions); ?> payments</div>
     </div>
     <div class="stat-card">
-      <h3>Settled Revenue</h3>
-      <div class="value">₱<?= number_format($settledRevenue, 2); ?></div>
-      <div class="meta">Paid/Completed statuses</div>
-    </div>
-    <div class="stat-card">
       <h3>Pending Receivables</h3>
       <div class="value">₱<?= number_format($pendingReceivables, 2); ?></div>
       <div class="meta">Awaiting confirmation</div>
@@ -251,10 +246,6 @@ include 'includes/sidebar.php';
     <div class="card">
       <h2 style="font-size:18px;margin-bottom:16px;">Payment Methods</h2>
       <canvas id="methodChart" height="220"></canvas>
-    </div>
-    <div class="card">
-      <h2 style="font-size:18px;margin-bottom:16px;">Revenue by Status</h2>
-      <canvas id="statusChart" height="220"></canvas>
     </div>
   </div>
 
