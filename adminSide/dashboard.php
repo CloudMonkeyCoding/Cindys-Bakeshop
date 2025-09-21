@@ -18,8 +18,10 @@ $totalUsers = 0;
 $lowStockCount = 0;
 $lowStockProducts = [];
 $topProduct = null;
+$topProductName = null;
+$topProductQty = null;
 $monthlySales = [];
-$paymentBreakdown = [];
+$categoryRevenueShare = [];
 $recentOrders = [];
 
 if ($pdo) {
@@ -41,22 +43,72 @@ if ($pdo) {
 
     $stmtTopProduct = $pdo->query("SELECT p.Name, SUM(oi.Quantity) AS total_qty FROM order_item oi JOIN product p ON oi.Product_ID = p.Product_ID GROUP BY p.Product_ID ORDER BY total_qty DESC LIMIT 1");
     $topProduct = $stmtTopProduct ? $stmtTopProduct->fetch(PDO::FETCH_ASSOC) : null;
+    $topProductName = is_array($topProduct) ? ($topProduct['Name'] ?? null) : null;
+    $topProductQty = is_array($topProduct) && isset($topProduct['total_qty']) ? (int)$topProduct['total_qty'] : null;
 
-    $stmtMonthly = $pdo->query("SELECT DATE_FORMAT(Payment_Date, '%Y-%m') AS period, COALESCE(SUM(Amount_Paid),0) AS total FROM transaction WHERE Payment_Date IS NOT NULL GROUP BY period ORDER BY period DESC LIMIT 6");
+    $monthlyTotals = [];
+    $stmtMonthly = $pdo->query("SELECT DATE_FORMAT(Payment_Date, '%Y-%m') AS period, COALESCE(SUM(Amount_Paid), 0) AS total FROM transaction WHERE Payment_Date IS NOT NULL AND Payment_Date >= DATE_SUB(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 11 MONTH) GROUP BY period");
     if ($stmtMonthly) {
-        $rows = $stmtMonthly->fetchAll(PDO::FETCH_ASSOC);
-        $rows = array_reverse($rows);
-        foreach ($rows as $row) {
-            $monthlySales[] = [
-                'label' => date('M Y', strtotime($row['period'] . '-01')),
-                'value' => (float)$row['total']
-            ];
+        foreach ($stmtMonthly->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $monthlyTotals[$row['period']] = (float)$row['total'];
         }
     }
 
-    $stmtPayment = $pdo->query("SELECT Payment_Method, COALESCE(SUM(Amount_Paid),0) AS total FROM transaction GROUP BY Payment_Method");
-    if ($stmtPayment) {
-        $paymentBreakdown = $stmtPayment->fetchAll(PDO::FETCH_ASSOC);
+    $currentMonth = new DateTime('first day of this month');
+    for ($i = 11; $i >= 0; $i--) {
+        $month = (clone $currentMonth)->modify("-{$i} months");
+        $periodKey = $month->format('Y-m');
+        $monthlySales[] = [
+            'label' => $month->format('M Y'),
+            'value' => round($monthlyTotals[$periodKey] ?? 0, 2)
+        ];
+    }
+
+    $categoryExpression = "COALESCE(NULLIF(TRIM(p.Category), ''), 'Uncategorized')";
+    $statusFilter = ['Delivered', 'Completed'];
+    $statusList = implode(',', array_map([$pdo, 'quote'], $statusFilter));
+
+    $categoryQuery = "
+        SELECT
+            $categoryExpression AS category_name,
+            COALESCE(SUM(oi.Subtotal), 0) AS total_revenue
+        FROM order_item oi
+        JOIN product p ON oi.Product_ID = p.Product_ID
+        JOIN `order` o ON o.Order_ID = oi.Order_ID
+        WHERE o.Status IN ($statusList)
+        GROUP BY $categoryExpression
+        ORDER BY total_revenue DESC
+        LIMIT 5
+    ";
+
+    $stmtCategory = $pdo->query($categoryQuery);
+    if ($stmtCategory) {
+        $categoryRevenueShare = $stmtCategory->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    $categoryRevenueShare = array_values(array_filter($categoryRevenueShare, function ($row) {
+        return isset($row['total_revenue']) && (float)$row['total_revenue'] > 0;
+    }));
+
+    if (empty($categoryRevenueShare)) {
+        $fallbackQuery = "
+            SELECT
+                $categoryExpression AS category_name,
+                COALESCE(SUM(oi.Subtotal), 0) AS total_revenue
+            FROM order_item oi
+            JOIN product p ON oi.Product_ID = p.Product_ID
+            JOIN `order` o ON o.Order_ID = oi.Order_ID
+            GROUP BY $categoryExpression
+            ORDER BY total_revenue DESC
+            LIMIT 5
+        ";
+        $stmtFallback = $pdo->query($fallbackQuery);
+        if ($stmtFallback) {
+            $categoryRevenueShare = $stmtFallback->fetchAll(PDO::FETCH_ASSOC);
+            $categoryRevenueShare = array_values(array_filter($categoryRevenueShare, function ($row) {
+                return isset($row['total_revenue']) && (float)$row['total_revenue'] > 0;
+            }));
+        }
     }
 
     $stmtRecent = $pdo->query("SELECT o.Order_ID, o.Order_Date, o.Status, u.Name, COALESCE(SUM(oi.Subtotal),0) AS Total FROM `order` o LEFT JOIN user u ON o.User_ID = u.User_ID LEFT JOIN order_item oi ON oi.Order_ID = o.Order_ID GROUP BY o.Order_ID, o.Order_Date, o.Status, u.Name ORDER BY o.Order_Date DESC, o.Order_ID DESC LIMIT 6");
@@ -67,8 +119,12 @@ if ($pdo) {
 
 $salesLabels = json_encode(!empty($monthlySales) ? array_column($monthlySales, 'label') : ['No Data']);
 $salesValues = json_encode(!empty($monthlySales) ? array_map(function ($item) { return round($item['value'], 2); }, $monthlySales) : [0]);
-$paymentLabels = json_encode(!empty($paymentBreakdown) ? array_map(function ($item) { return $item['Payment_Method'] ?: 'Unknown'; }, $paymentBreakdown) : ['No Data']);
-$paymentValues = json_encode(!empty($paymentBreakdown) ? array_map(function ($item) { return round((float)$item['total'], 2); }, $paymentBreakdown) : [0]);
+$categoryLabels = json_encode(!empty($categoryRevenueShare) ? array_map(function ($item) {
+    return $item['category_name'] ?? 'Uncategorized';
+}, $categoryRevenueShare) : ['No Data']);
+$categoryValues = json_encode(!empty($categoryRevenueShare) ? array_map(function ($item) {
+    return round((float)($item['total_revenue'] ?? 0), 2);
+}, $categoryRevenueShare) : [0]);
 
 include 'includes/header.php';
 include 'includes/sidebar.php';
@@ -83,51 +139,63 @@ include 'includes/sidebar.php';
     </a>
   </div>
 
-  <section class="stats-grid columns-4">
-    <div class="stat-card">
-      <h3>Total Orders</h3>
-      <div class="value"><?= number_format($totalOrders); ?></div>
-      <div class="meta">All recorded orders</div>
-    </div>
-    <div class="stat-card">
-      <h3>Pending Orders</h3>
-      <div class="value"><?= number_format($pendingOrders); ?></div>
-      <div class="meta">Awaiting preparation</div>
-    </div>
-    <div class="stat-card">
-      <h3>Delivered Orders</h3>
-      <div class="value"><?= number_format($deliveredOrders); ?></div>
-      <div class="meta">Completed deliveries</div>
-    </div>
-    <div class="stat-card">
-      <h3>Total Revenue</h3>
-      <div class="value">₱<?= number_format($totalRevenue, 2); ?></div>
-      <div class="meta">All payment records</div>
-    </div>
-  </section>
-
-  <section class="stats-grid columns-4" style="margin-top: 24px;">
-    <div class="stat-card">
-      <h3>Customers</h3>
-      <div class="value"><?= number_format($totalUsers); ?></div>
-      <div class="meta">Registered users</div>
-    </div>
-    <div class="stat-card">
-      <h3>Low Stock Items</h3>
-      <div class="value"><?= number_format($lowStockCount); ?></div>
-      <div class="meta">Items at or below threshold</div>
-    </div>
-    <div class="stat-card">
-      <h3>Top Product</h3>
-      <div class="value" style="font-size: 22px;"><?= htmlspecialchars($topProduct['Name'] ?? 'No data'); ?></div>
-      <div class="meta">Sold <?= number_format($topProduct['total_qty'] ?? 0); ?> pcs</div>
-    </div>
-    <div class="stat-card">
-      <h3>Report Exports</h3>
-      <div class="value">
-        <a href="report.php" class="btn btn-primary" style="text-decoration:none;color:#fff;padding:10px 16px;">View Reports</a>
+  <section class="cards">
+    <div class="card">
+      <div class="card-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></div>
+      <div class="card-info">
+        <h3><?= number_format($totalOrders); ?></h3>
+        <p>Total orders recorded</p>
       </div>
-      <div class="meta">Generate PDF summaries</div>
+    </div>
+    <div class="card">
+      <div class="card-icon"><i class="fa-solid fa-clock" aria-hidden="true"></i></div>
+      <div class="card-info">
+        <h3><?= number_format($pendingOrders); ?></h3>
+        <p>Orders awaiting preparation</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon"><i class="fa-solid fa-truck" aria-hidden="true"></i></div>
+      <div class="card-info">
+        <h3><?= number_format($deliveredOrders); ?></h3>
+        <p>Completed deliveries</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon"><i class="fa-solid fa-coins" aria-hidden="true"></i></div>
+      <div class="card-info">
+        <h3>₱<?= number_format($totalRevenue, 2); ?></h3>
+        <p>Gross revenue to date</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon"><i class="fa-solid fa-users" aria-hidden="true"></i></div>
+      <div class="card-info">
+        <h3><?= number_format($totalUsers); ?></h3>
+        <p>Registered customers</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon"><i class="fa-solid fa-box-open" aria-hidden="true"></i></div>
+      <div class="card-info">
+        <h3><?= number_format($lowStockCount); ?></h3>
+        <p>Items at or below threshold</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon"><i class="fa-solid fa-crown" aria-hidden="true"></i></div>
+      <div class="card-info">
+        <h3><?= $topProductName ? htmlspecialchars($topProductName) : 'No data'; ?></h3>
+        <p><?= $topProductQty !== null ? 'Sold ' . number_format($topProductQty) . ' pcs' : 'Top product performance'; ?></p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon"><i class="fa-solid fa-file-export" aria-hidden="true"></i></div>
+      <div class="card-info">
+        <h3>Reports</h3>
+        <p>Generate PDF summaries</p>
+        <a href="report.php" class="card-link">View reports <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+      </div>
     </div>
   </section>
 
@@ -136,13 +204,6 @@ include 'includes/sidebar.php';
       <h2 style="font-size:18px;margin-bottom:16px;">Monthly Sales</h2>
       <canvas id="salesChart" height="220"></canvas>
     </div>
-    <div class="card">
-      <h2 style="font-size:18px;margin-bottom:16px;">Payment Method Breakdown</h2>
-      <canvas id="paymentChart" height="220"></canvas>
-    </div>
-  </div>
-
-  <div class="stats-grid columns-4" style="margin-top: 24px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
     <div class="card">
       <h2 style="font-size:18px;margin-bottom:16px;">Low Stock Alerts</h2>
       <?php if (empty($lowStockProducts)): ?>
@@ -158,6 +219,9 @@ include 'includes/sidebar.php';
         </ul>
       <?php endif; ?>
     </div>
+  </div>
+
+  <div class="stats-grid columns-4" style="margin-top: 24px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
     <div class="card">
       <h2 style="font-size:18px;margin-bottom:16px;">Recent Orders</h2>
       <?php if (empty($recentOrders)): ?>
@@ -191,6 +255,14 @@ include 'includes/sidebar.php';
         </table>
       <?php endif; ?>
     </div>
+    <div class="card">
+      <h2 style="font-size:18px;margin-bottom:16px;">Top Category Revenue Share</h2>
+      <?php if (empty($categoryRevenueShare)): ?>
+        <p class="table-empty">No revenue recorded by category yet.</p>
+      <?php else: ?>
+        <canvas id="categoryChart" height="220"></canvas>
+      <?php endif; ?>
+    </div>
   </div>
 </div>
 
@@ -199,54 +271,125 @@ $extraScripts = <<<JS
 <script>
   const salesLabels = $salesLabels;
   const salesValues = $salesValues;
-  const paymentLabels = $paymentLabels;
-  const paymentValues = $paymentValues;
+  const categoryLabels = $categoryLabels;
+  const categoryValues = $categoryValues;
 
   if (document.getElementById('salesChart')) {
-    new Chart(document.getElementById('salesChart'), {
+    const salesCanvas = document.getElementById('salesChart');
+    const salesCtx = salesCanvas.getContext('2d');
+    const gradient = salesCtx.createLinearGradient(0, 0, 0, salesCanvas.height || 400);
+    gradient.addColorStop(0, 'rgba(231, 76, 60, 0.9)');
+    gradient.addColorStop(1, 'rgba(241, 196, 15, 0.9)');
+
+    new Chart(salesCtx, {
       type: 'line',
       data: {
         labels: salesLabels,
         datasets: [{
-          label: 'Revenue (₱)',
+          label: 'Sales (₱)',
           data: salesValues,
+          backgroundColor: gradient,
           borderColor: '#e74c3c',
-          backgroundColor: 'rgba(231, 76, 60, 0.15)',
-          fill: true,
+          borderWidth: 3,
           tension: 0.4,
-          borderWidth: 2
+          fill: true,
+          pointBackgroundColor: '#fff',
+          pointBorderColor: '#e74c3c',
+          pointRadius: 5,
+          pointHoverRadius: 7
         }]
       },
       options: {
         responsive: true,
         plugins: {
-          legend: { display: false }
+          legend: {
+            display: true,
+            labels: {
+              color: '#2c3e50',
+              font: { size: 14 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                const value = Number(context.raw || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                return '₱' + value;
+              }
+            }
+          }
         },
         scales: {
+          x: {
+            ticks: { color: '#2c3e50' },
+            grid: { display: false }
+          },
           y: {
             beginAtZero: true,
             ticks: {
-              callback: value => `₱\${Number(value).toLocaleString()}`
-            }
+              color: '#2c3e50',
+              callback: value => '₱' + Number(value).toLocaleString()
+            },
+            grid: { color: 'rgba(0,0,0,0.05)' }
           }
         }
       }
     });
   }
 
-  if (document.getElementById('paymentChart')) {
-    new Chart(document.getElementById('paymentChart'), {
-      type: 'doughnut',
+  if (document.getElementById('categoryChart')) {
+    const categoryCanvas = document.getElementById('categoryChart');
+    const categoryCtx = categoryCanvas.getContext('2d');
+    const labelsData = Array.isArray(categoryLabels) ? categoryLabels : [];
+    const valuesData = Array.isArray(categoryValues) ? categoryValues : [];
+    const categoryChartLabels = labelsData.length ? labelsData : ['No Data'];
+    const categoryChartValues = valuesData.length ? valuesData : [0];
+    const palette = ['#e74c3c', '#f39c12', '#3498db', '#2ecc71', '#9b59b6', '#16a085', '#e67e22'];
+    const barColors = categoryChartLabels.map((_, index) => palette[index % palette.length]);
+    const totalCategoryRevenue = categoryChartValues.reduce((sum, value) => sum + Number(value || 0), 0);
+
+    new Chart(categoryCtx, {
+      type: 'bar',
       data: {
-        labels: paymentLabels,
+        labels: categoryChartLabels,
         datasets: [{
-          data: paymentValues,
-          backgroundColor: ['#e74c3c', '#f1c40f', '#3498db', '#2ecc71', '#9b59b6']
+          label: 'Revenue (₱)',
+          data: categoryChartValues,
+          backgroundColor: barColors,
+          borderRadius: 8,
+          borderSkipped: false
         }]
       },
       options: {
+        responsive: true,
         plugins: {
-          legend: { position: 'bottom' }
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                const numericValue = Number(context.raw || 0);
+                const formattedValue = numericValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                if (totalCategoryRevenue > 0) {
+                  const percentage = (numericValue / totalCategoryRevenue) * 100;
+                  return '₱' + formattedValue + ' (' + percentage.toFixed(1) + '%)';
+                }
+                return '₱' + formattedValue;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#2c3e50' },
+            grid: { display: false }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: '#2c3e50',
+              callback: value => '₱' + Number(value).toLocaleString()
+            },
+            grid: { color: 'rgba(0,0,0,0.05)' }
+          }
         }
       }
     });
