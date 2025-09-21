@@ -203,31 +203,61 @@ $extraScripts = <<<JS
   const paymentValues = $paymentValues;
 
   if (document.getElementById('salesChart')) {
-    new Chart(document.getElementById('salesChart'), {
+    const salesCanvas = document.getElementById('salesChart');
+    const salesCtx = salesCanvas.getContext('2d');
+    const gradient = salesCtx.createLinearGradient(0, 0, 0, salesCanvas.height || 400);
+    gradient.addColorStop(0, 'rgba(231, 76, 60, 0.9)');
+    gradient.addColorStop(1, 'rgba(241, 196, 15, 0.9)');
+
+    new Chart(salesCtx, {
       type: 'line',
       data: {
         labels: salesLabels,
         datasets: [{
-          label: 'Revenue (₱)',
+          label: 'Sales (₱)',
           data: salesValues,
+          backgroundColor: gradient,
           borderColor: '#e74c3c',
-          backgroundColor: 'rgba(231, 76, 60, 0.15)',
-          fill: true,
+          borderWidth: 3,
           tension: 0.4,
-          borderWidth: 2
+          fill: true,
+          pointBackgroundColor: '#fff',
+          pointBorderColor: '#e74c3c',
+          pointRadius: 5,
+          pointHoverRadius: 7
         }]
       },
       options: {
         responsive: true,
         plugins: {
-          legend: { display: false }
+          legend: {
+            display: true,
+            labels: {
+              color: '#2c3e50',
+              font: { size: 14 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                const value = Number(context.raw || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                return '₱' + value;
+              }
+            }
+          }
         },
         scales: {
+          x: {
+            ticks: { color: '#2c3e50' },
+            grid: { display: false }
+          },
           y: {
             beginAtZero: true,
             ticks: {
-              callback: value => `₱\${Number(value).toLocaleString()}`
-            }
+              color: '#2c3e50',
+              callback: value => '₱' + Number(value).toLocaleString()
+            },
+            grid: { color: 'rgba(0,0,0,0.05)' }
           }
         }
       }
