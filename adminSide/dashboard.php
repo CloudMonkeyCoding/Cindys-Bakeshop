@@ -204,9 +204,6 @@ include 'includes/sidebar.php';
       <h2 style="font-size:18px;margin-bottom:16px;">Monthly Sales</h2>
       <canvas id="salesChart" height="220"></canvas>
     </div>
-  </div>
-
-  <div class="stats-grid columns-4" style="margin-top: 24px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
     <div class="card">
       <h2 style="font-size:18px;margin-bottom:16px;">Low Stock Alerts</h2>
       <?php if (empty($lowStockProducts)): ?>
@@ -222,6 +219,9 @@ include 'includes/sidebar.php';
         </ul>
       <?php endif; ?>
     </div>
+  </div>
+
+  <div class="stats-grid columns-4" style="margin-top: 24px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
     <div class="card">
       <h2 style="font-size:18px;margin-bottom:16px;">Recent Orders</h2>
       <?php if (empty($recentOrders)): ?>
