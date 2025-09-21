@@ -18,6 +18,8 @@ $totalUsers = 0;
 $lowStockCount = 0;
 $lowStockProducts = [];
 $topProduct = null;
+$topProductName = null;
+$topProductQty = null;
 $monthlySales = [];
 $paymentBreakdown = [];
 $recentOrders = [];
@@ -41,6 +43,8 @@ if ($pdo) {
 
     $stmtTopProduct = $pdo->query("SELECT p.Name, SUM(oi.Quantity) AS total_qty FROM order_item oi JOIN product p ON oi.Product_ID = p.Product_ID GROUP BY p.Product_ID ORDER BY total_qty DESC LIMIT 1");
     $topProduct = $stmtTopProduct ? $stmtTopProduct->fetch(PDO::FETCH_ASSOC) : null;
+    $topProductName = is_array($topProduct) ? ($topProduct['Name'] ?? null) : null;
+    $topProductQty = is_array($topProduct) && isset($topProduct['total_qty']) ? (int)$topProduct['total_qty'] : null;
 
     $monthlyTotals = [];
     $stmtMonthly = $pdo->query("SELECT DATE_FORMAT(Payment_Date, '%Y-%m') AS period, COALESCE(SUM(Amount_Paid), 0) AS total FROM transaction WHERE Payment_Date IS NOT NULL AND Payment_Date >= DATE_SUB(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 11 MONTH) GROUP BY period");
@@ -89,51 +93,63 @@ include 'includes/sidebar.php';
     </a>
   </div>
 
-  <section class="stats-grid columns-4">
-    <div class="stat-card">
-      <h3>Total Orders</h3>
-      <div class="value"><?= number_format($totalOrders); ?></div>
-      <div class="meta">All recorded orders</div>
-    </div>
-    <div class="stat-card">
-      <h3>Pending Orders</h3>
-      <div class="value"><?= number_format($pendingOrders); ?></div>
-      <div class="meta">Awaiting preparation</div>
-    </div>
-    <div class="stat-card">
-      <h3>Delivered Orders</h3>
-      <div class="value"><?= number_format($deliveredOrders); ?></div>
-      <div class="meta">Completed deliveries</div>
-    </div>
-    <div class="stat-card">
-      <h3>Total Revenue</h3>
-      <div class="value">₱<?= number_format($totalRevenue, 2); ?></div>
-      <div class="meta">All payment records</div>
-    </div>
-  </section>
-
-  <section class="stats-grid columns-4" style="margin-top: 24px;">
-    <div class="stat-card">
-      <h3>Customers</h3>
-      <div class="value"><?= number_format($totalUsers); ?></div>
-      <div class="meta">Registered users</div>
-    </div>
-    <div class="stat-card">
-      <h3>Low Stock Items</h3>
-      <div class="value"><?= number_format($lowStockCount); ?></div>
-      <div class="meta">Items at or below threshold</div>
-    </div>
-    <div class="stat-card">
-      <h3>Top Product</h3>
-      <div class="value" style="font-size: 22px;"><?= htmlspecialchars($topProduct['Name'] ?? 'No data'); ?></div>
-      <div class="meta">Sold <?= number_format($topProduct['total_qty'] ?? 0); ?> pcs</div>
-    </div>
-    <div class="stat-card">
-      <h3>Report Exports</h3>
-      <div class="value">
-        <a href="report.php" class="btn btn-primary" style="text-decoration:none;color:#fff;padding:10px 16px;">View Reports</a>
+  <section class="cards">
+    <div class="card">
+      <div class="card-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></div>
+      <div class="card-info">
+        <h3><?= number_format($totalOrders); ?></h3>
+        <p>Total orders recorded</p>
       </div>
-      <div class="meta">Generate PDF summaries</div>
+    </div>
+    <div class="card">
+      <div class="card-icon"><i class="fa-solid fa-clock" aria-hidden="true"></i></div>
+      <div class="card-info">
+        <h3><?= number_format($pendingOrders); ?></h3>
+        <p>Orders awaiting preparation</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon"><i class="fa-solid fa-truck" aria-hidden="true"></i></div>
+      <div class="card-info">
+        <h3><?= number_format($deliveredOrders); ?></h3>
+        <p>Completed deliveries</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon"><i class="fa-solid fa-coins" aria-hidden="true"></i></div>
+      <div class="card-info">
+        <h3>₱<?= number_format($totalRevenue, 2); ?></h3>
+        <p>Gross revenue to date</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon"><i class="fa-solid fa-users" aria-hidden="true"></i></div>
+      <div class="card-info">
+        <h3><?= number_format($totalUsers); ?></h3>
+        <p>Registered customers</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon"><i class="fa-solid fa-box-open" aria-hidden="true"></i></div>
+      <div class="card-info">
+        <h3><?= number_format($lowStockCount); ?></h3>
+        <p>Items at or below threshold</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon"><i class="fa-solid fa-crown" aria-hidden="true"></i></div>
+      <div class="card-info">
+        <h3><?= $topProductName ? htmlspecialchars($topProductName) : 'No data'; ?></h3>
+        <p><?= $topProductQty !== null ? 'Sold ' . number_format($topProductQty) . ' pcs' : 'Top product performance'; ?></p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon"><i class="fa-solid fa-file-export" aria-hidden="true"></i></div>
+      <div class="card-info">
+        <h3>Reports</h3>
+        <p>Generate PDF summaries</p>
+        <a href="report.php" class="card-link">View reports <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+      </div>
     </div>
   </section>
 
