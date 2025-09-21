@@ -21,7 +21,6 @@ $topProduct = null;
 $topProductName = null;
 $topProductQty = null;
 $monthlySales = [];
-$paymentBreakdown = [];
 $categoryRevenueShare = [];
 $recentOrders = [];
 
@@ -112,11 +111,6 @@ if ($pdo) {
         }
     }
 
-    $stmtPayment = $pdo->query("SELECT Payment_Method, COALESCE(SUM(Amount_Paid),0) AS total FROM transaction GROUP BY Payment_Method");
-    if ($stmtPayment) {
-        $paymentBreakdown = $stmtPayment->fetchAll(PDO::FETCH_ASSOC);
-    }
-
     $stmtRecent = $pdo->query("SELECT o.Order_ID, o.Order_Date, o.Status, u.Name, COALESCE(SUM(oi.Subtotal),0) AS Total FROM `order` o LEFT JOIN user u ON o.User_ID = u.User_ID LEFT JOIN order_item oi ON oi.Order_ID = o.Order_ID GROUP BY o.Order_ID, o.Order_Date, o.Status, u.Name ORDER BY o.Order_Date DESC, o.Order_ID DESC LIMIT 6");
     if ($stmtRecent) {
         $recentOrders = $stmtRecent->fetchAll(PDO::FETCH_ASSOC);
@@ -125,8 +119,6 @@ if ($pdo) {
 
 $salesLabels = json_encode(!empty($monthlySales) ? array_column($monthlySales, 'label') : ['No Data']);
 $salesValues = json_encode(!empty($monthlySales) ? array_map(function ($item) { return round($item['value'], 2); }, $monthlySales) : [0]);
-$paymentLabels = json_encode(!empty($paymentBreakdown) ? array_map(function ($item) { return $item['Payment_Method'] ?: 'Unknown'; }, $paymentBreakdown) : ['No Data']);
-$paymentValues = json_encode(!empty($paymentBreakdown) ? array_map(function ($item) { return round((float)$item['total'], 2); }, $paymentBreakdown) : [0]);
 $categoryLabels = json_encode(!empty($categoryRevenueShare) ? array_map(function ($item) {
     return $item['category_name'] ?? 'Uncategorized';
 }, $categoryRevenueShare) : ['No Data']);
@@ -212,10 +204,6 @@ include 'includes/sidebar.php';
       <h2 style="font-size:18px;margin-bottom:16px;">Monthly Sales</h2>
       <canvas id="salesChart" height="220"></canvas>
     </div>
-    <div class="card">
-      <h2 style="font-size:18px;margin-bottom:16px;">Payment Method Breakdown</h2>
-      <canvas id="paymentChart" height="220"></canvas>
-    </div>
   </div>
 
   <div class="stats-grid columns-4" style="margin-top: 24px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
@@ -232,14 +220,6 @@ include 'includes/sidebar.php';
             </li>
           <?php endforeach; ?>
         </ul>
-      <?php endif; ?>
-    </div>
-    <div class="card">
-      <h2 style="font-size:18px;margin-bottom:16px;">Top Category Revenue Share</h2>
-      <?php if (empty($categoryRevenueShare)): ?>
-        <p class="table-empty">No revenue recorded by category yet.</p>
-      <?php else: ?>
-        <canvas id="categoryChart" height="220"></canvas>
       <?php endif; ?>
     </div>
     <div class="card">
@@ -275,6 +255,14 @@ include 'includes/sidebar.php';
         </table>
       <?php endif; ?>
     </div>
+    <div class="card">
+      <h2 style="font-size:18px;margin-bottom:16px;">Top Category Revenue Share</h2>
+      <?php if (empty($categoryRevenueShare)): ?>
+        <p class="table-empty">No revenue recorded by category yet.</p>
+      <?php else: ?>
+        <canvas id="categoryChart" height="220"></canvas>
+      <?php endif; ?>
+    </div>
   </div>
 </div>
 
@@ -283,8 +271,6 @@ $extraScripts = <<<JS
 <script>
   const salesLabels = $salesLabels;
   const salesValues = $salesValues;
-  const paymentLabels = $paymentLabels;
-  const paymentValues = $paymentValues;
   const categoryLabels = $categoryLabels;
   const categoryValues = $categoryValues;
 
@@ -345,24 +331,6 @@ $extraScripts = <<<JS
             },
             grid: { color: 'rgba(0,0,0,0.05)' }
           }
-        }
-      }
-    });
-  }
-
-  if (document.getElementById('paymentChart')) {
-    new Chart(document.getElementById('paymentChart'), {
-      type: 'doughnut',
-      data: {
-        labels: paymentLabels,
-        datasets: [{
-          data: paymentValues,
-          backgroundColor: ['#e74c3c', '#f1c40f', '#3498db', '#2ecc71', '#9b59b6']
-        }]
-      },
-      options: {
-        plugins: {
-          legend: { position: 'bottom' }
         }
       }
     });
