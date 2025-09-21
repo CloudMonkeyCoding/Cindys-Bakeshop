@@ -474,7 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
           datasets: [{
             label: 'Units on Hand',
             data: chartValues,
-            backgroundColor: '#27ae60'
+            backgroundColor: '#ca7900ff'
           }]
         },
         options: {
