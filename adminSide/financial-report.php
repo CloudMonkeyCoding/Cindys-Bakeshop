@@ -9,8 +9,7 @@ $totalTransactions = 0;
 $uniqueOrders = 0;
 $averageOrderValue = 0.0;
 $lastPaymentDate = null;
-$settledRevenue = 0.0;
-$pendingReceivables = 0.0;
+$dailyAverageRevenue = 0.0;
 $paymentMethods = [];
 $statusBreakdown = [];
 $reportRows = [];
@@ -78,6 +77,21 @@ if ($pdo) {
         }
     }
 
+    $daysForAverage = 30;
+    if ($daysForAverage > 0) {
+        $totalRevenueWindow = 0.0;
+        $todayTimestamp = time();
+        for ($i = 0; $i < $daysForAverage; $i++) {
+            $timestamp = strtotime("-{$i} day", $todayTimestamp);
+            if ($timestamp === false) {
+                continue;
+            }
+            $dateKey = date('Y-m-d', $timestamp);
+            $totalRevenueWindow += (float)($dailyRevenueMap[$dateKey] ?? 0);
+        }
+        $dailyAverageRevenue = $totalRevenueWindow / $daysForAverage;
+    }
+
     $stmtMethods = $pdo->query("SELECT COALESCE(Payment_Method, 'Unknown') AS method, COALESCE(SUM(Amount_Paid),0) AS total FROM transaction GROUP BY method ORDER BY total DESC");
     if ($stmtMethods) {
         $paymentMethods = $stmtMethods->fetchAll(PDO::FETCH_ASSOC);
@@ -86,18 +100,6 @@ if ($pdo) {
     $stmtStatus = $pdo->query("SELECT COALESCE(Payment_Status, 'Unknown') AS status, COUNT(*) AS count, COALESCE(SUM(Amount_Paid),0) AS total FROM transaction GROUP BY status ORDER BY total DESC");
     if ($stmtStatus) {
         $statusBreakdown = $stmtStatus->fetchAll(PDO::FETCH_ASSOC);
-        $pendingStates = ['pending', 'processing', 'awaiting payment', 'unpaid', 'on hold'];
-        $settledStates = ['paid', 'completed', 'settled', 'success', 'received', 'fulfilled'];
-
-        foreach ($statusBreakdown as $row) {
-            $normalized = strtolower($row['status']);
-            $amount = (float)($row['total'] ?? 0);
-            if (in_array($normalized, $pendingStates, true)) {
-                $pendingReceivables += $amount;
-            } elseif (in_array($normalized, $settledStates, true)) {
-                $settledRevenue += $amount;
-            }
-        }
     }
 
     $stmtReport = $pdo->query(
@@ -213,9 +215,9 @@ include 'includes/sidebar.php';
       <div class="meta">Across <?= number_format($totalTransactions); ?> payments</div>
     </div>
     <div class="stat-card">
-      <h3>Pending Receivables</h3>
-      <div class="value">₱<?= number_format($pendingReceivables, 2); ?></div>
-      <div class="meta">Awaiting confirmation</div>
+      <h3>Daily Avg Revenue</h3>
+      <div class="value">₱<?= number_format($dailyAverageRevenue, 2); ?></div>
+      <div class="meta">Average per day over last 30 days</div>
     </div>
     <div class="stat-card">
       <h3>Average Order Value</h3>
