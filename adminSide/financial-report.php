@@ -308,14 +308,19 @@ include 'includes/sidebar.php';
 </div>
 
 <?php
-$extraScripts = <<<'JS'
+ob_start();
+?>
 <script>
-  const revenueTrendDataByRange = $revenueTrendDataJson;
-  const revenueTrendDefaultRange = $revenueTrendDefaultRangeJson;
-  const methodLabels = $methodLabelsJson.length ? $methodLabelsJson : ['No Data'];
-  const methodValues = $methodValuesJson.length ? $methodValuesJson : [0];
-  const statusLabels = $statusLabelsJson.length ? $statusLabelsJson : ['No Data'];
-  const statusValues = $statusValuesJson.length ? $statusValuesJson : [0];
+  const revenueTrendDataByRange = <?= $revenueTrendDataJson; ?>;
+  const revenueTrendDefaultRange = <?= $revenueTrendDefaultRangeJson; ?>;
+  const methodLabelsRaw = <?= $methodLabelsJson; ?>;
+  const methodLabels = methodLabelsRaw.length ? methodLabelsRaw : ['No Data'];
+  const methodValuesRaw = <?= $methodValuesJson; ?>;
+  const methodValues = methodValuesRaw.length ? methodValuesRaw : [0];
+  const statusLabelsRaw = <?= $statusLabelsJson; ?>;
+  const statusLabels = statusLabelsRaw.length ? statusLabelsRaw : ['No Data'];
+  const statusValuesRaw = <?= $statusValuesJson; ?>;
+  const statusValues = statusValuesRaw.length ? statusValuesRaw : [0];
 
   const revenueTrendCanvas = document.getElementById('revenueTrendChart');
   const revenueTrendRangeSelect = document.getElementById('revenueTrendRange');
@@ -514,5 +519,6 @@ $extraScripts = <<<'JS'
     });
   }
 </script>
-JS;
+<?php
+$extraScripts = ob_get_clean();
 include 'includes/footer.php';
