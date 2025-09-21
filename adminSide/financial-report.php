@@ -11,10 +11,37 @@ $averageOrderValue = 0.0;
 $lastPaymentDate = null;
 $settledRevenue = 0.0;
 $pendingReceivables = 0.0;
-$monthlyTotals = [];
 $paymentMethods = [];
 $statusBreakdown = [];
 $reportRows = [];
+
+$timeRanges = [
+    '7d' => ['label' => 'Last 7 Days', 'days' => 7],
+    '30d' => ['label' => 'Last 30 Days', 'days' => 30],
+    '90d' => ['label' => 'Last 90 Days', 'days' => 90],
+];
+
+if (function_exists('array_key_first')) {
+    $revenueTrendDefaultRange = array_key_first($timeRanges) ?? '7d';
+} else {
+    reset($timeRanges);
+    $revenueTrendDefaultRange = key($timeRanges);
+    if ($revenueTrendDefaultRange === null) {
+        $revenueTrendDefaultRange = '7d';
+    }
+}
+
+$revenueTrendDefaultLabel = $timeRanges[$revenueTrendDefaultRange]['label'] ?? 'Last 7 Days';
+$dailyRevenueMap = [];
+$revenueTrendByRange = [];
+$maxDays = 1;
+
+foreach ($timeRanges as $config) {
+    $days = isset($config['days']) ? (int)$config['days'] : 0;
+    if ($days > $maxDays) {
+        $maxDays = $days;
+    }
+}
 
 if ($pdo) {
     $stmtSummary = $pdo->query("SELECT COALESCE(SUM(Amount_Paid),0) AS revenue, COUNT(*) AS transactions, COUNT(DISTINCT Order_ID) AS orders, MAX(Payment_Date) AS last_payment FROM transaction");
@@ -29,15 +56,25 @@ if ($pdo) {
         }
     }
 
-    $stmtMonthly = $pdo->query("SELECT DATE_FORMAT(Payment_Date, '%Y-%m') AS period, COALESCE(SUM(Amount_Paid),0) AS total FROM transaction WHERE Payment_Date IS NOT NULL GROUP BY period ORDER BY period DESC LIMIT 12");
-    if ($stmtMonthly) {
-        $rows = $stmtMonthly->fetchAll(PDO::FETCH_ASSOC);
-        $rows = array_reverse($rows);
-        foreach ($rows as $row) {
-            $monthlyTotals[] = [
-                'label' => date('M Y', strtotime($row['period'] . '-01')),
-                'value' => (float)$row['total']
-            ];
+    $daysInterval = max($maxDays - 1, 0);
+
+    $trendSql = "
+        SELECT
+            DATE(Payment_Date) AS payment_date,
+            COALESCE(SUM(Amount_Paid), 0) AS revenue
+        FROM transaction
+        WHERE Payment_Date IS NOT NULL
+          AND DATE(Payment_Date) >= DATE_SUB(CURDATE(), INTERVAL $daysInterval DAY)
+        GROUP BY payment_date
+        ORDER BY payment_date ASC
+    ";
+    $stmtTrend = $pdo->query($trendSql);
+    if ($stmtTrend) {
+        while ($row = $stmtTrend->fetch(PDO::FETCH_ASSOC)) {
+            $paymentDate = $row['payment_date'] ?? null;
+            if ($paymentDate) {
+                $dailyRevenueMap[$paymentDate] = (float)($row['revenue'] ?? 0);
+            }
         }
     }
 
@@ -78,22 +115,79 @@ if ($pdo) {
     }
 }
 
-$monthlyLabelsJson = json_encode(array_column($monthlyTotals, 'label'));
-$monthlyValuesJson = json_encode(array_map(function ($item) {
-    return round($item['value'], 2);
-}, $monthlyTotals));
+$currentTimestamp = time();
+foreach ($timeRanges as $rangeKey => $config) {
+    $days = isset($config['days']) ? (int)$config['days'] : 0;
+    if ($days <= 0) {
+        continue;
+    }
+    $labels = [];
+    $values = [];
+    for ($i = $days - 1; $i >= 0; $i--) {
+        $timestamp = strtotime("-{$i} day", $currentTimestamp);
+        if ($timestamp === false) {
+            continue;
+        }
+        $dateKey = date('Y-m-d', $timestamp);
+        $labels[] = $days <= 7 ? date('D', $timestamp) : date('M d', $timestamp);
+        $values[] = round($dailyRevenueMap[$dateKey] ?? 0, 2);
+    }
+    if (!empty($labels)) {
+        $revenueTrendByRange[$rangeKey] = [
+            'labels' => $labels,
+            'values' => $values,
+            'rangeLabel' => $config['label'] ?? 'Selected Range',
+        ];
+    }
+}
+
+if (empty($revenueTrendByRange) && !empty($timeRanges)) {
+    $revenueTrendByRange[$revenueTrendDefaultRange] = [
+        'labels' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        'values' => array_fill(0, 7, 0),
+        'rangeLabel' => $revenueTrendDefaultLabel,
+    ];
+}
+
+$jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
+
+$revenueTrendDataJson = json_encode($revenueTrendByRange, $jsonFlags);
+if ($revenueTrendDataJson === false) {
+    $revenueTrendDataJson = '{}';
+}
+
+$revenueTrendDefaultRangeJson = json_encode($revenueTrendDefaultRange, $jsonFlags);
+if ($revenueTrendDefaultRangeJson === false) {
+    $revenueTrendDefaultRangeJson = 'null';
+}
+
 $methodLabelsJson = json_encode(array_map(function ($item) {
     return $item['method'];
-}, $paymentMethods));
+}, $paymentMethods), $jsonFlags);
+if ($methodLabelsJson === false) {
+    $methodLabelsJson = '[]';
+}
+
 $methodValuesJson = json_encode(array_map(function ($item) {
     return round((float)$item['total'], 2);
-}, $paymentMethods));
+}, $paymentMethods), $jsonFlags);
+if ($methodValuesJson === false) {
+    $methodValuesJson = '[]';
+}
+
 $statusLabelsJson = json_encode(array_map(function ($item) {
     return $item['status'];
-}, $statusBreakdown));
+}, $statusBreakdown), $jsonFlags);
+if ($statusLabelsJson === false) {
+    $statusLabelsJson = '[]';
+}
+
 $statusValuesJson = json_encode(array_map(function ($item) {
     return round((float)$item['total'], 2);
-}, $statusBreakdown));
+}, $statusBreakdown), $jsonFlags);
+if ($statusValuesJson === false) {
+    $statusValuesJson = '[]';
+}
 
 $lastPaymentDisplay = $lastPaymentDate ? date('M d, Y', strtotime($lastPaymentDate)) : 'No payments recorded yet';
 
@@ -137,8 +231,22 @@ include 'includes/sidebar.php';
 
   <div class="stats-grid columns-4" style="margin-top:24px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));">
     <div class="card">
-      <h2 style="font-size:18px;margin-bottom:16px;">Monthly Revenue</h2>
-      <canvas id="revenueChart" height="220"></canvas>
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px;">
+        <div>
+          <h2 style="font-size:18px;margin:0;">Sales Trend</h2>
+          <p id="revenueTrendRangeCaption" style="margin:4px 0 0;font-size:13px;color:#7f8c8d;">
+            <?= htmlspecialchars($revenueTrendDefaultLabel); ?>
+          </p>
+        </div>
+        <select id="revenueTrendRange" aria-label="Change sales trend range" style="padding:8px 12px;border:1px solid #dcdde1;border-radius:6px;font-size:14px;min-width:180px;">
+          <?php foreach ($timeRanges as $rangeKey => $rangeConfig): ?>
+            <option value="<?= htmlspecialchars($rangeKey); ?>" <?= $rangeKey === $revenueTrendDefaultRange ? 'selected' : ''; ?>>
+              <?= htmlspecialchars($rangeConfig['label']); ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <canvas id="revenueTrendChart" height="220"></canvas>
     </div>
     <div class="card">
       <h2 style="font-size:18px;margin-bottom:16px;">Payment Methods</h2>
@@ -202,39 +310,130 @@ include 'includes/sidebar.php';
 <?php
 $extraScripts = <<<'JS'
 <script>
-  const monthlyLabels = $monthlyLabelsJson.length ? $monthlyLabelsJson : ['No Data'];
-  const monthlyValues = $monthlyValuesJson.length ? $monthlyValuesJson : [0];
+  const revenueTrendDataByRange = $revenueTrendDataJson;
+  const revenueTrendDefaultRange = $revenueTrendDefaultRangeJson;
   const methodLabels = $methodLabelsJson.length ? $methodLabelsJson : ['No Data'];
   const methodValues = $methodValuesJson.length ? $methodValuesJson : [0];
   const statusLabels = $statusLabelsJson.length ? $statusLabelsJson : ['No Data'];
   const statusValues = $statusValuesJson.length ? $statusValuesJson : [0];
 
-  if (document.getElementById('revenueChart')) {
-    new Chart(document.getElementById('revenueChart'), {
+  const revenueTrendCanvas = document.getElementById('revenueTrendChart');
+  const revenueTrendRangeSelect = document.getElementById('revenueTrendRange');
+  const revenueTrendRangeCaption = document.getElementById('revenueTrendRangeCaption');
+
+  if (revenueTrendCanvas) {
+    const ctx = revenueTrendCanvas.getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, revenueTrendCanvas.height || 400);
+    gradient.addColorStop(0, 'rgba(230, 126, 34, 0.4)');
+    gradient.addColorStop(1, 'rgba(230, 126, 34, 0)');
+
+    const rangeOptions = (revenueTrendDataByRange && typeof revenueTrendDataByRange === 'object' && !Array.isArray(revenueTrendDataByRange)) ? revenueTrendDataByRange : {};
+    const rangeKeys = Object.keys(rangeOptions);
+    const fallbackLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const fallbackValues = new Array(fallbackLabels.length).fill(0);
+
+    const getPointStyling = labelCount => {
+      const isDense = labelCount > 31;
+      return {
+        radius: isDense ? 3 : 6,
+        hoverRadius: isDense ? 5 : 8,
+      };
+    };
+
+    const getDatasetForRange = rangeKey => {
+      const dataset = rangeKey && Object.prototype.hasOwnProperty.call(rangeOptions, rangeKey) ? rangeOptions[rangeKey] : null;
+      const labels = dataset && Array.isArray(dataset.labels) ? dataset.labels.slice() : fallbackLabels.slice();
+      const rawValues = dataset && Array.isArray(dataset.values) ? dataset.values.slice() : fallbackValues.slice();
+      const sanitizedValues = labels.map((_, index) => {
+        const value = rawValues[index] ?? 0;
+        const numericValue = Number.parseFloat(value);
+        return Number.isFinite(numericValue) ? numericValue : 0;
+      });
+      const rangeLabel = dataset && typeof dataset.rangeLabel === 'string' ? dataset.rangeLabel : 'No revenue recorded yet';
+      return { labels, values: sanitizedValues, rangeLabel };
+    };
+
+    const defaultRangeKey = typeof revenueTrendDefaultRange === 'string' && Object.prototype.hasOwnProperty.call(rangeOptions, revenueTrendDefaultRange)
+      ? revenueTrendDefaultRange
+      : (rangeKeys.length > 0 ? rangeKeys[0] : null);
+
+    const initialDataset = getDatasetForRange(defaultRangeKey);
+    const initialPointStyle = getPointStyling(initialDataset.labels.length);
+
+    const revenueTrendChart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: monthlyLabels,
+        labels: initialDataset.labels,
         datasets: [{
           label: 'Revenue (₱)',
-          data: monthlyValues,
-          fill: false,
+          data: initialDataset.values,
           borderColor: '#e67e22',
-          tension: 0.25,
-          backgroundColor: '#e67e22'
+          borderWidth: 3,
+          backgroundColor: gradient,
+          pointBackgroundColor: '#fff',
+          pointBorderColor: '#e67e22',
+          pointRadius: initialPointStyle.radius,
+          pointHoverRadius: initialPointStyle.hoverRadius,
+          tension: 0.4,
+          fill: true,
         }]
       },
       options: {
-        plugins: { legend: { display: false } },
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: context => {
+                const value = context.parsed.y ?? 0;
+                return 'Revenue: ₱' + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              }
+            }
+          }
+        },
         scales: {
+          x: {
+            ticks: {
+              autoSkip: true,
+              maxRotation: 0,
+              maxTicksLimit: 15,
+            }
+          },
           y: {
             beginAtZero: true,
             ticks: {
-              callback: value => `₱${Number(value).toLocaleString()}`
+              callback: value => '₱' + Number(value).toLocaleString()
             }
           }
         }
       }
     });
+
+    if (revenueTrendRangeCaption) {
+      revenueTrendRangeCaption.textContent = initialDataset.rangeLabel;
+    }
+
+    const updateRevenueTrendRange = rangeKey => {
+      const dataset = getDatasetForRange(rangeKey);
+      const pointStyle = getPointStyling(dataset.labels.length);
+      revenueTrendChart.data.labels = dataset.labels;
+      revenueTrendChart.data.datasets[0].data = dataset.values;
+      revenueTrendChart.data.datasets[0].pointRadius = pointStyle.radius;
+      revenueTrendChart.data.datasets[0].pointHoverRadius = pointStyle.hoverRadius;
+      revenueTrendChart.update();
+      if (revenueTrendRangeCaption) {
+        revenueTrendRangeCaption.textContent = dataset.rangeLabel;
+      }
+    };
+
+    if (revenueTrendRangeSelect) {
+      if (defaultRangeKey) {
+        revenueTrendRangeSelect.value = defaultRangeKey;
+      }
+      revenueTrendRangeSelect.addEventListener('change', event => {
+        updateRevenueTrendRange(event.target.value);
+      });
+    }
   }
 
   if (document.getElementById('methodChart')) {
