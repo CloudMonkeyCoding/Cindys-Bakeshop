@@ -4,6 +4,33 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
+require_once '../PHP/db_connect.php';
+
+$productCatalog = [];
+if ($pdo) {
+    try {
+        $sql = "SELECT p.Product_ID, p.Name, p.Price, p.Category,\n                       COALESCE(i.Stock_Quantity, p.Stock_Quantity) AS Stock_Quantity,\n                       (i.Stock_Quantity IS NULL) AS Stock_Not_Tracked\n                FROM product p\n                LEFT JOIN inventory i ON i.Product_ID = p.Product_ID\n                ORDER BY p.Name ASC";
+        $stmt = $pdo->query($sql);
+        if ($stmt) {
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($rows as $row) {
+                $rawStock = array_key_exists('Stock_Quantity', $row) ? $row['Stock_Quantity'] : null;
+                $stockNotTracked = !empty($row['Stock_Not_Tracked']);
+                $productCatalog[] = [
+                    'id' => (int)$row['Product_ID'],
+                    'name' => (string)($row['Name'] ?? ''),
+                    'price' => isset($row['Price']) ? (float)$row['Price'] : 0.0,
+                    'category' => isset($row['Category']) ? (string)$row['Category'] : '',
+                    'stock' => $stockNotTracked ? null : ($rawStock === null ? null : (int)$rawStock),
+                ];
+            }
+        }
+    } catch (\PDOException $exception) {
+        error_log('Failed to load POS product catalog: ' . $exception->getMessage());
+        $productCatalog = [];
+    }
+}
+
 $activePage = 'walkin-order';
 $pageTitle = "Walk-in POS - Cindy's Bakeshop";
 
@@ -142,12 +169,17 @@ include 'includes/sidebar.php';
 $csrfTokenJson = json_encode($_SESSION['csrf_token']);
 $apiUrlJson = json_encode('api/walkin_order_actions.php');
 $ordersUrlJson = json_encode('orders.php');
+$productCatalogJson = json_encode($productCatalog, JSON_UNESCAPED_UNICODE);
+if ($productCatalogJson === false) {
+    $productCatalogJson = '[]';
+}
 $scriptTemplate = <<<'JS'
 <script>
 (() => {
   const csrfToken = %s;
   const apiUrl = %s;
   const ordersUrl = %s;
+  const productCatalog = %s;
   const form = document.getElementById('walkinOrderForm');
   const customerModeRadios = form.querySelectorAll('input[name="customer_mode"]');
   const existingSection = document.getElementById('existingCustomerSection');
@@ -181,6 +213,7 @@ $scriptTemplate = <<<'JS'
   };
 
   log('debug', 'POS script initialised');
+  log('debug', 'Product catalog loaded', { count: productCatalog.length });
 
   const peso = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
@@ -530,35 +563,39 @@ $scriptTemplate = <<<'JS'
     });
   }
 
-  async function fetchProducts(term) {
-    log('debug', 'Fetching products', { term, inStockOnly: inStockOnlyCheckbox.checked });
-    try {
-      const response = await callApi({
-        action: 'search_products',
-        query: term,
-        limit: '30',
-        in_stock_only: inStockOnlyCheckbox.checked ? '1' : '0'
-      });
-      const products = Array.isArray(response.products) ? response.products : [];
-      log('debug', 'Product search response metadata', {
-        success: Object.prototype.hasOwnProperty.call(response, 'success') ? response.success : 'n/a',
-        count: products.length
-      });
-      if (products.length) {
-        log('debug', 'Product search response sample', {
-          sample: products.slice(0, 5).map((product) => ({
-            id: product.id,
-            name: product.name,
-            category: product.category || null,
-            stock: product.stock
-          }))
-        });
+  function fetchProducts(term) {
+    const normalizedTerm = typeof term === 'string' ? term.trim().toLowerCase() : '';
+    const inStockOnly = inStockOnlyCheckbox.checked;
+    log('debug', 'Filtering product catalog', { term: normalizedTerm, inStockOnly });
+
+    const filtered = productCatalog.filter((product) => {
+      const name = (product.name || '').toLowerCase();
+      const category = (product.category || '').toLowerCase();
+      const matchesTerm = normalizedTerm === '' || name.includes(normalizedTerm) || category.includes(normalizedTerm);
+      if (!matchesTerm) {
+        return false;
       }
-      renderProductResults(products);
-    } catch (error) {
-      log('error', 'Failed to fetch products', error);
-      renderProductResults([]);
+      if (!inStockOnly) {
+        return true;
+      }
+      const stockValue = isFiniteStock(product.stock);
+      return stockValue === null || stockValue > 0;
+    });
+
+    log('debug', 'Product filter results', { count: filtered.length });
+    if (filtered.length) {
+      log('debug', 'Product filter sample', {
+        sample: filtered.slice(0, 5).map((product) => ({
+          id: product.id,
+          name: product.name,
+          category: product.category || null,
+          stock: product.stock
+        }))
+      });
+    } else {
+      log('debug', 'Product filter returned no matches for current criteria');
     }
+    renderProductResults(filtered);
   }
 
   async function fetchCustomers(term) {
@@ -895,6 +932,6 @@ $scriptTemplate = <<<'JS'
 </script>
 JS;
 
-$extraScripts = sprintf($scriptTemplate, $csrfTokenJson, $apiUrlJson, $ordersUrlJson);
+$extraScripts = sprintf($scriptTemplate, $csrfTokenJson, $apiUrlJson, $ordersUrlJson, $productCatalogJson);
 
 include 'includes/footer.php';
