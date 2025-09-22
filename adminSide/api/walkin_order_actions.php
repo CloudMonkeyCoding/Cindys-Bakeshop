@@ -79,7 +79,7 @@ switch ($action) {
             'in_stock_only' => $inStockOnly,
         ]);
 
-        $sql = "SELECT p.Product_ID, p.Name, p.Price, p.Category,\n                       COALESCE(i.Stock_Quantity, p.Stock_Quantity) AS Stock_Quantity,\n                       (i.Stock_Quantity IS NULL AND p.Stock_Quantity IS NULL) AS Stock_Not_Tracked\n                FROM product p\n                LEFT JOIN inventory i ON i.Product_ID = p.Product_ID";
+        $sql = "SELECT p.Product_ID, p.Name, p.Price, p.Category,\n                       COALESCE(i.Stock_Quantity, p.Stock_Quantity) AS Stock_Quantity,\n                       (i.Stock_Quantity IS NULL) AS Stock_Not_Tracked\n                FROM product p\n                LEFT JOIN inventory i ON i.Product_ID = p.Product_ID";
         $conditions = [];
         $params = [];
         if ($query !== '') {
@@ -87,7 +87,7 @@ switch ($action) {
             $params[':term'] = "%$query%";
         }
         if ($inStockOnly === true) {
-            $conditions[] = '(COALESCE(i.Stock_Quantity, p.Stock_Quantity) > 0 OR (i.Stock_Quantity IS NULL AND p.Stock_Quantity IS NULL))';
+            $conditions[] = '((i.Stock_Quantity IS NULL) OR COALESCE(i.Stock_Quantity, p.Stock_Quantity) > 0)';
         }
         if ($conditions) {
             $sql .= ' WHERE ' . implode(' AND ', $conditions);
