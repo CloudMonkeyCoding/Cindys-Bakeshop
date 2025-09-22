@@ -116,8 +116,8 @@ switch ($action) {
         break;
 
     case 'create_order':
-        $customerMode = filter_input(INPUT_POST, 'customer_mode', FILTER_SANITIZE_SPECIAL_CHARS) ?: 'existing';
-        $customerMode = in_array($customerMode, ['existing', 'new'], true) ? $customerMode : 'existing';
+        $customerMode = filter_input(INPUT_POST, 'customer_mode', FILTER_SANITIZE_SPECIAL_CHARS) ?: 'guest';
+        $customerMode = in_array($customerMode, ['existing', 'guest'], true) ? $customerMode : 'guest';
 
         $itemsRaw = $_POST['items'] ?? '[]';
         $itemsData = json_decode($itemsRaw, true);
@@ -190,7 +190,7 @@ switch ($action) {
         }
 
         $customerEmail = '';
-        $customerAddress = '';
+        $userId = null;
 
         try {
             $pdo->beginTransaction();
@@ -198,32 +198,13 @@ switch ($action) {
             if ($customerMode === 'existing') {
                 $userId = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
                 if (!$userId) {
-                    throw new InvalidArgumentException('Select an existing customer to continue.', 422);
+                    throw new InvalidArgumentException('Select an existing customer to continue or submit as a walk-in guest.', 422);
                 }
                 $user = getUserById($pdo, $userId);
                 if (!$user) {
                     throw new InvalidArgumentException('Selected customer could not be found.', 404);
                 }
                 $customerEmail = $user['Email'] ?? '';
-                $customerAddress = $user['Address'] ?? '';
-            } else {
-                $name = trim($_POST['customer_name'] ?? '');
-                if ($name === '') {
-                    throw new InvalidArgumentException('Customer name is required for new accounts.', 422);
-                }
-                $emailInput = trim($_POST['customer_email'] ?? '');
-                if ($emailInput !== '') {
-                    if (!filter_var($emailInput, FILTER_VALIDATE_EMAIL)) {
-                        throw new InvalidArgumentException('Please provide a valid email address.', 422);
-                    }
-                    if (checkEmailExists($pdo, $emailInput)) {
-                        throw new InvalidArgumentException('Email address is already associated with an account.', 422);
-                    }
-                    $customerEmail = $emailInput;
-                }
-                $customerAddress = trim($_POST['customer_address'] ?? '');
-                $randomPassword = bin2hex(random_bytes(8));
-                $userId = addUser($pdo, $name, $customerEmail ?: null, $randomPassword, $customerAddress ?: null);
             }
 
             $orderId = addOrder($pdo, $userId, date('Y-m-d'), $orderStatus, 'walk-in', $fulfillmentType);

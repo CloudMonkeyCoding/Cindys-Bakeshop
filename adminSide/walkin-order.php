@@ -27,34 +27,28 @@ include 'includes/sidebar.php';
         <section class="builder-card">
           <div class="card-header">
             <h2>Customer</h2>
-            <p>Search an existing customer or capture details for a new guest.</p>
+            <p>Attach an account for history tracking or leave the ticket as a guest walk-in.</p>
           </div>
           <div class="customer-mode">
             <label>
-              <input type="radio" name="customer_mode" value="existing" checked>
-              Existing customer
+              <input type="radio" name="customer_mode" value="guest" checked>
+              No customer (walk-in)
             </label>
             <label>
-              <input type="radio" name="customer_mode" value="new">
-              New customer
+              <input type="radio" name="customer_mode" value="existing">
+              Existing customer
             </label>
           </div>
-          <div class="customer-section" id="existingCustomerSection">
-            <label for="customerSearch">Search</label>
-            <input type="search" id="customerSearch" placeholder="Search by name or email">
-            <p class="helper-text">Start typing to load matching accounts.</p>
-            <ul class="search-results" id="customerResults" aria-live="polite"></ul>
+          <div class="customer-section">
             <div class="customer-summary empty" id="customerSummary">
-              <p>No customer selected.</p>
+              <p>Orders created as walk-in guests are not linked to a customer account.</p>
             </div>
           </div>
-          <div class="customer-section is-hidden" id="newCustomerSection">
-            <label for="newCustomerName">Name</label>
-            <input type="text" id="newCustomerName" placeholder="Customer name">
-            <label for="newCustomerEmail">Email <span class="helper-text">(optional)</span></label>
-            <input type="email" id="newCustomerEmail" placeholder="customer@example.com">
-            <label for="newCustomerAddress">Address <span class="helper-text">(optional)</span></label>
-            <textarea id="newCustomerAddress" rows="3" placeholder="Street, barangay, city"></textarea>
+          <div class="customer-section is-hidden" id="existingCustomerSection">
+            <label for="customerSearch">Search</label>
+            <input type="search" id="customerSearch" placeholder="Search by name or email" disabled>
+            <p class="helper-text">Start typing to load matching accounts.</p>
+            <ul class="search-results" id="customerResults" aria-live="polite"></ul>
           </div>
         </section>
 
@@ -175,13 +169,10 @@ $scriptTemplate = <<<'JS'
   const form = document.getElementById('walkinOrderForm');
   const customerModeRadios = form.querySelectorAll('input[name="customer_mode"]');
   const existingSection = document.getElementById('existingCustomerSection');
-  const newSection = document.getElementById('newCustomerSection');
   const customerSearchInput = document.getElementById('customerSearch');
   const customerResults = document.getElementById('customerResults');
   const customerSummary = document.getElementById('customerSummary');
-  const newCustomerName = document.getElementById('newCustomerName');
-  const newCustomerEmail = document.getElementById('newCustomerEmail');
-  const newCustomerAddress = document.getElementById('newCustomerAddress');
+  let currentCustomerMode = 'guest';
   const fulfillmentTypeSelect = document.getElementById('fulfillmentType');
   const orderStatusSelect = document.getElementById('orderStatus');
   const paymentMethodSelect = document.getElementById('paymentMethod');
@@ -226,9 +217,16 @@ $scriptTemplate = <<<'JS'
     if (!customerSummary) return;
     customerSummary.innerHTML = '';
     customerSummary.classList.remove('empty');
+
+    if (currentCustomerMode !== 'existing') {
+      customerSummary.classList.add('empty');
+      customerSummary.innerHTML = '<p>Orders created as walk-in guests are not linked to a customer account.</p>';
+      return;
+    }
+
     if (!selectedCustomer) {
       customerSummary.classList.add('empty');
-      customerSummary.innerHTML = '<p>No customer selected.</p>';
+      customerSummary.innerHTML = '<p>No customer selected yet. Use the search to attach one (optional).</p>';
       return;
     }
 
@@ -257,6 +255,11 @@ $scriptTemplate = <<<'JS'
     clearBtn.textContent = 'Clear selection';
     clearBtn.addEventListener('click', () => {
       selectedCustomer = null;
+      customerResults.innerHTML = '';
+      if (customerSearchInput) {
+        customerSearchInput.value = '';
+        customerSearchInput.focus();
+      }
       renderCustomerSummary();
     });
 
@@ -502,27 +505,11 @@ $scriptTemplate = <<<'JS'
     clearMessage(formErrors);
     clearMessage(messages);
 
-    const mode = form.querySelector('input[name="customer_mode"]:checked')?.value || 'existing';
+    const mode = form.querySelector('input[name="customer_mode"]:checked')?.value || 'guest';
+    currentCustomerMode = mode;
     if (mode === 'existing' && !selectedCustomer) {
-      setMessage(formErrors, 'error', 'Select a customer before posting the order.');
+      setMessage(formErrors, 'error', 'Select a customer before posting the order or choose the walk-in option.');
       return;
-    }
-    if (mode === 'new') {
-      if (newCustomerName.value.trim() === '') {
-        setMessage(formErrors, 'error', 'Customer name is required.');
-        newCustomerName.focus();
-        return;
-      }
-      if (newCustomerEmail.value.trim() && !/^.+@.+\..+$/.test(newCustomerEmail.value.trim())) {
-        setMessage(formErrors, 'error', 'Enter a valid email address or leave it blank.');
-        newCustomerEmail.focus();
-        return;
-      }
-      if (fulfillmentTypeSelect.value === 'Delivery' && newCustomerAddress.value.trim() === '') {
-        setMessage(formErrors, 'error', 'Provide a delivery address for delivery orders.');
-        newCustomerAddress.focus();
-        return;
-      }
     }
     if (!selectedItems.size) {
       setMessage(formErrors, 'error', 'Add at least one product to the order.');
@@ -548,10 +535,6 @@ $scriptTemplate = <<<'JS'
 
     if (mode === 'existing' && selectedCustomer) {
       payload.user_id = String(selectedCustomer.id);
-    } else if (mode === 'new') {
-      payload.customer_name = newCustomerName.value.trim();
-      payload.customer_email = newCustomerEmail.value.trim();
-      payload.customer_address = newCustomerAddress.value.trim();
     }
 
     try {
@@ -581,15 +564,17 @@ $scriptTemplate = <<<'JS'
       selectedItems.clear();
       renderSelectedItems();
 
-      if (mode === 'existing') {
-        selectedCustomer = null;
-        renderCustomerSummary();
+      selectedCustomer = null;
+      customerResults.innerHTML = '';
+      if (customerSearchInput) {
         customerSearchInput.value = '';
-      } else {
-        newCustomerName.value = '';
-        newCustomerEmail.value = '';
-        newCustomerAddress.value = '';
       }
+
+      const guestRadio = form.querySelector('input[name="customer_mode"][value="guest"]');
+      if (guestRadio) {
+        guestRadio.checked = true;
+      }
+      toggleCustomerSections('guest');
 
       paymentAmountInput.value = '0.00';
       paymentAmountTouched = false;
@@ -604,26 +589,23 @@ $scriptTemplate = <<<'JS'
   }
 
   function toggleCustomerSections(mode) {
+    currentCustomerMode = mode;
     if (mode === 'existing') {
       existingSection.classList.remove('is-hidden');
-      newSection.classList.add('is-hidden');
-      customerSearchInput.disabled = false;
-      newCustomerName.disabled = true;
-      newCustomerEmail.disabled = true;
-      newCustomerAddress.disabled = true;
-      customerSearchInput.focus();
+      if (customerSearchInput) {
+        customerSearchInput.disabled = false;
+        customerSearchInput.focus();
+      }
     } else {
       existingSection.classList.add('is-hidden');
-      newSection.classList.remove('is-hidden');
-      customerSearchInput.disabled = true;
-      newCustomerName.disabled = false;
-      newCustomerEmail.disabled = false;
-      newCustomerAddress.disabled = false;
-      customerResults.innerHTML = '';
       selectedCustomer = null;
-      renderCustomerSummary();
-      newCustomerName.focus();
+      customerResults.innerHTML = '';
+      if (customerSearchInput) {
+        customerSearchInput.value = '';
+        customerSearchInput.disabled = true;
+      }
     }
+    renderCustomerSummary();
   }
 
   customerModeRadios.forEach((radio) => {
@@ -667,9 +649,8 @@ $scriptTemplate = <<<'JS'
 
   form.addEventListener('submit', submitForm);
 
-  toggleCustomerSections('existing');
+  toggleCustomerSections('guest');
   renderSelectedItems();
-  renderCustomerSummary();
   fetchProducts('');
 })();
 </script>

@@ -88,7 +88,7 @@ php -S localhost:8000
 The admin dashboard now includes a **New Order** builder under **Orders ▸ New Order** for recording walk-in sales. The tool works alongside the online checkout flow by storing the order `Source` and `Fulfillment_Type` in the database.
 
 1. Open the admin site and navigate to **Orders ▸ New Order** from the sidebar.
-2. Select an existing customer or create a quick profile for a new walk-in guest.
+2. Optionally attach an existing customer account—walk-in tickets can be recorded without customer details.
 3. Choose the fulfillment method (Delivery or Pick up), payment method/status, and optional reference number.
 4. Search for products, add them to the summary grid, and adjust quantities as needed.
 5. Submit the form to generate the order. Stock levels, transactions, and (for deliveries) a pending delivery record are created automatically.
