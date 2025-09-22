@@ -43,9 +43,10 @@ switch ($action) {
     case 'search_products':
         $query = trim(filter_input(INPUT_POST, 'query', FILTER_SANITIZE_SPECIAL_CHARS) ?? '');
         $limit = filter_input(INPUT_POST, 'limit', FILTER_VALIDATE_INT);
-        if (!is_int($limit) || $limit <= 0 || $limit > 100) {
+        if (!is_int($limit) || $limit <= 0) {
             $limit = 20;
         }
+        $limit = min($limit, 100);
         $inStockOnly = filter_input(INPUT_POST, 'in_stock_only', FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
 
         $sql = "SELECT p.Product_ID, p.Name, p.Price, p.Category,\n                       COALESCE(i.Stock_Quantity, p.Stock_Quantity) AS Stock_Quantity\n                FROM product p\n                LEFT JOIN inventory i ON i.Product_ID = p.Product_ID";
@@ -61,13 +62,12 @@ switch ($action) {
         if ($conditions) {
             $sql .= ' WHERE ' . implode(' AND ', $conditions);
         }
-        $sql .= ' ORDER BY p.Name ASC LIMIT :limit';
+        $sql .= ' ORDER BY p.Name ASC LIMIT ' . $limit;
 
         $stmt = $pdo->prepare($sql);
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value, PDO::PARAM_STR);
         }
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         $products = [];
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
@@ -85,22 +85,22 @@ switch ($action) {
     case 'search_customers':
         $query = trim(filter_input(INPUT_POST, 'query', FILTER_SANITIZE_SPECIAL_CHARS) ?? '');
         $limit = filter_input(INPUT_POST, 'limit', FILTER_VALIDATE_INT);
-        if (!is_int($limit) || $limit <= 0 || $limit > 50) {
+        if (!is_int($limit) || $limit <= 0) {
             $limit = 10;
         }
+        $limit = min($limit, 50);
         $sql = "SELECT User_ID, Name, Email, Address FROM user";
         $params = [];
         if ($query !== '') {
             $sql .= ' WHERE Name LIKE :term OR Email LIKE :term';
             $params[':term'] = "%$query%";
         }
-        $sql .= ' ORDER BY Name ASC LIMIT :limit';
+        $sql .= ' ORDER BY Name ASC LIMIT ' . $limit;
 
         $stmt = $pdo->prepare($sql);
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value, PDO::PARAM_STR);
         }
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
 
         $customers = [];
