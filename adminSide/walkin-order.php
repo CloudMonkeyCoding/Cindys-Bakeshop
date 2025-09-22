@@ -5,151 +5,133 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 $activePage = 'walkin-order';
-$pageTitle = "New Walk-in Order - Cindy's Bakeshop";
+$pageTitle = "Walk-in POS - Cindy's Bakeshop";
 
 include 'includes/header.php';
 include 'includes/sidebar.php';
 ?>
 
 <div class="main">
-  <div class="page-header">
-    <h1>Create Walk-in Order</h1>
+  <div class="header">
+    <h1>Walk-in POS</h1>
     <a href="edit-profile.php" class="user-info">
       <span>Admin</span>
       <img src="https://i.pravatar.cc/80" alt="Admin avatar">
     </a>
   </div>
 
-  <div class="walkin-builder">
-    <form id="walkinOrderForm" autocomplete="off">
+  <div class="pos-container">
+    <form id="walkinOrderForm" class="pos-form" autocomplete="off">
       <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
-      <div class="builder-grid">
-        <section class="builder-card">
-          <div class="card-header">
-            <h2>Customer</h2>
-            <p>Attach an account for history tracking or leave the ticket as a guest walk-in.</p>
-          </div>
-          <div class="customer-mode">
-            <label>
-              <input type="radio" name="customer_mode" value="guest" checked>
-              No customer (walk-in)
-            </label>
-            <label>
-              <input type="radio" name="customer_mode" value="existing">
-              Existing customer
-            </label>
-          </div>
-          <div class="customer-section">
-            <div class="customer-summary empty" id="customerSummary">
-              <p>Orders created as walk-in guests are not linked to a customer account.</p>
-            </div>
-          </div>
-          <div class="customer-section is-hidden" id="existingCustomerSection">
-            <label for="customerSearch">Search</label>
-            <input type="search" id="customerSearch" placeholder="Search by name or email" disabled>
-            <p class="helper-text">Start typing to load matching accounts.</p>
-            <ul class="search-results" id="customerResults" aria-live="polite"></ul>
-          </div>
-        </section>
+      <input type="hidden" id="orderStatus" value="Confirmed">
 
-        <section class="builder-card">
-          <div class="card-header">
-            <h2>Fulfillment &amp; Payment</h2>
-            <p>Record how the order will be fulfilled and paid.</p>
-          </div>
-          <div class="form-field">
-            <label for="fulfillmentType">Fulfillment type</label>
-            <select id="fulfillmentType">
-              <option value="Pick up">Pick up</option>
-              <option value="Delivery">Delivery</option>
-            </select>
-          </div>
-          <div class="form-field">
-            <label for="orderStatus">Order status</label>
-            <select id="orderStatus">
-              <?php foreach (['Pending', 'Confirmed', 'Shipped', 'Delivered'] as $status): ?>
-                <option value="<?= htmlspecialchars($status); ?>"><?= htmlspecialchars($status); ?></option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-          <div class="form-field">
-            <label for="paymentMethod">Payment method</label>
-            <select id="paymentMethod">
-              <option value="Cash">Cash</option>
-              <option value="GCash">GCash</option>
-              <option value="Card">Card</option>
-              <option value="Bank transfer">Bank transfer</option>
-            </select>
-          </div>
-          <div class="form-field">
-            <label for="paymentStatus">Payment status</label>
-            <select id="paymentStatus">
-              <option value="Paid" selected>Paid</option>
-              <option value="Pending">Pending</option>
-              <option value="Partially Paid">Partially Paid</option>
-            </select>
-          </div>
-          <div class="form-field">
-            <label for="paymentAmount">Amount collected</label>
-            <input type="number" id="paymentAmount" min="0" step="0.01" value="0.00">
-          </div>
-          <div class="form-field">
-            <label for="referenceNumber">Reference # <span class="helper-text">(optional)</span></label>
-            <input type="text" id="referenceNumber" maxlength="100" placeholder="Receipt or transaction reference">
-          </div>
-        </section>
-
-        <section class="builder-card builder-wide">
-          <div class="card-header">
-            <h2>Products &amp; Summary</h2>
-            <p>Search the catalogue, add items to the order, and confirm quantities.</p>
-          </div>
-          <div class="product-toolbar">
-            <div class="form-field">
-              <label for="productSearch">Product search</label>
-              <input type="search" id="productSearch" placeholder="Search by name or category">
-            </div>
-            <label class="inline-checkbox">
+      <div class="pos-layout">
+        <section class="pos-products">
+          <div class="pos-toolbar">
+            <input type="search" id="productSearch" placeholder="Search products or categories">
+            <label class="pos-checkbox">
               <input type="checkbox" id="inStockOnly" checked>
               In stock only
             </label>
           </div>
-          <div class="product-layout">
-            <div class="product-list" id="productResults" aria-live="polite"></div>
-            <div class="order-summary">
-              <div class="order-summary-header">
-                <h3>Order summary</h3>
-                <p class="helper-text">Adjust quantities before creating the order.</p>
-              </div>
-              <div class="order-summary-body">
-                <table class="summary-table">
-                  <thead>
-                    <tr>
-                      <th>Item</th>
-                      <th style="width:120px;">Qty</th>
-                      <th>Price</th>
-                      <th>Subtotal</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody id="orderSummaryBody">
-                    <tr class="summary-empty">
-                      <td colspan="5">No items selected yet.</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div class="order-summary-footer">
-                <div class="total-row">
-                  <span>Total</span>
-                  <span id="orderTotal">₱0.00</span>
-                </div>
-                <div id="formErrors" class="form-messages is-hidden" role="alert"></div>
-                <button type="submit" class="btn btn-primary btn-submit">Create walk-in order</button>
-              </div>
-            </div>
-          </div>
+          <div class="pos-product-grid" id="productResults" aria-live="polite"></div>
         </section>
+
+        <aside class="pos-sidebar">
+          <section class="pos-card">
+            <h2>Cart</h2>
+            <div class="pos-cart-table-wrapper">
+              <table class="summary-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th style="width:110px;">Qty</th>
+                    <th>Price</th>
+                    <th>Subtotal</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="orderSummaryBody">
+                  <tr class="summary-empty">
+                    <td colspan="5">No items added.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="pos-card">
+            <h2>Customer</h2>
+            <div class="pos-customer-mode">
+              <label class="pos-radio">
+                <input type="radio" name="customer_mode" value="guest" checked>
+                Walk-in
+              </label>
+              <label class="pos-radio">
+                <input type="radio" name="customer_mode" value="existing">
+                Existing
+              </label>
+              <label class="pos-radio">
+                <input type="radio" name="customer_mode" value="new">
+                New
+              </label>
+            </div>
+            <div id="customerSummary" class="pos-customer-summary">
+              <p>This sale will be saved as a walk-in guest.</p>
+            </div>
+            <div id="existingCustomerSection" class="pos-customer-fields is-hidden">
+              <input type="search" id="customerSearch" placeholder="Search by name or email" disabled>
+              <ul id="customerResults" class="pos-search-results" aria-live="polite"></ul>
+            </div>
+            <div id="newCustomerSection" class="pos-customer-fields is-hidden">
+              <input type="text" id="newCustomerName" placeholder="Customer name">
+              <input type="email" id="newCustomerEmail" placeholder="Email (optional)">
+              <textarea id="newCustomerAddress" placeholder="Address (optional)" rows="2"></textarea>
+            </div>
+          </section>
+
+          <section class="pos-card pos-checkout">
+            <h2>Payment</h2>
+            <div class="form-field">
+              <label for="fulfillmentType">Fulfillment</label>
+              <select id="fulfillmentType">
+                <option value="Pick up">Pick up</option>
+                <option value="Delivery">Delivery</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="paymentMethod">Payment method</label>
+              <select id="paymentMethod">
+                <option value="Cash">Cash</option>
+                <option value="GCash">GCash</option>
+                <option value="Card">Card</option>
+                <option value="Bank transfer">Bank transfer</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="paymentStatus">Payment status</label>
+              <select id="paymentStatus">
+                <option value="Paid" selected>Paid</option>
+                <option value="Pending">Pending</option>
+                <option value="Partially Paid">Partially Paid</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="paymentAmount">Amount paid</label>
+              <input type="number" id="paymentAmount" min="0" step="0.01" value="0.00">
+            </div>
+            <div class="form-field">
+              <label for="referenceNumber">Reference # (optional)</label>
+              <input type="text" id="referenceNumber" maxlength="100">
+            </div>
+            <div class="pos-total">
+              <span>Total</span>
+              <strong id="orderTotal">₱0.00</strong>
+            </div>
+            <div id="formErrors" class="form-messages is-hidden" role="alert"></div>
+            <button type="submit" class="btn btn-primary pos-submit">Complete order</button>
+          </section>
+        </aside>
       </div>
     </form>
     <div id="walkinMessages" class="form-messages is-hidden" role="alert"></div>
@@ -169,12 +151,16 @@ $scriptTemplate = <<<'JS'
   const form = document.getElementById('walkinOrderForm');
   const customerModeRadios = form.querySelectorAll('input[name="customer_mode"]');
   const existingSection = document.getElementById('existingCustomerSection');
+  const newCustomerSection = document.getElementById('newCustomerSection');
   const customerSearchInput = document.getElementById('customerSearch');
   const customerResults = document.getElementById('customerResults');
   const customerSummary = document.getElementById('customerSummary');
+  const newCustomerNameInput = document.getElementById('newCustomerName');
+  const newCustomerEmailInput = document.getElementById('newCustomerEmail');
+  const newCustomerAddressInput = document.getElementById('newCustomerAddress');
   let currentCustomerMode = 'guest';
   const fulfillmentTypeSelect = document.getElementById('fulfillmentType');
-  const orderStatusSelect = document.getElementById('orderStatus');
+  const orderStatusInput = document.getElementById('orderStatus');
   const paymentMethodSelect = document.getElementById('paymentMethod');
   const paymentStatusSelect = document.getElementById('paymentStatus');
   const paymentAmountInput = document.getElementById('paymentAmount');
@@ -216,84 +202,110 @@ $scriptTemplate = <<<'JS'
   function renderCustomerSummary() {
     if (!customerSummary) return;
     customerSummary.innerHTML = '';
-    customerSummary.classList.remove('empty');
-
-    if (currentCustomerMode !== 'existing') {
-      customerSummary.classList.add('empty');
-      customerSummary.innerHTML = '<p>Orders created as walk-in guests are not linked to a customer account.</p>';
+    if (currentCustomerMode === 'guest') {
+      customerSummary.innerHTML = '<p>This sale will be saved as a walk-in guest.</p>';
       return;
     }
 
-    if (!selectedCustomer) {
-      customerSummary.classList.add('empty');
-      customerSummary.innerHTML = '<p>No customer selected yet. Use the search to attach one (optional).</p>';
-      return;
-    }
-
-    const wrapper = document.createElement('div');
-    wrapper.className = 'customer-details';
-
-    const name = document.createElement('strong');
-    name.textContent = selectedCustomer.name;
-    wrapper.appendChild(name);
-
-    if (selectedCustomer.email) {
-      const email = document.createElement('span');
-      email.textContent = selectedCustomer.email;
-      wrapper.appendChild(email);
-    }
-
-    if (selectedCustomer.address) {
-      const address = document.createElement('span');
-      address.textContent = selectedCustomer.address;
-      wrapper.appendChild(address);
-    }
-
-    const clearBtn = document.createElement('button');
-    clearBtn.type = 'button';
-    clearBtn.className = 'btn btn-muted btn-small';
-    clearBtn.textContent = 'Clear selection';
-    clearBtn.addEventListener('click', () => {
-      selectedCustomer = null;
-      customerResults.innerHTML = '';
-      if (customerSearchInput) {
-        customerSearchInput.value = '';
-        customerSearchInput.focus();
+    if (currentCustomerMode === 'existing') {
+      if (!selectedCustomer) {
+        customerSummary.innerHTML = '<p>Select an account to attach (optional).</p>';
+        return;
       }
-      renderCustomerSummary();
-    });
+      const list = document.createElement('div');
+      list.className = 'customer-details';
+      const name = document.createElement('strong');
+      name.textContent = selectedCustomer.name;
+      list.appendChild(name);
+      if (selectedCustomer.email) {
+        const email = document.createElement('span');
+        email.textContent = selectedCustomer.email;
+        list.appendChild(email);
+      }
+      if (selectedCustomer.address) {
+        const address = document.createElement('span');
+        address.textContent = selectedCustomer.address;
+        list.appendChild(address);
+      }
+      const clearBtn = document.createElement('button');
+      clearBtn.type = 'button';
+      clearBtn.className = 'btn btn-muted btn-small';
+      clearBtn.textContent = 'Clear';
+      clearBtn.addEventListener('click', () => {
+        selectedCustomer = null;
+        if (customerResults) {
+          customerResults.innerHTML = '';
+        }
+        if (customerSearchInput) {
+          customerSearchInput.value = '';
+          customerSearchInput.focus();
+        }
+        renderCustomerSummary();
+      });
+      customerSummary.appendChild(list);
+      customerSummary.appendChild(clearBtn);
+      return;
+    }
 
-    customerSummary.appendChild(wrapper);
-    customerSummary.appendChild(clearBtn);
+    if (currentCustomerMode === 'new') {
+      const nameValue = newCustomerNameInput ? newCustomerNameInput.value.trim() : '';
+      const emailValue = newCustomerEmailInput ? newCustomerEmailInput.value.trim() : '';
+      const addressValue = newCustomerAddressInput ? newCustomerAddressInput.value.trim() : '';
+      if (!nameValue) {
+        customerSummary.innerHTML = '<p>Enter the customer details to create a new account.</p>';
+        return;
+      }
+      const info = document.createElement('div');
+      info.className = 'customer-details';
+      const nameEl = document.createElement('strong');
+      nameEl.textContent = nameValue;
+      info.appendChild(nameEl);
+      if (emailValue) {
+        const emailEl = document.createElement('span');
+        emailEl.textContent = emailValue;
+        info.appendChild(emailEl);
+      }
+      if (addressValue) {
+        const addressEl = document.createElement('span');
+        addressEl.textContent = addressValue;
+        info.appendChild(addressEl);
+      }
+      customerSummary.appendChild(info);
+    }
   }
 
   function createProductCard(product) {
-    const card = document.createElement('div');
-    card.className = 'product-card';
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'pos-product-card';
     card.dataset.id = String(product.id);
 
-    const title = document.createElement('div');
-    title.className = 'product-title';
-    title.innerHTML = `<strong>${product.name}</strong><span>${product.category || 'Uncategorised'}</span>`;
-    card.appendChild(title);
+    const header = document.createElement('div');
+    header.className = 'pos-product-header';
+    const name = document.createElement('strong');
+    name.textContent = product.name;
+    header.appendChild(name);
+    const category = document.createElement('span');
+    category.textContent = product.category || 'Uncategorised';
+    header.appendChild(category);
+    card.appendChild(header);
 
     const meta = document.createElement('div');
-    meta.className = 'product-meta';
-    const stockClass = product.stock <= 0 ? 'out' : product.stock < 10 ? 'low' : '';
-    const stockText = product.stock > 0 ? `Stock: ${product.stock}` : 'Out of stock';
-    meta.innerHTML = `<span>${peso.format(product.price)}</span><span class="stock ${stockClass}">${stockText}</span>`;
+    meta.className = 'pos-product-meta';
+    const price = document.createElement('span');
+    price.textContent = peso.format(product.price);
+    meta.appendChild(price);
+
+    const stock = document.createElement('span');
+    const stockClass = product.stock <= 0 ? 'out' : product.stock < 10 ? 'low' : 'ok';
+    stock.className = `pos-product-stock ${stockClass}`;
+    stock.textContent = product.stock > 0 ? `Stock: ${product.stock}` : 'Out of stock';
+    meta.appendChild(stock);
     card.appendChild(meta);
 
-    const actions = document.createElement('div');
-    actions.className = 'product-actions';
-
-    const addButton = document.createElement('button');
-    addButton.type = 'button';
-    addButton.className = 'btn btn-secondary';
-    addButton.textContent = 'Add';
-    addButton.disabled = product.stock <= 0;
-    addButton.addEventListener('click', () => {
-      const existing = selectedItems.get(product.id) || { ...product, quantity: 0 };
+    card.disabled = product.stock <= 0;
+    card.addEventListener('click', () => {
+      const existing = selectedItems.get(product.id) || { id: product.id, name: product.name, price: product.price, stock: product.stock, quantity: 0 };
       if (existing.quantity >= product.stock) {
         setMessage(formErrors, 'error', `Only ${product.stock} piece(s) of ${product.name} available.`);
         return;
@@ -305,8 +317,6 @@ $scriptTemplate = <<<'JS'
       clearMessage(formErrors);
     });
 
-    actions.appendChild(addButton);
-    card.appendChild(actions);
     return card;
   }
 
@@ -349,7 +359,7 @@ $scriptTemplate = <<<'JS'
       row.className = 'summary-empty';
       const cell = document.createElement('td');
       cell.colSpan = 5;
-      cell.textContent = 'No items selected yet.';
+      cell.textContent = 'No items added.';
       row.appendChild(cell);
       summaryBody.appendChild(row);
     } else {
@@ -431,7 +441,7 @@ $scriptTemplate = <<<'JS'
       const response = await callApi({
         action: 'search_products',
         query: term,
-        limit: '20',
+        limit: '30',
         in_stock_only: inStockOnlyCheckbox.checked ? '1' : '0'
       });
       renderProductResults(response.products || []);
@@ -443,7 +453,9 @@ $scriptTemplate = <<<'JS'
 
   async function fetchCustomers(term) {
     if (term.length === 0) {
-      customerResults.innerHTML = '';
+      if (customerResults) {
+        customerResults.innerHTML = '';
+      }
       return;
     }
     try {
@@ -455,6 +467,7 @@ $scriptTemplate = <<<'JS'
   }
 
   function renderCustomerResults(customers) {
+    if (!customerResults) return;
     customerResults.innerHTML = '';
     if (!customers.length) {
       const empty = document.createElement('li');
@@ -505,15 +518,31 @@ $scriptTemplate = <<<'JS'
     clearMessage(formErrors);
     clearMessage(messages);
 
-    const mode = form.querySelector('input[name="customer_mode"]:checked')?.value || 'guest';
+    const modeInput = form.querySelector('input[name="customer_mode"]:checked');
+    const mode = modeInput ? modeInput.value : 'guest';
     currentCustomerMode = mode;
-    if (mode === 'existing' && !selectedCustomer) {
-      setMessage(formErrors, 'error', 'Select a customer before posting the order or choose the walk-in option.');
+
+    if (!selectedItems.size) {
+      setMessage(formErrors, 'error', 'Add at least one product to the cart.');
       return;
     }
-    if (!selectedItems.size) {
-      setMessage(formErrors, 'error', 'Add at least one product to the order.');
+
+    if (mode === 'existing' && !selectedCustomer) {
+      setMessage(formErrors, 'error', 'Select a customer or switch to walk-in.');
       return;
+    }
+
+    if (mode === 'new') {
+      const nameValue = newCustomerNameInput ? newCustomerNameInput.value.trim() : '';
+      const emailValue = newCustomerEmailInput ? newCustomerEmailInput.value.trim() : '';
+      if (!nameValue) {
+        setMessage(formErrors, 'error', 'Enter a customer name or record the sale as a walk-in.');
+        return;
+      }
+      if (newCustomerEmailInput && emailValue && !newCustomerEmailInput.checkValidity()) {
+        newCustomerEmailInput.reportValidity();
+        return;
+      }
     }
 
     const items = Array.from(selectedItems.values()).map((item) => ({
@@ -525,7 +554,7 @@ $scriptTemplate = <<<'JS'
       action: 'create_order',
       customer_mode: mode,
       fulfillment_type: fulfillmentTypeSelect.value,
-      order_status: orderStatusSelect.value,
+      order_status: orderStatusInput ? orderStatusInput.value : 'Confirmed',
       payment_method: paymentMethodSelect.value,
       payment_status: paymentStatusSelect.value,
       payment_amount: paymentAmountInput.value || '0',
@@ -535,6 +564,17 @@ $scriptTemplate = <<<'JS'
 
     if (mode === 'existing' && selectedCustomer) {
       payload.user_id = String(selectedCustomer.id);
+    } else if (mode === 'new') {
+      const nameValue = newCustomerNameInput ? newCustomerNameInput.value.trim() : '';
+      const emailValue = newCustomerEmailInput ? newCustomerEmailInput.value.trim() : '';
+      const addressValue = newCustomerAddressInput ? newCustomerAddressInput.value.trim() : '';
+      payload.new_customer_name = nameValue;
+      if (emailValue) {
+        payload.new_customer_email = emailValue;
+      }
+      if (addressValue) {
+        payload.new_customer_address = addressValue;
+      }
     }
 
     try {
@@ -544,30 +584,37 @@ $scriptTemplate = <<<'JS'
       }
 
       clearMessage(formErrors);
-      messages.innerHTML = '';
-      messages.classList.remove('is-error');
-      messages.classList.add('is-success');
-      messages.classList.remove('is-hidden');
-
-      const successText = document.createElement('p');
-      successText.innerHTML = `Order <strong>#${String(result.order_id).padStart(5, '0')}</strong> created successfully.`;
-      messages.appendChild(successText);
-
-      const linkParagraph = document.createElement('p');
-      const orderLink = document.createElement('a');
-      orderLink.href = ordersUrl;
-      orderLink.textContent = 'Go to Manage Orders';
-      orderLink.className = 'link-order';
-      linkParagraph.appendChild(orderLink);
-      messages.appendChild(linkParagraph);
+      setMessage(messages, 'success', `Order #${String(result.order_id).padStart(5, '0')} created.`);
+      const link = document.createElement('a');
+      link.href = ordersUrl;
+      link.textContent = 'View orders';
+      link.className = 'link-order';
+      messages.appendChild(document.createTextNode(' '));
+      messages.appendChild(link);
 
       selectedItems.clear();
       renderSelectedItems();
 
       selectedCustomer = null;
-      customerResults.innerHTML = '';
+      if (customerResults) {
+        customerResults.innerHTML = '';
+      }
       if (customerSearchInput) {
         customerSearchInput.value = '';
+      }
+      if (newCustomerNameInput) newCustomerNameInput.value = '';
+      if (newCustomerEmailInput) newCustomerEmailInput.value = '';
+      if (newCustomerAddressInput) newCustomerAddressInput.value = '';
+      paymentAmountInput.value = '0.00';
+      paymentAmountTouched = false;
+      referenceNumberInput.value = '';
+      paymentStatusSelect.value = 'Paid';
+      paymentMethodSelect.value = 'Cash';
+      if (fulfillmentTypeSelect) {
+        fulfillmentTypeSelect.value = 'Pick up';
+      }
+      if (orderStatusInput) {
+        orderStatusInput.value = 'Confirmed';
       }
 
       const guestRadio = form.querySelector('input[name="customer_mode"][value="guest"]');
@@ -575,13 +622,6 @@ $scriptTemplate = <<<'JS'
         guestRadio.checked = true;
       }
       toggleCustomerSections('guest');
-
-      paymentAmountInput.value = '0.00';
-      paymentAmountTouched = false;
-      referenceNumberInput.value = '';
-      orderStatusSelect.value = 'Pending';
-      paymentStatusSelect.value = 'Paid';
-      paymentMethodSelect.value = 'Cash';
     } catch (error) {
       console.error(error);
       setMessage(messages, 'error', error.message || 'Something went wrong while creating the order.');
@@ -590,20 +630,44 @@ $scriptTemplate = <<<'JS'
 
   function toggleCustomerSections(mode) {
     currentCustomerMode = mode;
+
     if (mode === 'existing') {
-      existingSection.classList.remove('is-hidden');
+      if (existingSection) {
+        existingSection.classList.remove('is-hidden');
+      }
+      if (newCustomerSection) {
+        newCustomerSection.classList.add('is-hidden');
+      }
       if (customerSearchInput) {
         customerSearchInput.disabled = false;
         customerSearchInput.focus();
       }
-    } else {
-      existingSection.classList.add('is-hidden');
-      selectedCustomer = null;
-      customerResults.innerHTML = '';
+    } else if (mode === 'new') {
+      if (newCustomerSection) {
+        newCustomerSection.classList.remove('is-hidden');
+      }
+      if (existingSection) {
+        existingSection.classList.add('is-hidden');
+      }
       if (customerSearchInput) {
         customerSearchInput.value = '';
         customerSearchInput.disabled = true;
       }
+    } else {
+      if (existingSection) {
+        existingSection.classList.add('is-hidden');
+      }
+      if (newCustomerSection) {
+        newCustomerSection.classList.add('is-hidden');
+      }
+      if (customerSearchInput) {
+        customerSearchInput.value = '';
+        customerSearchInput.disabled = true;
+      }
+      if (customerResults) {
+        customerResults.innerHTML = '';
+      }
+      selectedCustomer = null;
     }
     renderCustomerSummary();
   }
@@ -614,13 +678,25 @@ $scriptTemplate = <<<'JS'
     });
   });
 
-  customerSearchInput.addEventListener('input', () => {
-    if (customerSearchTimer) {
-      clearTimeout(customerSearchTimer);
-    }
-    const term = customerSearchInput.value.trim();
-    customerSearchTimer = setTimeout(() => fetchCustomers(term), 250);
-  });
+  if (customerSearchInput) {
+    customerSearchInput.addEventListener('input', () => {
+      if (customerSearchTimer) {
+        clearTimeout(customerSearchTimer);
+      }
+      const term = customerSearchInput.value.trim();
+      customerSearchTimer = setTimeout(() => fetchCustomers(term), 250);
+    });
+  }
+
+  if (newCustomerNameInput) {
+    newCustomerNameInput.addEventListener('input', renderCustomerSummary);
+  }
+  if (newCustomerEmailInput) {
+    newCustomerEmailInput.addEventListener('input', renderCustomerSummary);
+  }
+  if (newCustomerAddressInput) {
+    newCustomerAddressInput.addEventListener('input', renderCustomerSummary);
+  }
 
   productSearchInput.addEventListener('input', () => {
     if (productSearchTimer) {
@@ -650,6 +726,7 @@ $scriptTemplate = <<<'JS'
   form.addEventListener('submit', submitForm);
 
   toggleCustomerSections('guest');
+  renderCustomerSummary();
   renderSelectedItems();
   fetchProducts('');
 })();

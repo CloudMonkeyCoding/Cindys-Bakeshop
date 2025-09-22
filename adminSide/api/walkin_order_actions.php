@@ -117,7 +117,7 @@ switch ($action) {
 
     case 'create_order':
         $customerMode = filter_input(INPUT_POST, 'customer_mode', FILTER_SANITIZE_SPECIAL_CHARS) ?: 'guest';
-        $customerMode = in_array($customerMode, ['existing', 'guest'], true) ? $customerMode : 'guest';
+        $customerMode = in_array($customerMode, ['existing', 'guest', 'new'], true) ? $customerMode : 'guest';
 
         $itemsRaw = $_POST['items'] ?? '[]';
         $itemsData = json_decode($itemsRaw, true);
@@ -194,6 +194,32 @@ switch ($action) {
 
         try {
             $pdo->beginTransaction();
+
+            if ($customerMode === 'new') {
+                $newCustomerName = trim((string)(filter_input(INPUT_POST, 'new_customer_name', FILTER_UNSAFE_RAW) ?? ''));
+                $newCustomerEmail = trim((string)(filter_input(INPUT_POST, 'new_customer_email', FILTER_SANITIZE_EMAIL) ?? ''));
+                $newCustomerAddress = trim((string)(filter_input(INPUT_POST, 'new_customer_address', FILTER_UNSAFE_RAW) ?? ''));
+
+                if ($newCustomerName === '') {
+                    throw new InvalidArgumentException('Enter a customer name or record the sale as a walk-in guest.', 422);
+                }
+                if ($newCustomerEmail !== '' && !filter_var($newCustomerEmail, FILTER_VALIDATE_EMAIL)) {
+                    throw new InvalidArgumentException('Enter a valid email address or leave it blank.', 422);
+                }
+                if ($newCustomerEmail !== '' && checkEmailExists($pdo, $newCustomerEmail)) {
+                    throw new InvalidArgumentException('The email provided is already registered.', 422);
+                }
+
+                $randomPassword = bin2hex(random_bytes(8));
+                $userId = addUser(
+                    $pdo,
+                    $newCustomerName,
+                    $newCustomerEmail !== '' ? $newCustomerEmail : null,
+                    $randomPassword,
+                    $newCustomerAddress !== '' ? $newCustomerAddress : null
+                );
+                $customerEmail = $newCustomerEmail;
+            }
 
             if ($customerMode === 'existing') {
                 $userId = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);

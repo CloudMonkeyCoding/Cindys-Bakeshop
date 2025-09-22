@@ -87,13 +87,12 @@ php -S localhost:8000
 ## Walk-in Orders (Admin)
 The admin dashboard now includes a **New Order** builder under **Orders ▸ New Order** for recording walk-in sales. The tool works alongside the online checkout flow by storing the order `Source` and `Fulfillment_Type` in the database.
 
-1. Open the admin site and navigate to **Orders ▸ New Order** from the sidebar.
-2. Optionally attach an existing customer account—walk-in tickets can be recorded without customer details.
-3. Choose the fulfillment method (Delivery or Pick up), payment method/status, and optional reference number.
-4. Search for products, add them to the summary grid, and adjust quantities as needed.
-5. Submit the form to generate the order. Stock levels, transactions, and (for deliveries) a pending delivery record are created automatically.
+1. Open the admin site and launch **Orders ▸ New Order** to access the POS view.
+2. Search the catalogue, tap products to add them to the cart, and adjust quantities in the cart table.
+3. Leave the ticket as a walk-in, link an existing account, or capture quick details to create a new customer record (all optional).
+4. Confirm fulfillment and payment selections, then submit the order. Inventory, transactions, and (for deliveries) a pending delivery record are created automatically.
 
-If an email address is provided, the customer receives the standard confirmation email. The order appears on the **Manage Orders** page with its source and fulfillment details so staff can quickly distinguish in-store tickets.
+If an email address is provided—either via an existing profile or the quick add form—the customer receives the standard confirmation email. New walk-in contacts are stored as full user records with a generated password so the account can be managed later. The order appears on the **Manage Orders** page with its source and fulfillment details so staff can quickly distinguish in-store tickets.
 
 ## Firebase Configuration
 Firebase settings are served from a dedicated endpoint rather than being
