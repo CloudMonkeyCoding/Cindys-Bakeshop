@@ -31,7 +31,7 @@ The SQL dump defines the following tables:
 - **cart_item** – items placed in a shopping cart (`Cart_Item_ID`, `Cart_ID`, `Product_ID`, `Quantity`)
 - **delivery** – delivery status for orders (`Delivery_ID`, `Order_ID`, `Status`, `Delivery_Date`, `Delivery_Personnel` [User_ID])
 - **inventory** – stock levels for products (`Inventory_ID`, `Product_ID`, `Stock_Quantity`)
-- **order** – customer orders (`Order_ID`, `User_ID`, `Order_Date`, `Status`)
+- **order** – customer orders (`Order_ID`, `User_ID`, `Order_Date`, `Source`, `Fulfillment_Type`, `Status`)
 - **order_item** – products within an order (`Order_Item_ID`, `Order_ID`, `Product_ID`, `Quantity`, `Subtotal`)
 - **product** – product catalog (`Product_ID`, `Name`, `Description`, `Price`, `Stock_Quantity`, `Category`, `Image_Path`)
 - **shopping_cart** – cart ownership (`Cart_ID`, `User_ID`)
@@ -56,6 +56,15 @@ The SQL dump defines the following tables:
    - `DB_PASSWORD` – database password (defaults to an empty string)
    - `DB_CHARSET` – character set (defaults to `utf8mb4`)
 
+### Upgrading an Existing Database
+If you are updating an existing installation, apply the `Database/add_order_source_columns.sql` migration after pulling the latest code. The script adds the new `Source` and `Fulfillment_Type` columns required by the admin tooling.
+
+```sh
+mysql -u root -p cindysdb < Database/add_order_source_columns.sql
+```
+
+Run the command with your own database name and credentials.
+
 ### Running MySQL as a Service (Windows/XAMPP)
 To avoid manually launching the XAMPP control panel each time:
 
@@ -74,6 +83,16 @@ php -S localhost:8000
 ```
 - Browse the customer-facing site at `http://localhost:8000/userSide`.
 - Access the admin dashboard at `http://localhost:8000/adminSide`.
+
+## Walk-in Orders (Admin)
+The admin dashboard now includes a **New Order** builder under **Orders ▸ New Order** for recording walk-in sales. The tool works alongside the online checkout flow by storing the order `Source` and `Fulfillment_Type` in the database.
+
+1. Open the admin site and launch **Orders ▸ New Order** to access the POS view.
+2. Search the catalogue, tap products to add them to the cart, and adjust quantities in the cart table.
+3. Leave the ticket as a walk-in, link an existing account, or capture quick details to create a new customer record (all optional).
+4. Confirm fulfillment and payment selections, then submit the order. Inventory, transactions, and (for deliveries) a pending delivery record are created automatically.
+
+If an email address is provided—either via an existing profile or the quick add form—the customer receives the standard confirmation email. New walk-in contacts are stored as full user records with a generated password so the account can be managed later. The order appears on the **Manage Orders** page with its source and fulfillment details so staff can quickly distinguish in-store tickets.
 
 ## Firebase Configuration
 Firebase settings are served from a dedicated endpoint rather than being

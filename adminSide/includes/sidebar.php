@@ -30,13 +30,19 @@ function isDropdownActive(array $pages, $activePage) {
         Products
       </a>
     </li>
-    <li class="dropdown <?= isDropdownActive(['orders', 'delivery'], $activePage); ?>">
+    <li class="dropdown <?= isDropdownActive(['orders', 'delivery', 'walkin-order'], $activePage); ?>">
       <a href="#">
         <span><i class="fa-solid fa-cart-shopping"></i></span>
         Orders
         <i class="fa-solid fa-caret-down" style="margin-left:auto;"></i>
       </a>
       <ul class="submenu">
+        <li>
+          <a href="walkin-order.php" class="<?= isActive('walkin-order', $activePage); ?>">
+            <i class="fa-solid fa-cart-plus"></i>
+            New Order
+          </a>
+        </li>
         <li>
           <a href="orders.php" class="<?= isActive('orders', $activePage); ?>">
             <i class="fa-solid fa-list-check"></i>

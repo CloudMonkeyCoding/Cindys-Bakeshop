@@ -13,7 +13,7 @@ $pageTitle = "Manage Orders - Cindy's Bakeshop";
 $orders = [];
 $statusOptions = ['Pending', 'Confirmed', 'Shipped', 'Delivered'];
 if ($pdo) {
-    $sql = "SELECT o.Order_ID, o.Order_Date, o.Status, u.Name, 
+    $sql = "SELECT o.Order_ID, o.Order_Date, o.Status, o.Source, o.Fulfillment_Type, u.Name, 
                    COALESCE(SUM(oi.Quantity), 0) AS Item_Count,
                    COALESCE(SUM(oi.Subtotal), 0) AS Total_Amount,
                    GROUP_CONCAT(CONCAT(p.Name, ' x', oi.Quantity) SEPARATOR ', ') AS Item_Summary
@@ -21,7 +21,7 @@ if ($pdo) {
             LEFT JOIN user u ON o.User_ID = u.User_ID
             LEFT JOIN order_item oi ON oi.Order_ID = o.Order_ID
             LEFT JOIN product p ON oi.Product_ID = p.Product_ID
-            GROUP BY o.Order_ID, o.Order_Date, o.Status, u.Name
+            GROUP BY o.Order_ID, o.Order_Date, o.Status, o.Source, o.Fulfillment_Type, u.Name
             ORDER BY o.Order_Date DESC, o.Order_ID DESC";
     $stmt = $pdo->query($sql);
     $orders = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
@@ -56,6 +56,8 @@ include 'includes/sidebar.php';
           <th>#</th>
           <th>Customer</th>
           <th>Items</th>
+          <th>Source</th>
+          <th>Fulfillment</th>
           <th>Total</th>
           <th>Status</th>
           <th>Date</th>
@@ -65,14 +67,26 @@ include 'includes/sidebar.php';
       <tbody>
         <?php if (empty($orders)): ?>
           <tr>
-            <td colspan="7" class="table-empty">No orders found.</td>
+            <td colspan="9" class="table-empty">No orders found.</td>
           </tr>
         <?php else: ?>
           <?php foreach ($orders as $order): ?>
-            <tr data-order-id="<?= $order['Order_ID']; ?>" data-status="<?= htmlspecialchars($order['Status']); ?>">
+            <?php
+              $sourceValue = $order['Source'] ?? '';
+              $sourceLabel = $sourceValue ? ucwords(str_replace(['-', '_'], [' ', ' '], $sourceValue)) : '—';
+              $fulfillmentLabel = $order['Fulfillment_Type'] ?? '—';
+              $itemSummary = $order['Item_Summary'] ?? 'No items recorded';
+            ?>
+            <tr data-order-id="<?= $order['Order_ID']; ?>"
+                data-status="<?= htmlspecialchars($order['Status']); ?>"
+                data-source="<?= htmlspecialchars($sourceValue); ?>"
+                data-fulfillment="<?= htmlspecialchars($order['Fulfillment_Type'] ?? ''); ?>"
+                data-summary="<?= htmlspecialchars($itemSummary); ?>">
               <td>#<?= str_pad($order['Order_ID'], 5, '0', STR_PAD_LEFT); ?></td>
               <td><?= htmlspecialchars($order['Name'] ?? 'Customer ' . $order['Order_ID']); ?></td>
-              <td><?= htmlspecialchars($order['Item_Summary'] ?? 'No items recorded'); ?></td>
+              <td><?= htmlspecialchars($itemSummary); ?></td>
+              <td><?= htmlspecialchars($sourceLabel); ?></td>
+              <td><?= htmlspecialchars($fulfillmentLabel); ?></td>
               <td>₱<?= number_format($order['Total_Amount'] ?? 0, 2); ?></td>
               <td>
                 <span class="status-pill status-<?= strtolower($order['Status']); ?>">
@@ -121,6 +135,8 @@ $ordersJson = json_encode(array_map(static function ($order) {
         'status' => $order['Status'],
         'summary' => $order['Item_Summary'] ?? '',
         'date' => $order['Order_Date'] ?? '',
+        'source' => $order['Source'] ?? '',
+        'fulfillment' => $order['Fulfillment_Type'] ?? '',
     ];
 }, $orders));
 $csrfToken = json_encode($_SESSION['csrf_token']);
@@ -215,9 +231,11 @@ $extraScripts = <<<JS
       if (!cells.length) return;
       const id = cells[0].textContent.toLowerCase();
       const customer = cells[1].textContent.toLowerCase();
-      const summary = cells[2].textContent.toLowerCase();
+      const summary = (row.dataset.summary || '').toLowerCase();
+      const source = (row.dataset.source || '').toLowerCase();
+      const fulfillment = (row.dataset.fulfillment || '').toLowerCase();
       const rowStatus = row.dataset.status;
-      const matchesSearch = id.includes(query) || customer.includes(query) || summary.includes(query);
+      const matchesSearch = id.includes(query) || customer.includes(query) || summary.includes(query) || source.includes(query) || fulfillment.includes(query);
       const matchesStatus = status === 'all' || rowStatus === status;
       row.style.display = matchesSearch && matchesStatus ? '' : 'none';
     });

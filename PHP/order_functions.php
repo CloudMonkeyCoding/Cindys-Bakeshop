@@ -1,13 +1,25 @@
 <?php
 // 1) Create a new order
-function addOrder($pdo, $userId, $orderDate, $status) {
+function addOrder($pdo, $userId, $orderDate, $status, $source = 'online', $fulfillmentType = 'Delivery') {
+    $validSources = ['online', 'walk-in'];
+    if (in_array($source, $validSources, true) === false) {
+        $source = 'online';
+    }
+
+    $validFulfillment = ['Delivery', 'Pick up'];
+    if (in_array($fulfillmentType, $validFulfillment, true) === false) {
+        $fulfillmentType = 'Delivery';
+    }
+
     $stmt = $pdo->prepare("
-        INSERT INTO `order` (User_ID, Order_Date, Status)
-        VALUES (:user_id, :order_date, :status)
+        INSERT INTO `order` (User_ID, Order_Date, Source, Fulfillment_Type, Status)
+        VALUES (:user_id, :order_date, :source, :fulfillment_type, :status)
     ");
     $stmt->execute([
         ':user_id' => $userId,
         ':order_date' => $orderDate,
+        ':source' => $source,
+        ':fulfillment_type' => $fulfillmentType,
         ':status' => $status
     ]);
     return $pdo->lastInsertId();
@@ -25,13 +37,15 @@ function getOrdersByUserId($pdo, $userId) {
         SELECT o.Order_ID,
                o.User_ID,
                o.Order_Date,
+               o.Source,
+               o.Fulfillment_Type,
                o.Status,
                MIN(p.Image_Path) AS Image_Path
         FROM `order` o
         LEFT JOIN order_item oi ON o.Order_ID = oi.Order_ID
         LEFT JOIN product p ON oi.Product_ID = p.Product_ID
         WHERE o.User_ID = :user_id
-        GROUP BY o.Order_ID, o.User_ID, o.Order_Date, o.Status
+        GROUP BY o.Order_ID, o.User_ID, o.Order_Date, o.Source, o.Fulfillment_Type, o.Status
     ");
     $stmt->execute([':user_id' => $userId]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
