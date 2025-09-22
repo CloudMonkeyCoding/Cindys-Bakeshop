@@ -294,7 +294,16 @@ $scriptTemplate = <<<'JS'
     }
   }
 
+  function isFiniteStock(value) {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+
   function createProductCard(product) {
+    const normalizedStock = isFiniteStock(product.stock);
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'pos-product-card';
@@ -317,22 +326,40 @@ $scriptTemplate = <<<'JS'
     meta.appendChild(price);
 
     const stock = document.createElement('span');
-    const stockClass = product.stock <= 0 ? 'out' : product.stock < 10 ? 'low' : 'ok';
+    const hasTrackedStock = normalizedStock !== null;
+    const stockClass = hasTrackedStock
+      ? normalizedStock <= 0
+        ? 'out'
+        : normalizedStock < 10
+          ? 'low'
+          : 'ok'
+      : 'not-tracked';
     stock.className = `pos-product-stock ${stockClass}`;
-    stock.textContent = product.stock > 0 ? `Stock: ${product.stock}` : 'Out of stock';
+    stock.textContent = hasTrackedStock
+      ? normalizedStock > 0
+        ? `Stock: ${normalizedStock}`
+        : 'Out of stock'
+      : 'Not tracked';
     meta.appendChild(stock);
     card.appendChild(meta);
 
-    card.disabled = product.stock <= 0;
+    card.disabled = hasTrackedStock && normalizedStock <= 0;
     card.addEventListener('click', () => {
       log('debug', 'Product card clicked', { product });
-      const existing = selectedItems.get(product.id) || { id: product.id, name: product.name, price: product.price, stock: product.stock, quantity: 0 };
-      if (existing.quantity >= product.stock) {
-        setMessage(formErrors, 'error', `Only ${product.stock} piece(s) of ${product.name} available.`);
+      const existing = selectedItems.get(product.id) || {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        stock: hasTrackedStock ? normalizedStock : null,
+        quantity: 0
+      };
+      const stockLimit = hasTrackedStock ? normalizedStock : null;
+      if (stockLimit !== null && existing.quantity >= stockLimit) {
+        setMessage(formErrors, 'error', `Only ${stockLimit} piece(s) of ${product.name} available.`);
         return;
       }
       existing.quantity += 1;
-      existing.stock = product.stock;
+      existing.stock = stockLimit;
       selectedItems.set(product.id, existing);
       renderSelectedItems();
       clearMessage(formErrors);
@@ -363,9 +390,10 @@ $scriptTemplate = <<<'JS'
     if (nextQuantity < 1) {
       nextQuantity = 1;
     }
-    if (nextQuantity > item.stock) {
-      nextQuantity = item.stock;
-      setMessage(formErrors, 'error', `Only ${item.stock} piece(s) of ${item.name} available.`);
+    const stockLimit = typeof item.stock === 'number' && Number.isFinite(item.stock) ? item.stock : null;
+    if (stockLimit !== null && nextQuantity > stockLimit) {
+      nextQuantity = stockLimit;
+      setMessage(formErrors, 'error', `Only ${stockLimit} piece(s) of ${item.name} available.`);
     } else {
       clearMessage(formErrors);
     }
@@ -408,12 +436,23 @@ $scriptTemplate = <<<'JS'
         qtyWrapper.appendChild(minusBtn);
 
         const qtyInput = document.createElement('input');
+        const stockLimit = typeof item.stock === 'number' && Number.isFinite(item.stock) ? item.stock : null;
         qtyInput.type = 'number';
         qtyInput.min = '1';
-        qtyInput.max = String(item.stock);
+        if (stockLimit !== null) {
+          qtyInput.max = String(stockLimit);
+        } else {
+          qtyInput.removeAttribute('max');
+        }
         qtyInput.value = String(item.quantity);
         qtyInput.addEventListener('change', () => {
-          const next = Math.max(1, Math.min(item.stock, parseInt(qtyInput.value, 10) || 1));
+          let next = parseInt(qtyInput.value, 10);
+          if (Number.isNaN(next) || next < 1) {
+            next = 1;
+          }
+          if (stockLimit !== null && next > stockLimit) {
+            next = stockLimit;
+          }
           updateQuantity(id, next);
         });
         qtyWrapper.appendChild(qtyInput);

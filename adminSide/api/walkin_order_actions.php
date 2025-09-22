@@ -79,7 +79,7 @@ switch ($action) {
             'in_stock_only' => $inStockOnly,
         ]);
 
-        $sql = "SELECT p.Product_ID, p.Name, p.Price, p.Category,\n                       COALESCE(i.Stock_Quantity, p.Stock_Quantity) AS Stock_Quantity\n                FROM product p\n                LEFT JOIN inventory i ON i.Product_ID = p.Product_ID";
+        $sql = "SELECT p.Product_ID, p.Name, p.Price, p.Category,\n                       COALESCE(i.Stock_Quantity, p.Stock_Quantity) AS Stock_Quantity,\n                       (i.Stock_Quantity IS NULL AND p.Stock_Quantity IS NULL) AS Stock_Not_Tracked\n                FROM product p\n                LEFT JOIN inventory i ON i.Product_ID = p.Product_ID";
         $conditions = [];
         $params = [];
         if ($query !== '') {
@@ -87,7 +87,7 @@ switch ($action) {
             $params[':term'] = "%$query%";
         }
         if ($inStockOnly === true) {
-            $conditions[] = 'COALESCE(i.Stock_Quantity, p.Stock_Quantity) > 0';
+            $conditions[] = '(COALESCE(i.Stock_Quantity, p.Stock_Quantity) > 0 OR (i.Stock_Quantity IS NULL AND p.Stock_Quantity IS NULL))';
         }
         if ($conditions) {
             $sql .= ' WHERE ' . implode(' AND ', $conditions);
@@ -101,12 +101,19 @@ switch ($action) {
         $stmt->execute();
         $products = [];
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $rawStock = array_key_exists('Stock_Quantity', $row) ? $row['Stock_Quantity'] : null;
+            $stockNotTracked = !empty($row['Stock_Not_Tracked']);
+            $stockValue = null;
+            if (!$stockNotTracked) {
+                $stockValue = $rawStock === null ? null : (int)$rawStock;
+            }
+
             $products[] = [
                 'id' => (int)$row['Product_ID'],
                 'name' => $row['Name'],
                 'price' => (float)$row['Price'],
                 'category' => $row['Category'],
-                'stock' => (int)($row['Stock_Quantity'] ?? 0)
+                'stock' => $stockValue
             ];
         }
         walkin_order_log('Product search completed', ['result_count' => count($products)]);
@@ -181,8 +188,13 @@ switch ($action) {
             }
 
             $inventory = getInventoryByProductId($pdo, $productId);
-            $availableStock = (int)($inventory['Stock_Quantity'] ?? $product['Stock_Quantity'] ?? 0);
-            if ($quantity > $availableStock) {
+            $inventoryStock = is_array($inventory) && array_key_exists('Stock_Quantity', $inventory)
+                ? $inventory['Stock_Quantity']
+                : null;
+            $productStock = array_key_exists('Stock_Quantity', $product) ? $product['Stock_Quantity'] : null;
+            $trackedStock = $inventoryStock ?? $productStock;
+            $availableStock = $trackedStock === null ? null : (int)$trackedStock;
+            if ($availableStock !== null && $quantity > $availableStock) {
                 $respond(422, ['success' => false, 'message' => "Not enough stock for {$product['Name']}."]);
             }
 
