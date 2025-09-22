@@ -746,6 +746,12 @@ $scriptTemplate = <<<'JS'
   });
 
   if (customerSearchInput) {
+    customerSearchInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        log('debug', 'Prevented Enter key default in customer search input');
+      }
+    });
     customerSearchInput.addEventListener('input', () => {
       if (customerSearchTimer) {
         clearTimeout(customerSearchTimer);
@@ -766,6 +772,12 @@ $scriptTemplate = <<<'JS'
     newCustomerAddressInput.addEventListener('input', renderCustomerSummary);
   }
 
+  productSearchInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      log('debug', 'Prevented Enter key default in product search input');
+    }
+  });
   productSearchInput.addEventListener('input', () => {
     if (productSearchTimer) {
       clearTimeout(productSearchTimer);
