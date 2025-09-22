@@ -46,6 +46,8 @@ switch ($action) {
             $user = getUserById($pdo, $userId);
         }
         $items = json_decode($_POST['items'] ?? '[]', true);
+        $orderTypeInput = isset($_POST['order_type']) ? trim($_POST['order_type']) : '';
+        $orderType = in_array($orderTypeInput, ['Delivery', 'Pick up'], true) ? $orderTypeInput : 'Delivery';
         $mop   = $_POST['mop'] ?? '';
 
         foreach ($items as $it) {
@@ -57,7 +59,7 @@ switch ($action) {
             }
         }
 
-        $orderId = addOrder($pdo, $userId, date('Y-m-d'), 'Pending');
+        $orderId = addOrder($pdo, $userId, date('Y-m-d'), 'Pending', 'online', $orderType);
         $total = 0;
         foreach ($items as $it) {
             $stmt = $pdo->prepare('SELECT Price FROM product WHERE Product_ID = :id');

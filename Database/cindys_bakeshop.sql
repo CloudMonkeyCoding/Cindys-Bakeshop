@@ -83,6 +83,8 @@ CREATE TABLE `order` (
   `Order_ID` int(11) NOT NULL,
   `User_ID` int(11) DEFAULT NULL,
   `Order_Date` date DEFAULT NULL,
+  `Source` enum('online','walk-in') DEFAULT 'online',
+  `Fulfillment_Type` enum('Delivery','Pick up') DEFAULT 'Delivery',
   `Status` enum('Pending','Confirmed','Shipped','Delivered') DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -214,7 +216,9 @@ ALTER TABLE `inventory`
 --
 ALTER TABLE `order`
   ADD PRIMARY KEY (`Order_ID`),
-  ADD KEY `User_ID` (`User_ID`);
+  ADD KEY `User_ID` (`User_ID`),
+  ADD KEY `idx_order_source` (`Source`),
+  ADD KEY `idx_order_fulfillment` (`Fulfillment_Type`);
 
 --
 -- Indexes for table `order_item`
