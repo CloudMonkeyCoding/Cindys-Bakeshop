@@ -2,7 +2,24 @@
 session_start();
 header('Content-Type: application/json');
 
+if (!function_exists('walkin_order_log')) {
+    function walkin_order_log(string $message, array $context = []): void
+    {
+        if (!empty($context)) {
+            $encoded = json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            if ($encoded !== false) {
+                $message .= ' ' . $encoded;
+            } else {
+                $message .= ' ' . var_export($context, true);
+            }
+        }
+
+        error_log('[Walk-in API] ' . $message);
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    walkin_order_log('Rejected request with invalid method', ['method' => $_SERVER['REQUEST_METHOD'] ?? 'unknown']);
     http_response_code(405);
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
     exit;
@@ -18,7 +35,10 @@ require_once '../../PHP/user_functions.php';
 require_once '../../PHP/delivery_functions.php';
 require_once '../../PHP/email_functions.php';
 
+walkin_order_log('Bootstrap completed for walk-in order API');
+
 if (!$pdo) {
+    walkin_order_log('Database connection unavailable');
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database connection failed']);
     exit;
@@ -28,16 +48,20 @@ $action = filter_input(INPUT_POST, 'action', FILTER_SANITIZE_SPECIAL_CHARS) ?: '
 $token = filter_input(INPUT_POST, 'csrf_token', FILTER_SANITIZE_SPECIAL_CHARS) ?: '';
 
 if (!hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
+    walkin_order_log('CSRF token mismatch', ['session_token_present' => isset($_SESSION['csrf_token'])]);
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Invalid CSRF token']);
     exit;
 }
 
 $respond = static function (int $status, array $payload): void {
+    walkin_order_log('Responding', ['status' => $status, 'payload' => $payload]);
     http_response_code($status);
     echo json_encode($payload);
     exit;
 };
+
+walkin_order_log('Processing request', ['action' => $action]);
 
 switch ($action) {
     case 'search_products':
@@ -48,6 +72,12 @@ switch ($action) {
         }
         $limit = min($limit, 100);
         $inStockOnly = filter_input(INPUT_POST, 'in_stock_only', FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+        walkin_order_log('Searching products', [
+            'query' => $query,
+            'limit' => $limit,
+            'in_stock_only' => $inStockOnly,
+        ]);
 
         $sql = "SELECT p.Product_ID, p.Name, p.Price, p.Category,\n                       COALESCE(i.Stock_Quantity, p.Stock_Quantity) AS Stock_Quantity\n                FROM product p\n                LEFT JOIN inventory i ON i.Product_ID = p.Product_ID";
         $conditions = [];
@@ -79,6 +109,7 @@ switch ($action) {
                 'stock' => (int)($row['Stock_Quantity'] ?? 0)
             ];
         }
+        walkin_order_log('Product search completed', ['result_count' => count($products)]);
         $respond(200, ['success' => true, 'products' => $products]);
         break;
 
@@ -89,6 +120,7 @@ switch ($action) {
             $limit = 10;
         }
         $limit = min($limit, 50);
+        walkin_order_log('Searching customers', ['query' => $query, 'limit' => $limit]);
         $sql = "SELECT User_ID, Name, Email, Address FROM user";
         $params = [];
         if ($query !== '') {
@@ -112,6 +144,7 @@ switch ($action) {
                 'address' => $row['Address'] ?? ''
             ];
         }
+        walkin_order_log('Customer search completed', ['result_count' => count($customers)]);
         $respond(200, ['success' => true, 'customers' => $customers]);
         break;
 
@@ -125,6 +158,11 @@ switch ($action) {
             $respond(422, ['success' => false, 'message' => 'Please add at least one product.']);
         }
 
+        walkin_order_log('Starting order creation', [
+            'customer_mode' => $customerMode,
+            'item_count' => count($itemsData),
+        ]);
+
         $orderItems = [];
         $orderTotal = 0.0;
 
@@ -135,9 +173,11 @@ switch ($action) {
                 $respond(422, ['success' => false, 'message' => 'Invalid product selection provided.']);
             }
 
+            walkin_order_log('Processing line item', ['product_id' => $productId, 'quantity' => $quantity]);
+
             $product = getProductById($pdo, $productId);
             if (!$product) {
-                $respond(404, ['success' => false, 'message' => "Product ID {$productId} does not exist."]);
+                $respond(404, ['success' => false, 'message' => "Product ID {$productId} does not exist."]); 
             }
 
             $inventory = getInventoryByProductId($pdo, $productId);
@@ -192,8 +232,18 @@ switch ($action) {
         $customerEmail = '';
         $userId = null;
 
+        walkin_order_log('Order metadata prepared', [
+            'fulfillment_type' => $fulfillmentType,
+            'order_status' => $orderStatus,
+            'payment_method' => $paymentMethod,
+            'payment_status' => $paymentStatus,
+            'payment_amount' => $paymentAmount,
+            'reference_number_present' => $referenceNumber !== null,
+        ]);
+
         try {
             $pdo->beginTransaction();
+            walkin_order_log('Transaction started');
 
             if ($customerMode === 'new') {
                 $newCustomerName = trim((string)(filter_input(INPUT_POST, 'new_customer_name', FILTER_UNSAFE_RAW) ?? ''));
@@ -219,6 +269,10 @@ switch ($action) {
                     $newCustomerAddress !== '' ? $newCustomerAddress : null
                 );
                 $customerEmail = $newCustomerEmail;
+                walkin_order_log('Created new customer record', [
+                    'user_id' => $userId,
+                    'email_present' => $customerEmail !== '',
+                ]);
             }
 
             if ($customerMode === 'existing') {
@@ -231,24 +285,42 @@ switch ($action) {
                     throw new InvalidArgumentException('Selected customer could not be found.', 404);
                 }
                 $customerEmail = $user['Email'] ?? '';
+                walkin_order_log('Using existing customer', [
+                    'user_id' => $userId,
+                    'email_present' => $customerEmail !== '',
+                ]);
             }
 
             $orderId = addOrder($pdo, $userId, date('Y-m-d'), $orderStatus, 'walk-in', $fulfillmentType);
+            walkin_order_log('Order inserted', ['order_id' => $orderId, 'item_count' => count($orderItems)]);
 
             foreach ($orderItems as $line) {
                 addOrderItem($pdo, $orderId, $line['product_id'], $line['quantity'], $line['subtotal']);
                 adjustInventoryStock($pdo, $line['product_id'], -$line['quantity']);
                 adjustProductStock($pdo, $line['product_id'], -$line['quantity']);
+                walkin_order_log('Processed order line', [
+                    'order_id' => $orderId,
+                    'product_id' => $line['product_id'],
+                    'quantity' => $line['quantity'],
+                    'subtotal' => $line['subtotal'],
+                ]);
             }
 
             $paymentDate = date('Y-m-d');
             addTransaction($pdo, $orderId, $paymentMethod, $paymentStatus, $paymentDate, $paymentAmount, $referenceNumber);
+            walkin_order_log('Transaction recorded', [
+                'order_id' => $orderId,
+                'payment_status' => $paymentStatus,
+                'payment_amount' => $paymentAmount,
+            ]);
 
             if ($fulfillmentType === 'Delivery') {
                 addDelivery($pdo, $orderId, 'Pending', null, null);
+                walkin_order_log('Delivery seeded', ['order_id' => $orderId]);
             }
 
             $pdo->commit();
+            walkin_order_log('Transaction committed', ['order_id' => $orderId]);
         } catch (InvalidArgumentException $exception) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
@@ -257,23 +329,41 @@ switch ($action) {
             if ($code < 400 || $code > 599) {
                 $code = 422;
             }
+            walkin_order_log('Validation exception', [
+                'message' => $exception->getMessage(),
+                'code' => $code,
+            ]);
             $respond($code, ['success' => false, 'message' => $exception->getMessage()]);
         } catch (Throwable $exception) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            error_log('Walk-in order API error: ' . $exception->getMessage());
+            walkin_order_log('Unexpected error', [
+                'message' => $exception->getMessage(),
+                'trace' => $exception->getTraceAsString(),
+            ]);
             $respond(500, ['success' => false, 'message' => 'Unable to create the order. Please try again.']);
         }
 
         if ($customerEmail !== '') {
             try {
                 sendOrderConfirmationEmail($customerEmail, $orderId, $orderTotal);
+                walkin_order_log('Order confirmation email dispatched', [
+                    'order_id' => $orderId,
+                    'email' => $customerEmail,
+                ]);
             } catch (Throwable $exception) {
-                error_log('Walk-in order email error: ' . $exception->getMessage());
+                walkin_order_log('Email dispatch error', [
+                    'message' => $exception->getMessage(),
+                    'order_id' => $orderId,
+                ]);
             }
         }
 
+        walkin_order_log('Order creation successful', [
+            'order_id' => $orderId,
+            'total' => $orderTotal,
+        ]);
         $respond(200, [
             'success' => true,
             'order_id' => (int)$orderId,

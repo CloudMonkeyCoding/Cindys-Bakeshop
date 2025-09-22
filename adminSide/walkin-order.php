@@ -173,6 +173,15 @@ $scriptTemplate = <<<'JS'
   const formErrors = document.getElementById('formErrors');
   const messages = document.getElementById('walkinMessages');
 
+  const hasConsole = typeof console !== 'undefined';
+  const log = (level, ...args) => {
+    if (!hasConsole) return;
+    const method = console[level] || console.log;
+    method.call(console, '[Walk-in POS]', ...args);
+  };
+
+  log('debug', 'POS script initialised');
+
   const peso = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
   const selectedItems = new Map();
@@ -183,6 +192,7 @@ $scriptTemplate = <<<'JS'
 
   function setMessage(target, type, text) {
     if (!target) return;
+    log('debug', 'Setting message', { targetId: target.id || null, type, text });
     target.textContent = text;
     target.classList.remove('is-hidden', 'is-success', 'is-error');
     if (type === 'success') {
@@ -194,6 +204,7 @@ $scriptTemplate = <<<'JS'
 
   function clearMessage(target) {
     if (!target) return;
+    log('debug', 'Clearing message', { targetId: target.id || null });
     target.textContent = '';
     target.classList.add('is-hidden');
     target.classList.remove('is-success', 'is-error');
@@ -201,6 +212,15 @@ $scriptTemplate = <<<'JS'
 
   function renderCustomerSummary() {
     if (!customerSummary) return;
+    log('debug', 'Rendering customer summary', {
+      mode: currentCustomerMode,
+      selectedCustomer,
+      newCustomerDraft: {
+        name: newCustomerNameInput ? newCustomerNameInput.value : '',
+        email: newCustomerEmailInput ? newCustomerEmailInput.value : '',
+        address: newCustomerAddressInput ? newCustomerAddressInput.value : '',
+      },
+    });
     customerSummary.innerHTML = '';
     if (currentCustomerMode === 'guest') {
       customerSummary.innerHTML = '<p>This sale will be saved as a walk-in guest.</p>';
@@ -305,6 +325,7 @@ $scriptTemplate = <<<'JS'
 
     card.disabled = product.stock <= 0;
     card.addEventListener('click', () => {
+      log('debug', 'Product card clicked', { product });
       const existing = selectedItems.get(product.id) || { id: product.id, name: product.name, price: product.price, stock: product.stock, quantity: 0 };
       if (existing.quantity >= product.stock) {
         setMessage(formErrors, 'error', `Only ${product.stock} piece(s) of ${product.name} available.`);
@@ -321,6 +342,7 @@ $scriptTemplate = <<<'JS'
   }
 
   function renderProductResults(products) {
+    log('debug', 'Rendering product results', { count: products.length });
     productResultsContainer.innerHTML = '';
     if (!products.length) {
       const empty = document.createElement('div');
@@ -335,6 +357,7 @@ $scriptTemplate = <<<'JS'
   }
 
   function updateQuantity(id, nextQuantity) {
+    log('debug', 'Update quantity requested', { id, nextQuantity });
     const item = selectedItems.get(id);
     if (!item) return;
     if (nextQuantity < 1) {
@@ -352,6 +375,7 @@ $scriptTemplate = <<<'JS'
   }
 
   function renderSelectedItems() {
+    log('debug', 'Rendering selected items', { itemCount: selectedItems.size });
     summaryBody.innerHTML = '';
     let total = 0;
     if (!selectedItems.size) {
@@ -420,6 +444,7 @@ $scriptTemplate = <<<'JS'
         removeBtn.className = 'btn btn-muted btn-small';
         removeBtn.textContent = 'Remove';
         removeBtn.addEventListener('click', () => {
+          log('debug', 'Removing item from cart', { id, name: item.name });
           selectedItems.delete(id);
           renderSelectedItems();
         });
@@ -434,9 +459,21 @@ $scriptTemplate = <<<'JS'
     if (!paymentAmountTouched || paymentStatusSelect.value === 'Paid') {
       paymentAmountInput.value = total.toFixed(2);
     }
+    log('debug', 'Cart totals updated', {
+      total,
+      paymentStatus: paymentStatusSelect.value,
+      items: Array.from(selectedItems.values()).map((item) => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        stock: item.stock,
+        price: item.price,
+      })),
+    });
   }
 
   async function fetchProducts(term) {
+    log('debug', 'Fetching products', { term, inStockOnly: inStockOnlyCheckbox.checked });
     try {
       const response = await callApi({
         action: 'search_products',
@@ -444,9 +481,10 @@ $scriptTemplate = <<<'JS'
         limit: '30',
         in_stock_only: inStockOnlyCheckbox.checked ? '1' : '0'
       });
+      log('debug', 'Product search response', { count: (response.products || []).length });
       renderProductResults(response.products || []);
     } catch (error) {
-      console.error(error);
+      log('error', 'Failed to fetch products', error);
       renderProductResults([]);
     }
   }
@@ -459,15 +497,18 @@ $scriptTemplate = <<<'JS'
       return;
     }
     try {
+      log('debug', 'Fetching customers', { term });
       const response = await callApi({ action: 'search_customers', query: term, limit: '10' });
+      log('debug', 'Customer search response', { count: (response.customers || []).length });
       renderCustomerResults(response.customers || []);
     } catch (error) {
-      console.error(error);
+      log('error', 'Failed to fetch customers', error);
     }
   }
 
   function renderCustomerResults(customers) {
     if (!customerResults) return;
+    log('debug', 'Rendering customer results', { count: customers.length });
     customerResults.innerHTML = '';
     if (!customers.length) {
       const empty = document.createElement('li');
@@ -481,6 +522,7 @@ $scriptTemplate = <<<'JS'
       item.className = 'search-result';
       item.innerHTML = `<strong>${customer.name}</strong><span>${customer.email || 'No email on file'}</span>`;
       item.addEventListener('click', () => {
+        log('debug', 'Existing customer selected', customer);
         selectedCustomer = customer;
         customerResults.innerHTML = '';
         renderCustomerSummary();
@@ -492,6 +534,11 @@ $scriptTemplate = <<<'JS'
   async function callApi(params) {
     const body = new URLSearchParams(params);
     body.set('csrf_token', csrfToken);
+    const debugPayload = {};
+    body.forEach((value, key) => {
+      debugPayload[key] = key === 'csrf_token' ? '[redacted]' : value;
+    });
+    log('debug', 'API request payload', debugPayload);
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -505,9 +552,12 @@ $scriptTemplate = <<<'JS'
     try {
       json = JSON.parse(text);
     } catch (error) {
+      log('error', 'Failed to parse API response', { text });
       throw new Error(text || 'Unexpected response from server.');
     }
+    log('debug', 'API response received', { status: response.status, ok: response.ok, body: json });
     if (!response.ok) {
+      log('error', 'API responded with error status', { status: response.status, body: json });
       throw new Error(json.message || 'Request failed.');
     }
     return json;
@@ -521,13 +571,20 @@ $scriptTemplate = <<<'JS'
     const modeInput = form.querySelector('input[name="customer_mode"]:checked');
     const mode = modeInput ? modeInput.value : 'guest';
     currentCustomerMode = mode;
+    log('debug', 'Form submission initiated', {
+      mode,
+      itemCount: selectedItems.size,
+      paymentStatus: paymentStatusSelect.value,
+    });
 
     if (!selectedItems.size) {
+      log('warn', 'Submission blocked: no items selected');
       setMessage(formErrors, 'error', 'Add at least one product to the cart.');
       return;
     }
 
     if (mode === 'existing' && !selectedCustomer) {
+      log('warn', 'Submission blocked: existing customer not selected');
       setMessage(formErrors, 'error', 'Select a customer or switch to walk-in.');
       return;
     }
@@ -536,10 +593,12 @@ $scriptTemplate = <<<'JS'
       const nameValue = newCustomerNameInput ? newCustomerNameInput.value.trim() : '';
       const emailValue = newCustomerEmailInput ? newCustomerEmailInput.value.trim() : '';
       if (!nameValue) {
+        log('warn', 'Submission blocked: missing new customer name');
         setMessage(formErrors, 'error', 'Enter a customer name or record the sale as a walk-in.');
         return;
       }
       if (newCustomerEmailInput && emailValue && !newCustomerEmailInput.checkValidity()) {
+        log('warn', 'Submission blocked: invalid email for new customer', { emailValue });
         newCustomerEmailInput.reportValidity();
         return;
       }
@@ -549,6 +608,7 @@ $scriptTemplate = <<<'JS'
       product_id: item.id,
       quantity: item.quantity
     }));
+    log('debug', 'Items prepared for submission', { items });
 
     const payload = {
       action: 'create_order',
@@ -577,11 +637,16 @@ $scriptTemplate = <<<'JS'
       }
     }
 
+    const payloadPreview = Object.assign({ csrf_token: '[redacted]' }, payload);
+    log('debug', 'Payload built', payloadPreview);
+
     try {
       const result = await callApi(payload);
       if (!result.success) {
         throw new Error(result.message || 'Failed to create order.');
       }
+
+      log('debug', 'Order created successfully', result);
 
       clearMessage(formErrors);
       setMessage(messages, 'success', `Order #${String(result.order_id).padStart(5, '0')} created.`);
@@ -622,14 +687,16 @@ $scriptTemplate = <<<'JS'
         guestRadio.checked = true;
       }
       toggleCustomerSections('guest');
+      log('debug', 'Form reset after successful submission');
     } catch (error) {
-      console.error(error);
+      log('error', 'Order submission failed', error);
       setMessage(messages, 'error', error.message || 'Something went wrong while creating the order.');
     }
   }
 
   function toggleCustomerSections(mode) {
     currentCustomerMode = mode;
+    log('debug', 'Customer mode toggled', { mode });
 
     if (mode === 'existing') {
       if (existingSection) {
@@ -684,6 +751,7 @@ $scriptTemplate = <<<'JS'
         clearTimeout(customerSearchTimer);
       }
       const term = customerSearchInput.value.trim();
+      log('debug', 'Customer search term updated', { term });
       customerSearchTimer = setTimeout(() => fetchCustomers(term), 250);
     });
   }
@@ -703,14 +771,17 @@ $scriptTemplate = <<<'JS'
       clearTimeout(productSearchTimer);
     }
     const term = productSearchInput.value.trim();
+    log('debug', 'Product search term updated', { term });
     productSearchTimer = setTimeout(() => fetchProducts(term), 200);
   });
 
   inStockOnlyCheckbox.addEventListener('change', () => {
+    log('debug', 'In-stock filter toggled', { checked: inStockOnlyCheckbox.checked });
     fetchProducts(productSearchInput.value.trim());
   });
 
   paymentStatusSelect.addEventListener('change', () => {
+    log('debug', 'Payment status changed', { status: paymentStatusSelect.value });
     if (paymentStatusSelect.value === 'Paid' && !paymentAmountTouched) {
       const total = Array.from(selectedItems.values()).reduce((sum, item) => sum + item.price * item.quantity, 0);
       paymentAmountInput.value = total.toFixed(2);
@@ -721,6 +792,7 @@ $scriptTemplate = <<<'JS'
 
   paymentAmountInput.addEventListener('input', () => {
     paymentAmountTouched = true;
+    log('debug', 'Payment amount input changed', { value: paymentAmountInput.value });
   });
 
   form.addEventListener('submit', submitForm);
