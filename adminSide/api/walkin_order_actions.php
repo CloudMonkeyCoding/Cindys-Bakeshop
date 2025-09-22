@@ -94,19 +94,39 @@ switch ($action) {
         }
         $sql .= ' ORDER BY p.Name ASC LIMIT ' . $limit;
 
+        walkin_order_log('Prepared product search SQL', [
+            'sql' => $sql,
+            'params' => $params,
+            'conditions' => $conditions,
+            'limit' => $limit,
+        ]);
+
         $stmt = $pdo->prepare($sql);
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value, PDO::PARAM_STR);
         }
         $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        walkin_order_log('Product query executed', [
+            'row_count' => count($rows),
+            'sample' => array_slice($rows, 0, 5),
+        ]);
+
         $products = [];
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        foreach ($rows as $row) {
             $rawStock = array_key_exists('Stock_Quantity', $row) ? $row['Stock_Quantity'] : null;
             $stockNotTracked = !empty($row['Stock_Not_Tracked']);
             $stockValue = null;
             if (!$stockNotTracked) {
                 $stockValue = $rawStock === null ? null : (int)$rawStock;
             }
+
+            walkin_order_log('Processed product row', [
+                'product_id' => (int)$row['Product_ID'],
+                'raw_stock' => $rawStock,
+                'stock_not_tracked' => $stockNotTracked,
+                'normalized_stock' => $stockValue,
+            ]);
 
             $products[] = [
                 'id' => (int)$row['Product_ID'],

@@ -304,6 +304,13 @@ $scriptTemplate = <<<'JS'
 
   function createProductCard(product) {
     const normalizedStock = isFiniteStock(product.stock);
+    log('debug', 'Creating product card', {
+      id: product.id,
+      name: product.name,
+      category: product.category || null,
+      rawStock: product.stock,
+      normalizedStock
+    });
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'pos-product-card';
@@ -370,6 +377,18 @@ $scriptTemplate = <<<'JS'
 
   function renderProductResults(products) {
     log('debug', 'Rendering product results', { count: products.length });
+    if (products.length) {
+      log('debug', 'Product result sample', {
+        sample: products.slice(0, 5).map((product) => ({
+          id: product.id,
+          name: product.name,
+          category: product.category || null,
+          stock: product.stock
+        }))
+      });
+    } else {
+      log('debug', 'Product result set empty for current query');
+    }
     productResultsContainer.innerHTML = '';
     if (!products.length) {
       const empty = document.createElement('div');
@@ -520,8 +539,22 @@ $scriptTemplate = <<<'JS'
         limit: '30',
         in_stock_only: inStockOnlyCheckbox.checked ? '1' : '0'
       });
-      log('debug', 'Product search response', { count: (response.products || []).length });
-      renderProductResults(response.products || []);
+      const products = Array.isArray(response.products) ? response.products : [];
+      log('debug', 'Product search response metadata', {
+        success: Object.prototype.hasOwnProperty.call(response, 'success') ? response.success : 'n/a',
+        count: products.length
+      });
+      if (products.length) {
+        log('debug', 'Product search response sample', {
+          sample: products.slice(0, 5).map((product) => ({
+            id: product.id,
+            name: product.name,
+            category: product.category || null,
+            stock: product.stock
+          }))
+        });
+      }
+      renderProductResults(products);
     } catch (error) {
       log('error', 'Failed to fetch products', error);
       renderProductResults([]);
@@ -823,7 +856,13 @@ $scriptTemplate = <<<'JS'
     }
     const term = productSearchInput.value.trim();
     log('debug', 'Product search term updated', { term });
-    productSearchTimer = setTimeout(() => fetchProducts(term), 200);
+    productSearchTimer = setTimeout(() => {
+      log('debug', 'Product search debounce fired', {
+        term,
+        inStockOnly: inStockOnlyCheckbox.checked
+      });
+      fetchProducts(term);
+    }, 200);
   });
 
   inStockOnlyCheckbox.addEventListener('change', () => {
