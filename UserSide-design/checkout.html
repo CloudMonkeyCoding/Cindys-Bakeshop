@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout - Cindy’s Bakeshop</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+    body { background: #faf9f7; color: #333; }
+
+    header {
+      background: #8B4513; color: #fff;
+      padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;
+    }
+    header h1 { font-size: 1.4rem; }
+    nav a { color: #fff; margin-left: 1rem; text-decoration: none; font-weight: 500; }
+    nav a:hover { text-decoration: underline; }
+
+    .container {
+      max-width: 1200px; margin: 2rem auto; padding: 0 1rem;
+      display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;
+    }
+    .section {
+      background: #fff; border-radius: 12px; padding: 1.5rem;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08); margin-bottom: 1rem;
+    }
+    h2 { color: #8B4513; font-size: 1.2rem; margin-bottom: 1rem; }
+
+    /* Cart */
+    .cart-item { display: flex; justify-content: space-between; align-items: center;
+      padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+    .cart-item:last-child { border-bottom: none; }
+    .item-controls { display: flex; align-items: center; gap: 5px; }
+    .qty-btn {
+      background: #8B4513; color: #fff; border: none; border-radius: 4px;
+      width: 25px; height: 25px; cursor: pointer; font-size: 1rem;
+    }
+    .remove-btn {
+      background: crimson; color: #fff; border: none; border-radius: 4px;
+      padding: 3px 7px; font-size: 0.8rem; cursor: pointer;
+    }
+    .cart-total { font-weight: bold; text-align: right; margin-top: 0.8rem;
+      font-size: 1.1rem; color: #d2691e; }
+
+    /* Customer Info */
+    label { display: block; font-weight: 600; margin: 0.8rem 0 0.3rem; }
+    input, select, textarea {
+      width: 100%; padding: 0.7rem; border: 1px solid #ddd; border-radius: 8px;
+      margin-bottom: 0.5rem; font-size: 0.9rem;
+    }
+
+    /* Profile Button */
+    .profile-btn {
+      background: #f4e1d2; border: 1px solid #ccc; border-radius: 8px;
+      padding: 0.8rem; margin-bottom: 1rem; cursor: pointer;
+      width: 100%; text-align: left; font-size: 0.9rem;
+    }
+    .profile-btn:hover { background: #ecd5c2; }
+
+    /* Confirm Button */
+    .confirm-btn {
+      display: block; width: 100%; background: #8B4513; color: #fff;
+      padding: 0.9rem; border: none; border-radius: 10px;
+      font-weight: 600; font-size: 1rem; cursor: pointer;
+      margin-top: 1rem; transition: background 0.2s;
+    }
+    .confirm-btn:hover { background: #a0522d; }
+
+    /* Popup */
+    .popup {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); display: flex; align-items: center;
+      justify-content: center; display: none;
+    }
+    .popup-content {
+      background: #fff; padding: 1.5rem; border-radius: 12px;
+      text-align: left; max-width: 500px; width: 90%;
+      max-height: 80vh; overflow-y: auto;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    }
+    .popup-content h3 { color: #8B4513; margin-bottom: 1rem; text-align: center; }
+    .popup-content ul { list-style: none; padding: 0; margin: 0; }
+    .popup-content li { padding: 0.5rem; border-bottom: 1px solid #eee; cursor: pointer; }
+    .popup-content li:hover { background: #f4e1d2; }
+    .ok-btn {
+      display: block; margin: 1rem auto 0; padding: 0.6rem 1.2rem;
+      background: #8B4513; color: #fff; border: none; border-radius: 8px;
+      cursor: pointer; font-weight: 600;
+    }
+
+    @media(max-width: 768px) {
+      .container { grid-template-columns: 1fr; }
+    }
+
+
+    /* --- Add Address Popup Styling --- */
+  .popup-content.add-popup {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.8rem;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    animation: fadeIn 0.25s ease-in-out;
+  }
+  .popup-content.add-popup h3 {
+    margin-bottom: 1.2rem;
+    font-size: 1.3rem;
+    color: #8B4513;
+    text-align: center;
+  }
+  .form-group { margin-bottom: 1rem; }
+  .form-group label {
+    display: block;
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+    color: #444;
+    font-weight: 500;
+  }
+  .form-group input,
+  .form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: #8B4513;
+  }
+  textarea {
+    resize: none;
+    height: 80px;
+  }
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.8rem;
+    margin-top: 1rem;
+  }
+  .btn {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn.cancel {
+    background: #eaeaea;
+    color: #333;
+  }
+  .btn.cancel:hover { background: #d6d6d6; }
+  .btn.save {
+    background: #8B4513;
+    color: white;
+    font-weight: 500;
+  }
+  .btn.save:hover { background: #a0522d; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+   .popup-content.add-popup {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.8rem;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    animation: fadeIn 0.25s ease-in-out;
+  }
+  .popup-content.add-popup h3 {
+    margin-bottom: 1.2rem;
+    font-size: 1.3rem;
+    color: #8B4513;
+    text-align: center;
+  }
+  .form-group { margin-bottom: 1rem; }
+  .form-group label {
+    display: block;
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+    color: #444;
+    font-weight: 500;
+  }
+  .form-group input,
+  .form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: #8B4513;
+  }
+  textarea {
+    resize: none;
+    height: 80px;
+  }
+  .error {
+    display: block;
+    font-size: 0.8rem;
+    color: red;
+    margin-top: 4px;
+  }
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.8rem;
+    margin-top: 1rem;
+  }
+  .btn {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn.cancel {
+    background: #eaeaea;
+    color: #333;
+  }
+  .btn.cancel:hover { background: #d6d6d6; }
+  .btn.save {
+    background: #8B4513;
+    color: white;
+    font-weight: 500;
+  }
+  .btn.save:hover { background: #a0522d; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🥖 Cindy’s Bakeshop</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="Menu.html">Menu</a>
+      <a href="checkout.html">Cart</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <!-- Left -->
+    <div>
+      <div class="section">
+        <h2>Customer Information</h2>
+
+        <!-- 🔹 Profile Button -->
+        <button class="profile-btn" id="profileBtn">
+          ➕ Select or Add Address
+        </button>
+
+        <label for="name">Full Name</label>
+        <input type="text" id="name">
+        <label for="phone">Phone Number</label>
+        <input type="text" id="phone">
+
+        <label for="orderType">Order Type</label>
+        <select id="orderType">
+          <option value="pickup">Pickup</option>
+          <option value="delivery">Delivery</option>
+        </select>
+
+        <div id="addressSection" style="display:none;">
+          <label for="address">Delivery Address</label>
+          <textarea id="address" rows="2"></textarea>
+        </div>
+
+        <label for="payment">Payment Method</label>
+        <select id="payment">
+          <option value="cod">Cash on Delivery/Pickup</option>
+          <option value="gcash">GCash</option>
+          <option value="card">Credit/Debit Card</option>
+        </select>
+
+        <label for="notes">Order Notes</label>
+        <textarea id="notes" rows="2"></textarea>
+      </div>
+    </div>
+
+    <!-- Right -->
+    <div>
+      <div class="section">
+        <h2>Your Cart</h2>
+        <div id="cartItems"></div>
+        <div class="cart-total" id="cartTotal">Total: ₱0</div>
+      </div>
+      <button class="confirm-btn" id="confirmBtn">✅ Confirm Order</button>
+    </div>
+  </div>
+
+  <!-- Address List Popup -->
+  <div class="popup" id="addressPopup">
+    <div class="popup-content">
+      <h3>Select Address</h3>
+      <ul id="addressList"></ul>
+      <button class="ok-btn" onclick="openAddAddress()">➕ Add New Address</button>
+      <button class="ok-btn" onclick="closeAddressPopup()">Close</button>
+    </div>
+  </div>
+
+  <!-- Add Address Popup -->
+<div class="popup" id="addAddressPopup">
+  <div class="popup-content add-popup">
+    <h3>Add New Address</h3>
+
+    <div class="form-group">
+      <label for="newName">Full Name</label>
+      <input type="text" id="newName" placeholder="Enter full name">
+      <small class="error" id="nameError"></small>
+    </div>
+
+    <div class="form-group">
+      <label for="newPhone">Phone Number</label>
+      <input type="text" id="newPhone" placeholder="09xxxxxxxxx">
+      <small class="error" id="phoneError"></small>
+    </div>
+
+    <div class="form-group">
+      <label for="newAddress">Address</label>
+      <textarea id="newAddress" placeholder="House No., Street, Barangay, City"></textarea>
+      <small class="error" id="addressError"></small>
+    </div>
+
+    <div class="actions">
+      <button class="btn cancel" onclick="closeAddAddress()">Cancel</button>
+      <button class="btn save" onclick="saveNewAddress()">Save</button>
+    </div>
+  </div>
+</div>
+
+  <!-- Order Confirm Popup -->
+  <div class="popup" id="popup">
+    <div class="popup-content">
+      <h3>🎉 Order Confirmed!</h3>
+      <p><strong>Name:</strong> <span id="summaryName"></span></p>
+      <p><strong>Phone:</strong> <span id="summaryPhone"></span></p>
+      <p><strong>Order Type:</strong> <span id="summaryType"></span></p>
+      <p id="summaryAddressWrap" style="display:none;"><strong>Address:</strong> <span id="summaryAddress"></span></p>
+      <p><strong>Payment:</strong> <span id="summaryPayment"></span></p>
+      <p><strong>Notes:</strong> <span id="summaryNotes"></span></p>
+      <h4>🛒 Items</h4>
+      <ul id="summaryItems"></ul>
+      <p id="summaryTotal" style="font-weight:bold; color:#d2691e;"></p>
+      <p style="font-size:0.9rem; color:#555;">⏰ Estimated Time: <span id="summaryTime"></span></p>
+      <button class="ok-btn" onclick="closePopup()">OK</button>
+    </div>
+  </div>
+
+  <script>
+    let cart = JSON.parse(localStorage.getItem('cartData')) || [];
+    const cartItems = document.getElementById('cartItems');
+    const cartTotal = document.getElementById('cartTotal');
+    const orderType = document.getElementById('orderType');
+    const addressSection = document.getElementById('addressSection');
+    const addressBox = document.getElementById('address');
+
+    // ✅ Saved Profiles
+    let savedProfiles = [
+      { name: "Juan Dela Cruz", phone: "09123456789", address: "123 Street, Barangay, City" },
+      { name: "Juan Dela Cruz", phone: "09987654321", address: "456 Avenue, Business District" }
+    ];
+    let currentProfile = null;
+
+    // 🔹 Profile Button
+    const profileBtn = document.getElementById("profileBtn");
+    const addressPopup = document.getElementById("addressPopup");
+    const addressList = document.getElementById("addressList");
+
+    profileBtn.addEventListener("click", () => {
+      renderAddressList();
+      addressPopup.style.display = "flex";
+    });
+
+    function renderAddressList() {
+      addressList.innerHTML = "";
+      savedProfiles.forEach((p, i) => {
+        const li = document.createElement("li");
+        li.textContent = `${p.name} | ${p.phone} | ${p.address}`;
+        li.onclick = () => selectProfile(i);
+        addressList.appendChild(li);
+      });
+    }
+
+    function selectProfile(index) {
+      currentProfile = savedProfiles[index];
+      document.getElementById("name").value = currentProfile.name;
+      document.getElementById("phone").value = currentProfile.phone;
+      orderType.value = "delivery";
+      addressSection.style.display = "block";
+      addressBox.value = currentProfile.address;
+      profileBtn.textContent = `${currentProfile.name} | ${currentProfile.phone} | ${currentProfile.address}`;
+      closeAddressPopup();
+    }
+
+    function closeAddressPopup() { addressPopup.style.display = "none"; }
+
+    // 🔹 Add Address Popup
+    const addAddressPopup = document.getElementById("addAddressPopup");
+    function openAddAddress() {
+      closeAddressPopup();
+      addAddressPopup.style.display = "flex";
+    }
+    function closeAddAddress() { addAddressPopup.style.display = "none"; }
+
+    function saveNewAddress() {
+      const name = document.getElementById("newName").value.trim();
+      const phone = document.getElementById("newPhone").value.trim();
+      const address = document.getElementById("newAddress").value.trim();
+      if (!name || !phone || !address) {
+        alert("Please fill all fields!");
+        return;
+      }
+      savedProfiles.push({ name, phone, address });
+      closeAddAddress();
+    }
+
+
+     function saveNewAddress() {
+    let valid = true;
+
+    // Clear previous errors
+    document.getElementById("nameError").innerText = "";
+    document.getElementById("phoneError").innerText = "";
+    document.getElementById("addressError").innerText = "";
+
+    const name = document.getElementById("newName").value.trim();
+    const phone = document.getElementById("newPhone").value.trim();
+    const address = document.getElementById("newAddress").value.trim();
+
+    // Validate Name
+    if (name.length < 3) {
+      document.getElementById("nameError").innerText = "Name must be at least 3 characters.";
+      valid = false;
+    }
+
+    // Validate Phone (only digits, 11 characters, starts with 09)
+    if (!/^(09)\d{9}$/.test(phone)) {
+      document.getElementById("phoneError").innerText = "Enter a valid 11-digit number (e.g., 09xxxxxxxxx).";
+      valid = false;
+    }
+
+    // Validate Address
+    if (address.length < 5) {
+      document.getElementById("addressError").innerText = "Address must be at least 5 characters.";
+      valid = false;
+    }
+
+    if (!valid) return;
+
+    // ✅ If valid → add new address (replace with your own save logic)
+    alert("✅ New address saved:\n\n" + name + "\n" + phone + "\n" + address);
+    closeAddAddress();
+  }
+
+  function closeAddAddress() {
+    document.getElementById("addAddressPopup").style.display = "none";
+  }
+
+    // Cart Rendering
+    function renderCart() {
+      cartItems.innerHTML = '';
+      let total = 0;
+      cart.forEach((item, index) => {
+        total += item.price * item.qty;
+        const div = document.createElement('div');
+        div.classList.add('cart-item');
+        div.innerHTML = `
+          <div>${item.name} - ₱${item.price}</div>
+          <div class="item-controls">
+            <button class="qty-btn" onclick="updateQty(${index}, -1)">-</button>
+            <span>${item.qty}</span>
+            <button class="qty-btn" onclick="updateQty(${index}, 1)">+</button>
+            <button class="remove-btn" onclick="removeItem(${index})">X</button>
+          </div>`;
+        cartItems.appendChild(div);
+      });
+      cartTotal.textContent = `Total: ₱${total}`;
+    }
+
+    function updateQty(index, change) {
+      cart[index].qty += change;
+      if (cart[index].qty <= 0) cart.splice(index, 1);
+      saveAndRender();
+    }
+    function removeItem(index) { cart.splice(index, 1); saveAndRender(); }
+    function saveAndRender() {
+      localStorage.setItem('cartData', JSON.stringify(cart));
+      renderCart();
+    }
+
+    orderType.addEventListener('change', () => {
+      addressSection.style.display = orderType.value === 'delivery' ? 'block' : 'none';
+    });
+
+    // Confirm Order
+    document.getElementById('confirmBtn').addEventListener('click', () => {
+      const name = document.getElementById('name').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const notes = document.getElementById('notes').value.trim();
+      const payment = document.getElementById('payment').value;
+      const address = addressBox.value.trim();
+
+      if (!name || !phone) { alert("Fill in your name and phone."); return; }
+      if (!/^09\d{9}$/.test(phone)) { alert("Invalid phone."); return; }
+      if (orderType.value === 'delivery' && !address) { alert("Enter address."); return; }
+      if (cart.length === 0) { alert("Your cart is empty!"); return; }
+
+      document.getElementById('summaryName').textContent = name;
+      document.getElementById('summaryPhone').textContent = phone;
+      document.getElementById('summaryType').textContent = orderType.value;
+      document.getElementById('summaryPayment').textContent = payment.toUpperCase();
+      document.getElementById('summaryNotes').textContent = notes || "None";
+
+      if (orderType.value === "delivery") {
+        document.getElementById('summaryAddressWrap').style.display = "block";
+        document.getElementById('summaryAddress').textContent = address;
+      } else {
+        document.getElementById('summaryAddressWrap').style.display = "none";
+      }
+
+      const summaryItems = document.getElementById('summaryItems');
+      summaryItems.innerHTML = "";
+      let total = 0;
+      cart.forEach(item => {
+        total += item.price * item.qty;
+        const li = document.createElement('li');
+        li.textContent = `${item.qty} × ${item.name} - ₱${item.price * item.qty}`;
+        summaryItems.appendChild(li);
+      });
+      document.getElementById('summaryTotal').textContent = `Total: ₱${total}`;
+      document.getElementById('summaryTime').textContent =
+        orderType.value === "delivery" ? "30-45 minutes" : "15-20 minutes";
+
+      document.getElementById("popup").style.display = "flex";
+      localStorage.removeItem('cartData');
+    });
+
+    function closePopup() { document.getElementById("popup").style.display = "none"; window.location.href = "index.html"; }
+
+    renderCart();
+  </script>
+</body>
+</html>
