@@ -1,6 +1,6 @@
 <header>
   <div class="logo">
-    <img src="../Images/cindy's logo.png" alt="Cindy's Logo">
+    <img src="../Images/logo.png" alt="Cindy's Logo">
   </div>
   <div class="nav">
     <a href="../PRODUCT/MENU.php" class="active">Menu</a>

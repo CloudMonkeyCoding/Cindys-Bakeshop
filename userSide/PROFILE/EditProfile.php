@@ -15,7 +15,7 @@
     <h2>EDIT PROFILE</h2>
 
     <div class="profile-pic">
-      <img id="profilePic" src="../Images/default-avatar.png" alt="Profile Picture" />
+      <img id="profilePic" src="../../Images/logo.png" alt="Profile Picture" />
     </div>
 
     <form id="editProfileForm">
