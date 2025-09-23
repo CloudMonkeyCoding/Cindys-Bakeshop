@@ -512,10 +512,175 @@ ob_start();
     return false;
   };
 
+  const showFinancePdfPreview = (pdfDoc, filename) => {
+    if (!pdfDoc || typeof pdfDoc.output !== 'function') {
+      if (pdfDoc && typeof pdfDoc.save === 'function') {
+        pdfDoc.save(filename);
+      }
+      return;
+    }
+
+    const supportsObjectUrl = typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function';
+    let blob = null;
+    let blobUrl = null;
+
+    if (supportsObjectUrl) {
+      try {
+        blob = pdfDoc.output('blob');
+      } catch (error) {
+        console.error('Failed to build PDF blob for preview:', error);
+      }
+      if (blob instanceof Blob) {
+        blobUrl = URL.createObjectURL(blob);
+      }
+    }
+
+    if (!blobUrl) {
+      try {
+        const dataUrl = pdfDoc.output('dataurlstring');
+        if (dataUrl) {
+          const previewWindow = window.open(dataUrl, '_blank', 'noopener');
+          if (!previewWindow) {
+            window.alert('Unable to open preview window. The PDF will be downloaded instead.');
+            pdfDoc.save(filename);
+          }
+        } else {
+          pdfDoc.save(filename);
+        }
+      } catch (error) {
+        console.error('Failed to open PDF preview window:', error);
+        pdfDoc.save(filename);
+      }
+      return;
+    }
+
+    const existingOverlay = document.getElementById('financePdfPreviewOverlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
+    }
+
+    if (!document.body) {
+      pdfDoc.save(filename);
+      return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'financePdfPreviewOverlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Financial report PDF preview');
+    overlay.style.cssText = [
+      'position:fixed',
+      'inset:0',
+      'background:rgba(0,0,0,0.65)',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'padding:24px',
+      'z-index:9999'
+    ].join(';');
+
+    const modal = document.createElement('div');
+    modal.style.cssText = [
+      'background:#ffffff',
+      'max-width:960px',
+      'width:100%',
+      'height:85vh',
+      'display:flex',
+      'flex-direction:column',
+      'border-radius:8px',
+      'box-shadow:0 12px 40px rgba(0,0,0,0.25)',
+      'overflow:hidden'
+    ].join(';');
+
+    const frame = document.createElement('iframe');
+    frame.src = blobUrl;
+    frame.title = 'Financial report preview';
+    frame.style.cssText = ['flex:1', 'border:0'].join(';');
+
+    const actions = document.createElement('div');
+    actions.style.cssText = [
+      'display:flex',
+      'justify-content:flex-end',
+      'gap:12px',
+      'padding:12px 16px',
+      'background:#f5f6fa',
+      'border-top:1px solid #dcdde1'
+    ].join(';');
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.textContent = 'Close';
+    closeBtn.className = 'btn btn-secondary';
+    closeBtn.style.cssText = [
+      'padding:10px 18px',
+      'border:none',
+      'border-radius:4px',
+      'background:#7f8c8d',
+      'color:#fff',
+      'cursor:pointer',
+      'font-size:14px'
+    ].join(';');
+
+    const downloadBtn = document.createElement('button');
+    downloadBtn.type = 'button';
+    downloadBtn.textContent = 'Download PDF';
+    downloadBtn.className = 'btn btn-primary';
+    downloadBtn.style.cssText = [
+      'padding:10px 18px',
+      'border:none',
+      'border-radius:4px',
+      'background:#e67e22',
+      'color:#fff',
+      'cursor:pointer',
+      'font-size:14px'
+    ].join(';');
+
+    actions.append(closeBtn, downloadBtn);
+    modal.append(frame, actions);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    const cleanup = () => {
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+
+    const handleKeyDown = event => {
+      if (event.key === 'Escape') {
+        cleanup();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    overlay.addEventListener('click', event => {
+      if (event.target === overlay) {
+        cleanup();
+      }
+    });
+
+    closeBtn.addEventListener('click', cleanup);
+
+    downloadBtn.addEventListener('click', () => {
+      pdfDoc.save(filename);
+      cleanup();
+    });
+  };
+
   const warnOnEmptyFilteredExport = true;
   const exportBtn = document.getElementById('exportFinance');
   if (exportBtn) {
     exportBtn.addEventListener('click', () => {
+      if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
+        window.alert('PDF generator is not ready yet. Please try again in a moment.');
+        return;
+      }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape' });
       doc.setFontSize(16);
@@ -543,7 +708,7 @@ ob_start();
         styles: { fontSize: 9 }
       });
 
-      doc.save('financial-report.pdf');
+      showFinancePdfPreview(doc, 'financial-report.pdf');
     });
   }
 </script>
