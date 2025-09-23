@@ -264,7 +264,6 @@ include 'includes/sidebar.php';
     <h1>Product Sales Report</h1>
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
       <span style="font-size:14px;color:#7f8c8d;">Last sale: <?= htmlspecialchars($recentSaleDisplay); ?></span>
-      <button class="btn btn-primary" id="exportProductSales">Export Sales PDF</button>
     </div>
   </div>
 
@@ -373,6 +372,9 @@ include 'includes/sidebar.php';
   <div class="table-container" style="margin-top:24px;">
     <div class="table-actions">
       <input type="text" id="productSalesSearch" placeholder="🔍 Search product or category...">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-primary" type="button" id="exportProductSales">Export Sales PDF</button>
+      </div>
     </div>
     <?php if (empty($productSales)): ?>
       <p class="table-empty">No products found.</p>
@@ -417,6 +419,10 @@ include 'includes/sidebar.php';
 </div>
 
 <?php
+$recentSaleLabelJson = json_encode($recentSaleDisplay, $jsonFlags);
+if ($recentSaleLabelJson === false) {
+    $recentSaleLabelJson = '""';
+}
 $extraScripts = <<<JS
 <script>
   const salesTrendDataByRange = $salesTrendDataJson;
@@ -427,6 +433,7 @@ $extraScripts = <<<JS
   const categoryLabels = $categoryLabelsJson;
   const categoryRevenue = $categoryRevenueJson;
   const categoryUnits = $categoryUnitsJson;
+  const lastSaleLabel = $recentSaleLabelJson;
 
   const salesChartCanvas = document.getElementById('salesChart');
   const salesTrendRangeSelect = document.getElementById('salesTrendRange');
@@ -631,41 +638,264 @@ $extraScripts = <<<JS
   const searchInput = document.getElementById('productSalesSearch');
   if (searchInput) {
     const rows = Array.from(document.querySelectorAll('#productSalesTable tbody tr'));
-    searchInput.addEventListener('input', () => {
+    const applySearchFilter = () => {
       const query = searchInput.value.trim().toLowerCase();
       rows.forEach(row => {
         const text = row.textContent.toLowerCase();
         row.style.display = text.includes(query) ? '' : 'none';
       });
-    });
+    };
+    searchInput.addEventListener('input', applySearchFilter);
   }
+
+  const hiddenClassTokens = ['hidden', 'is-hidden', 'd-none'];
+  const rowIsHidden = row => {
+    if (!row) {
+      return true;
+    }
+    if (row.hidden) {
+      return true;
+    }
+    if (row.getAttribute && row.getAttribute('aria-hidden') === 'true') {
+      return true;
+    }
+    if (row.style && row.style.display === 'none') {
+      return true;
+    }
+    if (row.classList && hiddenClassTokens.some(token => row.classList.contains(token))) {
+      return true;
+    }
+    if (typeof window.getComputedStyle === 'function') {
+      const computedStyle = window.getComputedStyle(row);
+      if (computedStyle && computedStyle.display === 'none') {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const showProductSalesPdfPreview = (pdfDoc, filename) => {
+    if (!pdfDoc || typeof pdfDoc.output !== 'function') {
+      if (pdfDoc && typeof pdfDoc.save === 'function') {
+        pdfDoc.save(filename);
+      }
+      return;
+    }
+
+    const supportsObjectUrl = typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function';
+    let blob = null;
+    let blobUrl = null;
+
+    if (supportsObjectUrl) {
+      try {
+        blob = pdfDoc.output('blob');
+      } catch (error) {
+        console.error('Failed to build PDF blob for preview:', error);
+      }
+      if (blob instanceof Blob) {
+        blobUrl = URL.createObjectURL(blob);
+      }
+    }
+
+    if (!blobUrl) {
+      try {
+        const dataUrl = pdfDoc.output('dataurlstring');
+        if (dataUrl) {
+          const previewWindow = window.open(dataUrl, '_blank', 'noopener');
+          if (!previewWindow) {
+            window.alert('Unable to open preview window. The PDF will be downloaded instead.');
+            pdfDoc.save(filename);
+          }
+        } else {
+          pdfDoc.save(filename);
+        }
+      } catch (error) {
+        console.error('Failed to open PDF preview window:', error);
+        pdfDoc.save(filename);
+      }
+      return;
+    }
+
+    const existingOverlay = document.getElementById('productSalesPdfPreviewOverlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
+    }
+
+    if (!document.body) {
+      pdfDoc.save(filename);
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+        blobUrl = null;
+      }
+      return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'productSalesPdfPreviewOverlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Product sales report PDF preview');
+    overlay.style.cssText = [
+      'position:fixed',
+      'inset:0',
+      'background:rgba(0,0,0,0.65)',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'padding:24px',
+      'z-index:9999'
+    ].join(';');
+
+    const modal = document.createElement('div');
+    modal.style.cssText = [
+      'background:#ffffff',
+      'max-width:960px',
+      'width:100%',
+      'height:85vh',
+      'display:flex',
+      'flex-direction:column',
+      'border-radius:8px',
+      'box-shadow:0 12px 40px rgba(0,0,0,0.25)',
+      'overflow:hidden'
+    ].join(';');
+
+    const frame = document.createElement('iframe');
+    frame.src = blobUrl;
+    frame.title = 'Product sales report preview';
+    frame.style.cssText = ['flex:1', 'border:0'].join(';');
+
+    const actions = document.createElement('div');
+    actions.style.cssText = [
+      'display:flex',
+      'justify-content:flex-end',
+      'gap:12px',
+      'padding:12px 16px',
+      'background:#f5f6fa',
+      'border-top:1px solid #dcdde1'
+    ].join(';');
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.textContent = 'Close';
+    closeBtn.className = 'btn btn-secondary';
+    closeBtn.style.cssText = [
+      'padding:10px 18px',
+      'border:none',
+      'border-radius:4px',
+      'background:#7f8c8d',
+      'color:#fff',
+      'cursor:pointer',
+      'font-size:14px'
+    ].join(';');
+
+    const downloadBtn = document.createElement('button');
+    downloadBtn.type = 'button';
+    downloadBtn.textContent = 'Download PDF';
+    downloadBtn.className = 'btn btn-primary';
+    downloadBtn.style.cssText = [
+      'padding:10px 18px',
+      'border:none',
+      'border-radius:4px',
+      'background:#e74c3c',
+      'color:#fff',
+      'cursor:pointer',
+      'font-size:14px'
+    ].join(';');
+
+    actions.append(closeBtn, downloadBtn);
+    modal.append(frame, actions);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    const cleanup = () => {
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+        blobUrl = null;
+      }
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+
+    const handleKeyDown = event => {
+      if (event.key === 'Escape') {
+        cleanup();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    overlay.addEventListener('click', event => {
+      if (event.target === overlay) {
+        cleanup();
+      }
+    });
+
+    closeBtn.addEventListener('click', cleanup);
+
+    downloadBtn.addEventListener('click', () => {
+      pdfDoc.save(filename);
+      cleanup();
+    });
+  };
 
   const exportBtn = document.getElementById('exportProductSales');
   if (exportBtn) {
     exportBtn.addEventListener('click', () => {
+      if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
+        window.alert('PDF generator is not ready yet. Please try again in a moment.');
+        return;
+      }
+
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape' });
-      doc.setFontSize(16);
-      doc.text('Product Sales Report', 14, 18);
 
       const rows = [];
       document.querySelectorAll('#productSalesTable tbody tr').forEach(tr => {
-        if (tr.style.display === 'none') {
+        if (rowIsHidden(tr)) {
           return;
         }
         const cells = Array.from(tr.cells).map(td => td.textContent.trim());
         rows.push(cells);
       });
 
+      if (rows.length === 0) {
+        window.alert('No visible rows to export. Please adjust your filters and try again.');
+        return;
+      }
+
+      doc.setFontSize(16);
+      doc.text('Product Sales Report', 14, 18);
+      doc.setFontSize(11);
+      doc.setTextColor(80);
+
+      const generatedAt = new Date();
+      const generatedLabel = generatedAt.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+      let nextLineY = 26;
+      doc.text('Generated on: ' + generatedLabel, 14, nextLineY);
+      nextLineY += 8;
+      if (typeof lastSaleLabel === 'string' && lastSaleLabel.trim().length > 0) {
+        doc.text('Last sale recorded: ' + lastSaleLabel, 14, nextLineY);
+        nextLineY += 8;
+      }
+      doc.setTextColor(0);
+
       doc.autoTable({
-        startY: 26,
+        startY: nextLineY + 4,
         head: [['Product', 'Category', 'Units Sold', 'Revenue', 'Orders', 'First Sale', 'Last Sale', 'Avg Item Price']],
         body: rows,
         theme: 'grid',
         styles: { fontSize: 9 }
       });
 
-      doc.save('product-sales-report.pdf');
+      showProductSalesPdfPreview(doc, 'product-sales-report.pdf');
     });
   }
 </script>
