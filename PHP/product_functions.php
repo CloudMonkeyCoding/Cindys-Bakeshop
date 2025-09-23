@@ -91,14 +91,23 @@ function getProductById($pdo, $productId) {
 }
 
 // 4) Update product details
-function updateProductById($pdo, $productId, $name, $description, $price, $stock_quantity, $category, $imageFile = null) {
+function updateProductById($pdo, $productId, $name, $description, $price, $stock_quantity, $category, $imageFile = null, $keepImage = false, $removeImage = false) {
     $imageName = null;
-    if ($imageFile && $imageFile['error'] !== UPLOAD_ERR_NO_FILE) {
-        $imageName = processImageUpload($imageFile);
+    $shouldUpdateImage = false;
+
+    if ($removeImage) {
+        $shouldUpdateImage = true;
+        $imageName = null;
+    } elseif (!$keepImage && $imageFile && $imageFile['error'] !== UPLOAD_ERR_NO_FILE) {
+        $uploaded = processImageUpload($imageFile);
+        if ($uploaded !== null) {
+            $imageName = $uploaded;
+            $shouldUpdateImage = true;
+        }
     }
 
     $sql = "UPDATE product SET Name = :name, Description = :description, Price = :price, Stock_Quantity = :stock_quantity, Category = :category";
-    if ($imageName !== null) {
+    if ($shouldUpdateImage) {
         $sql .= ", Image_Path = :image_path";
     }
     $sql .= " WHERE Product_ID = :product_id";
@@ -112,7 +121,7 @@ function updateProductById($pdo, $productId, $name, $description, $price, $stock
         ':category' => $category,
         ':product_id' => $productId
     ];
-    if ($imageName !== null) {
+    if ($shouldUpdateImage) {
         $params[':image_path'] = $imageName;
     }
     $stmt->execute($params);
@@ -222,7 +231,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stock = $stock !== false ? $stock : 0;
             $category = filter_input(INPUT_POST, 'category', FILTER_SANITIZE_SPECIAL_CHARS) ?? '';
             $imageFile = $_FILES['image'] ?? null;
-            $success = updateProductById($pdo, $id, $name, $description, $price, $stock, $category, $imageFile) > 0;
+            $keepImage = filter_input(INPUT_POST, 'keep_current_image', FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+            $keepImage = $keepImage ?? false;
+            $removeImage = filter_input(INPUT_POST, 'remove_image', FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+            $removeImage = $removeImage ?? false;
+            if ($removeImage) {
+                $keepImage = false;
+            }
+            $success = updateProductById($pdo, $id, $name, $description, $price, $stock, $category, $imageFile, $keepImage, $removeImage) > 0;
             echo json_encode(['success' => $success]);
             break;
 
