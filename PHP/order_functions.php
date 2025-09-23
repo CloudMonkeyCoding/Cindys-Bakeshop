@@ -40,12 +40,19 @@ function getOrdersByUserId($pdo, $userId) {
                o.Source,
                o.Fulfillment_Type,
                o.Status,
-               MIN(p.Image_Path) AS Image_Path
+               MIN(p.Image_Path) AS Image_Path,
+               COALESCE(SUM(oi.Quantity), 0) AS Item_Count,
+               COALESCE(SUM(oi.Subtotal), 0) AS Total_Amount,
+               GROUP_CONCAT(
+                   CONCAT(p.Name, ' x', oi.Quantity)
+                   ORDER BY p.Name SEPARATOR ', '
+               ) AS Item_Summary
         FROM `order` o
         LEFT JOIN order_item oi ON o.Order_ID = oi.Order_ID
         LEFT JOIN product p ON oi.Product_ID = p.Product_ID
         WHERE o.User_ID = :user_id
         GROUP BY o.Order_ID, o.User_ID, o.Order_Date, o.Source, o.Fulfillment_Type, o.Status
+        ORDER BY o.Order_Date DESC, o.Order_ID DESC
     ");
     $stmt->execute([':user_id' => $userId]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
