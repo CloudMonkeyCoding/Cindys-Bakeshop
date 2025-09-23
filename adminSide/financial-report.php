@@ -486,6 +486,33 @@ ob_start();
     });
   }
 
+  const hiddenClassTokens = ['hidden', 'is-hidden', 'd-none'];
+  const rowIsHidden = row => {
+    if (!row) {
+      return true;
+    }
+    if (row.hidden) {
+      return true;
+    }
+    if (row.getAttribute && row.getAttribute('aria-hidden') === 'true') {
+      return true;
+    }
+    if (row.style && row.style.display === 'none') {
+      return true;
+    }
+    if (row.classList && hiddenClassTokens.some(token => row.classList.contains(token))) {
+      return true;
+    }
+    if (typeof window.getComputedStyle === 'function') {
+      const computedStyle = window.getComputedStyle(row);
+      if (computedStyle && computedStyle.display === 'none') {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const warnOnEmptyFilteredExport = true;
   const exportBtn = document.getElementById('exportFinance');
   if (exportBtn) {
     exportBtn.addEventListener('click', () => {
@@ -496,9 +523,17 @@ ob_start();
 
       const rows = [];
       document.querySelectorAll('#financialTable tbody tr').forEach(tr => {
+        if (rowIsHidden(tr)) {
+          return;
+        }
         const cells = Array.from(tr.cells).map(td => td.textContent.trim());
         rows.push(cells);
       });
+
+      if (warnOnEmptyFilteredExport && rows.length === 0) {
+        window.alert('No visible rows to export. Please adjust your filters and try again.');
+        return;
+      }
 
       doc.autoTable({
         startY: 26,
