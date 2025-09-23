@@ -15,6 +15,8 @@ $extraHead = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>';
 $timeframeOptions = [
     'last_7_days' => 'Last 7 Days',
     'last_30_days' => 'Last 30 Days',
+    'last_90_days' => 'Last 90 Days',
+    'last_year' => 'Last 1 Year',
     'custom' => 'Custom Range'
 ];
 
@@ -53,6 +55,22 @@ function resolveDashboardDateRange($timeframe, $customStart, $customEnd)
                 'start' => $lastThirtyStart,
                 'end' => $today,
                 'timeframe' => 'last_30_days',
+                'customStart' => null,
+                'customEnd' => null,
+            ];
+        case 'last_90_days':
+            return [
+                'start' => $today->modify('-89 days'),
+                'end' => $today,
+                'timeframe' => 'last_90_days',
+                'customStart' => null,
+                'customEnd' => null,
+            ];
+        case 'last_year':
+            return [
+                'start' => $today->modify('-364 days'),
+                'end' => $today,
+                'timeframe' => 'last_year',
                 'customStart' => null,
                 'customEnd' => null,
             ];
