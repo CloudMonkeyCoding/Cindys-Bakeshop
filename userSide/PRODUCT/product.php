@@ -33,6 +33,7 @@ $categoryLower = strtolower($category);
 $bodyClass = 'product-detail-page ' . $categoryLower;
 
 $price = isset($product['Price']) ? number_format((float)$product['Price'], 2) : '0.00';
+$imageUrl = getProductImageUrl($product, '../../');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -51,9 +52,7 @@ $price = isset($product['Price']) ? number_format((float)$product['Price'], 2) :
       <button class="back-btn" onclick="history.back()">&larr; Back</button>
       <div class="image-section">
         <div class="circle-bg"></div>
-        <?php if (!empty($product['Image_Path'])): ?>
-          <img src="../../adminSide/products/uploads/<?= htmlspecialchars($product['Image_Path']) ?>" alt="<?= htmlspecialchars($product['Name']) ?>" />
-        <?php endif; ?>
+        <img src="<?= htmlspecialchars($imageUrl) ?>" alt="<?= htmlspecialchars($product['Name']) ?>" />
       </div>
 
       <div class="details-section">
