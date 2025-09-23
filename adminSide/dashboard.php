@@ -17,6 +17,7 @@ $timeframeOptions = [
     'last_30_days' => 'Last 30 Days',
     'last_90_days' => 'Last 90 Days',
     'last_year' => 'Last 1 Year',
+    'all_time' => 'All Time',
     'custom' => 'Custom Range'
 ];
 
@@ -36,7 +37,142 @@ function sanitizeDateValue($value)
     return ($date && $date->format('Y-m-d') === $value) ? $value : null;
 }
 
-function resolveDashboardDateRange($timeframe, $customStart, $customEnd)
+function getDashboardAllTimeBounds(PDO $pdo)
+{
+    $start = null;
+    $end = null;
+
+    $updateBoundary = function (?DateTimeImmutable $current, ?string $candidate, bool $preferLower) {
+        if (!$candidate || $candidate === '0000-00-00' || $candidate === '0000-00-00 00:00:00') {
+            return $current;
+        }
+
+        try {
+            $date = new DateTimeImmutable($candidate);
+        } catch (\Exception $e) {
+            return $current;
+        }
+
+        $date = $date->setTime(0, 0, 0);
+
+        if ($current === null) {
+            return $date;
+        }
+
+        $currentTimestamp = $current->getTimestamp();
+        $candidateTimestamp = $date->getTimestamp();
+
+        if ($preferLower) {
+            return ($candidateTimestamp < $currentTimestamp) ? $date : $current;
+        }
+
+        return ($candidateTimestamp > $currentTimestamp) ? $date : $current;
+    };
+
+    $rangeQueries = [
+        "SELECT MIN(Order_Date) AS min_date, MAX(Order_Date) AS max_date FROM `order`",
+        "SELECT MIN(Payment_Date) AS min_date, MAX(Payment_Date) AS max_date FROM transaction WHERE Payment_Date IS NOT NULL",
+    ];
+
+    foreach ($rangeQueries as $sql) {
+        try {
+            $stmt = $pdo->query($sql);
+        } catch (\PDOException $e) {
+            $stmt = false;
+        }
+
+        if ($stmt) {
+            $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+            $start = $updateBoundary($start, $row['min_date'] ?? null, true);
+            $end = $updateBoundary($end, $row['max_date'] ?? null, false);
+        }
+    }
+
+    $userDateColumn = getDateColumnIfExists($pdo, 'user', [
+        'Created_At',
+        'CreatedAt',
+        'Registration_Date',
+        'Registered_On',
+        'Date_Created',
+        'DateCreated',
+        'Joined_At',
+    ]);
+
+    if ($userDateColumn) {
+        $sql = sprintf(
+            'SELECT MIN(`%1$s`) AS min_date, MAX(`%1$s`) AS max_date FROM user WHERE `%1$s` IS NOT NULL',
+            $userDateColumn
+        );
+
+        try {
+            $stmt = $pdo->query($sql);
+        } catch (\PDOException $e) {
+            $stmt = false;
+        }
+
+        if ($stmt) {
+            $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+            $start = $updateBoundary($start, $row['min_date'] ?? null, true);
+            $end = $updateBoundary($end, $row['max_date'] ?? null, false);
+        }
+    }
+
+    $inventoryDateColumn = getDateColumnIfExists($pdo, 'inventory', [
+        'Updated_At',
+        'UpdatedAt',
+        'Last_Updated',
+        'LastUpdated',
+        'Created_At',
+        'CreatedAt',
+        'Date_Added',
+        'DateAdded',
+    ]);
+
+    if ($inventoryDateColumn) {
+        $sql = sprintf(
+            'SELECT MIN(`%1$s`) AS min_date, MAX(`%1$s`) AS max_date FROM inventory WHERE `%1$s` IS NOT NULL',
+            $inventoryDateColumn
+        );
+
+        try {
+            $stmt = $pdo->query($sql);
+        } catch (\PDOException $e) {
+            $stmt = false;
+        }
+
+        if ($stmt) {
+            $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+            $start = $updateBoundary($start, $row['min_date'] ?? null, true);
+            $end = $updateBoundary($end, $row['max_date'] ?? null, false);
+        }
+    }
+
+    if ($start === null && $end === null) {
+        return null;
+    }
+
+    if ($start === null) {
+        $start = $end;
+    } elseif ($end === null) {
+        $end = $start;
+    }
+
+    if ($start && $end && $start->getTimestamp() > $end->getTimestamp()) {
+        [$start, $end] = [$end, $start];
+    }
+
+    $today = new DateTimeImmutable('today');
+    if ($end && $end->getTimestamp() < $today->getTimestamp()) {
+        $end = $today;
+    }
+
+    return [
+        'start' => $start,
+        'end' => $end,
+    ];
+}
+
+function resolveDashboardDateRange($timeframe, $customStart, $customEnd, ?PDO $pdo = null)
 {
     $today = new DateTimeImmutable('today');
     $lastThirtyStart = $today->modify('-29 days');
@@ -71,6 +207,27 @@ function resolveDashboardDateRange($timeframe, $customStart, $customEnd)
                 'start' => $today->modify('-364 days'),
                 'end' => $today,
                 'timeframe' => 'last_year',
+                'customStart' => null,
+                'customEnd' => null,
+            ];
+        case 'all_time':
+            if ($pdo) {
+                $bounds = getDashboardAllTimeBounds($pdo);
+                if (is_array($bounds) && isset($bounds['start'], $bounds['end'])) {
+                    return [
+                        'start' => $bounds['start'],
+                        'end' => $bounds['end'],
+                        'timeframe' => 'all_time',
+                        'customStart' => null,
+                        'customEnd' => null,
+                    ];
+                }
+            }
+
+            return [
+                'start' => $lastThirtyStart,
+                'end' => $today,
+                'timeframe' => 'all_time',
                 'customStart' => null,
                 'customEnd' => null,
             ];
@@ -143,7 +300,7 @@ $sessionCustomEnd = isset($_SESSION['dashboard_custom_end']) ? sanitizeDateValue
 $customStartInput = $requestedCustomStart ?? $sessionCustomStart;
 $customEndInput = $requestedCustomEnd ?? $sessionCustomEnd;
 
-$range = resolveDashboardDateRange($selectedTimeframe, $customStartInput, $customEndInput);
+$range = resolveDashboardDateRange($selectedTimeframe, $customStartInput, $customEndInput, $pdo);
 
 $rangeStart = $range['start'];
 $rangeEnd = $range['end'];
