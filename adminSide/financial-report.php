@@ -204,7 +204,6 @@ include 'includes/sidebar.php';
     <h1>Financial Report</h1>
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
       <span style="font-size:14px;color:#7f8c8d;">Last payment: <?= htmlspecialchars($lastPaymentDisplay); ?></span>
-      <button class="btn btn-primary" id="exportFinance">Export Finance PDF</button>
     </div>
   </div>
 
@@ -253,7 +252,27 @@ include 'includes/sidebar.php';
 
   <div class="card" style="margin-top:24px;">
     <div class="table-actions">
-      <input type="text" id="financeSearch" placeholder="🔍 Search payment record...">
+      <input
+        type="text"
+        id="financeSearch"
+        placeholder="🔍 Search payment record..."
+        aria-label="Search finance transactions"
+      >
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+        <select
+          id="financeTimeRange"
+          aria-label="Filter finance records by time period"
+          style="padding:8px 12px;border:1px solid #dcdde1;border-radius:6px;font-size:14px;min-width:180px;"
+        >
+          <option value="all" data-days="0" selected>All Time</option>
+          <?php foreach ($timeRanges as $rangeKey => $rangeConfig): ?>
+            <option value="<?= htmlspecialchars($rangeKey); ?>" data-days="<?= (int)($rangeConfig['days'] ?? 0); ?>">
+              <?= htmlspecialchars($rangeConfig['label']); ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+        <button class="btn btn-primary" id="exportFinance">Export Finance PDF</button>
+      </div>
     </div>
     <div class="table-responsive">
       <?php if (empty($reportRows)): ?>
@@ -276,7 +295,14 @@ include 'includes/sidebar.php';
           </thead>
           <tbody>
             <?php foreach ($reportRows as $row): ?>
-              <tr>
+              <?php
+                $rawPaymentDate = $row['Payment_Date'] ?? null;
+                $rawOrderDate = $row['Order_Date'] ?? null;
+                $transactionDateForFilter = $rawPaymentDate ?: $rawOrderDate;
+                $transactionTimestamp = $transactionDateForFilter ? strtotime($transactionDateForFilter) : false;
+                $transactionTimestampAttr = $transactionTimestamp !== false ? (string)$transactionTimestamp : '';
+              ?>
+              <tr data-transaction-ts="<?= htmlspecialchars($transactionTimestampAttr); ?>">
                 <td>#<?= str_pad((int)$row['Transaction_ID'], 5, '0', STR_PAD_LEFT); ?></td>
                 <td><?= $row['Order_ID'] ? '#' . str_pad((int)$row['Order_ID'], 5, '0', STR_PAD_LEFT) : '—'; ?></td>
                 <td><?= htmlspecialchars($row['Order_Date'] ?? '—'); ?></td>
@@ -475,40 +501,357 @@ ob_start();
     });
   }
 
-  const searchInput = document.getElementById('financeSearch');
-  if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      const query = searchInput.value.toLowerCase();
-      document.querySelectorAll('#financialTable tbody tr').forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(query) ? '' : 'none';
-      });
+  const financeSearchInput = document.getElementById('financeSearch');
+  const financeTimeRangeSelect = document.getElementById('financeTimeRange');
+  const financeTableBody = document.querySelector('#financialTable tbody');
+
+  const getSelectedFinanceRangeDays = () => {
+    if (!financeTimeRangeSelect) {
+      return null;
+    }
+    const selectedOption = financeTimeRangeSelect.options[financeTimeRangeSelect.selectedIndex];
+    if (!selectedOption) {
+      return null;
+    }
+    const dayValueRaw = selectedOption.dataset ? selectedOption.dataset.days : undefined;
+    const parsedDays = dayValueRaw !== undefined ? Number.parseInt(dayValueRaw, 10) : NaN;
+    if (!Number.isFinite(parsedDays) || parsedDays <= 0) {
+      return null;
+    }
+    return parsedDays;
+  };
+
+  const getFinanceTimeRangeLabel = () => {
+    if (!financeTimeRangeSelect) {
+      return 'All Time';
+    }
+    const selectedOption = financeTimeRangeSelect.options[financeTimeRangeSelect.selectedIndex];
+    if (!selectedOption) {
+      return 'All Time';
+    }
+    const optionText = typeof selectedOption.textContent === 'string' ? selectedOption.textContent.trim() : '';
+    if (optionText) {
+      return optionText;
+    }
+    const optionLabel = typeof selectedOption.label === 'string' ? selectedOption.label.trim() : '';
+    if (optionLabel) {
+      return optionLabel;
+    }
+    return 'All Time';
+  };
+
+  const applyFinanceFilters = () => {
+    if (!financeTableBody) {
+      return;
+    }
+    const rows = Array.from(financeTableBody.querySelectorAll('tr'));
+    if (!rows.length) {
+      return;
+    }
+    const searchQuery = financeSearchInput ? financeSearchInput.value.trim().toLowerCase() : '';
+    const rangeDays = getSelectedFinanceRangeDays();
+    const hasRangeFilter = typeof rangeDays === 'number';
+    const cutoffMs = hasRangeFilter ? Date.now() - rangeDays * 24 * 60 * 60 * 1000 : null;
+
+    rows.forEach(row => {
+      const matchesSearch = !searchQuery || row.textContent.toLowerCase().includes(searchQuery);
+      let matchesRange = true;
+      if (hasRangeFilter && cutoffMs !== null) {
+        const tsAttr = row.getAttribute('data-transaction-ts');
+        const tsSeconds = tsAttr ? Number.parseInt(tsAttr, 10) : NaN;
+        if (Number.isFinite(tsSeconds)) {
+          matchesRange = tsSeconds * 1000 >= cutoffMs;
+        } else {
+          matchesRange = false;
+        }
+      }
+      row.style.display = matchesSearch && matchesRange ? '' : 'none';
     });
+  };
+
+  if (financeSearchInput) {
+    financeSearchInput.addEventListener('input', applyFinanceFilters);
   }
 
+  if (financeTimeRangeSelect) {
+    financeTimeRangeSelect.addEventListener('change', applyFinanceFilters);
+  }
+
+  applyFinanceFilters();
+
+  const hiddenClassTokens = ['hidden', 'is-hidden', 'd-none'];
+  const rowIsHidden = row => {
+    if (!row) {
+      return true;
+    }
+    if (row.hidden) {
+      return true;
+    }
+    if (row.getAttribute && row.getAttribute('aria-hidden') === 'true') {
+      return true;
+    }
+    if (row.style && row.style.display === 'none') {
+      return true;
+    }
+    if (row.classList && hiddenClassTokens.some(token => row.classList.contains(token))) {
+      return true;
+    }
+    if (typeof window.getComputedStyle === 'function') {
+      const computedStyle = window.getComputedStyle(row);
+      if (computedStyle && computedStyle.display === 'none') {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const showFinancePdfPreview = (pdfDoc, filename) => {
+    if (!pdfDoc || typeof pdfDoc.output !== 'function') {
+      if (pdfDoc && typeof pdfDoc.save === 'function') {
+        pdfDoc.save(filename);
+      }
+      return;
+    }
+
+    const supportsObjectUrl = typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function';
+    let blob = null;
+    let blobUrl = null;
+
+    if (supportsObjectUrl) {
+      try {
+        blob = pdfDoc.output('blob');
+      } catch (error) {
+        console.error('Failed to build PDF blob for preview:', error);
+      }
+      if (blob instanceof Blob) {
+        blobUrl = URL.createObjectURL(blob);
+      }
+    }
+
+    if (!blobUrl) {
+      try {
+        const dataUrl = pdfDoc.output('dataurlstring');
+        if (dataUrl) {
+          const previewWindow = window.open(dataUrl, '_blank', 'noopener');
+          if (!previewWindow) {
+            window.alert('Unable to open preview window. The PDF will be downloaded instead.');
+            pdfDoc.save(filename);
+          }
+        } else {
+          pdfDoc.save(filename);
+        }
+      } catch (error) {
+        console.error('Failed to open PDF preview window:', error);
+        pdfDoc.save(filename);
+      }
+      return;
+    }
+
+    const existingOverlay = document.getElementById('financePdfPreviewOverlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
+    }
+
+    if (!document.body) {
+      pdfDoc.save(filename);
+      return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'financePdfPreviewOverlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Financial report PDF preview');
+    overlay.style.cssText = [
+      'position:fixed',
+      'inset:0',
+      'background:rgba(0,0,0,0.65)',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'padding:24px',
+      'z-index:9999'
+    ].join(';');
+
+    const modal = document.createElement('div');
+    modal.style.cssText = [
+      'background:#ffffff',
+      'max-width:960px',
+      'width:100%',
+      'height:85vh',
+      'display:flex',
+      'flex-direction:column',
+      'border-radius:8px',
+      'box-shadow:0 12px 40px rgba(0,0,0,0.25)',
+      'overflow:hidden'
+    ].join(';');
+
+    const frame = document.createElement('iframe');
+    frame.src = blobUrl;
+    frame.title = 'Financial report preview';
+    frame.style.cssText = ['flex:1', 'border:0'].join(';');
+
+    const actions = document.createElement('div');
+    actions.style.cssText = [
+      'display:flex',
+      'justify-content:flex-end',
+      'gap:12px',
+      'padding:12px 16px',
+      'background:#f5f6fa',
+      'border-top:1px solid #dcdde1'
+    ].join(';');
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.textContent = 'Close';
+    closeBtn.className = 'btn btn-secondary';
+    closeBtn.style.cssText = [
+      'padding:10px 18px',
+      'border:none',
+      'border-radius:4px',
+      'background:#7f8c8d',
+      'color:#fff',
+      'cursor:pointer',
+      'font-size:14px'
+    ].join(';');
+
+    const downloadBtn = document.createElement('button');
+    downloadBtn.type = 'button';
+    downloadBtn.textContent = 'Download PDF';
+    downloadBtn.className = 'btn btn-primary';
+    downloadBtn.style.cssText = [
+      'padding:10px 18px',
+      'border:none',
+      'border-radius:4px',
+      'background:#e67e22',
+      'color:#fff',
+      'cursor:pointer',
+      'font-size:14px'
+    ].join(';');
+
+    actions.append(closeBtn, downloadBtn);
+    modal.append(frame, actions);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    const cleanup = () => {
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+
+    const handleKeyDown = event => {
+      if (event.key === 'Escape') {
+        cleanup();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    overlay.addEventListener('click', event => {
+      if (event.target === overlay) {
+        cleanup();
+      }
+    });
+
+    closeBtn.addEventListener('click', cleanup);
+
+    downloadBtn.addEventListener('click', () => {
+      pdfDoc.save(filename);
+      cleanup();
+    });
+  };
+
+  const warnOnEmptyFilteredExport = true;
   const exportBtn = document.getElementById('exportFinance');
   if (exportBtn) {
     exportBtn.addEventListener('click', () => {
+      if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
+        window.alert('PDF generator is not ready yet. Please try again in a moment.');
+        return;
+      }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape' });
-      doc.setFontSize(16);
-      doc.text('Financial Report', 14, 18);
 
       const rows = [];
+      const visibleTimestamps = [];
       document.querySelectorAll('#financialTable tbody tr').forEach(tr => {
+        if (rowIsHidden(tr)) {
+          return;
+        }
         const cells = Array.from(tr.cells).map(td => td.textContent.trim());
         rows.push(cells);
+        const tsAttr = tr.getAttribute('data-transaction-ts');
+        const tsSeconds = tsAttr ? Number.parseInt(tsAttr, 10) : NaN;
+        if (Number.isFinite(tsSeconds)) {
+          visibleTimestamps.push(tsSeconds * 1000);
+        }
       });
 
+      if (warnOnEmptyFilteredExport && rows.length === 0) {
+        window.alert('No visible rows to export. Please adjust your filters and try again.');
+        return;
+      }
+
+      const formatCoverageDate = timestampMs => {
+        if (!Number.isFinite(timestampMs)) {
+          return null;
+        }
+        const date = new Date(timestampMs);
+        if (Number.isNaN(date.getTime())) {
+          return null;
+        }
+        return date.toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      };
+
+      const timeRangeLabel = getFinanceTimeRangeLabel();
+      let coverageDetails = '';
+      if (visibleTimestamps.length > 0) {
+        let earliestTimestamp = visibleTimestamps[0];
+        let latestTimestamp = visibleTimestamps[0];
+        for (let index = 1; index < visibleTimestamps.length; index += 1) {
+          const currentTimestamp = visibleTimestamps[index];
+          if (currentTimestamp < earliestTimestamp) {
+            earliestTimestamp = currentTimestamp;
+          }
+          if (currentTimestamp > latestTimestamp) {
+            latestTimestamp = currentTimestamp;
+          }
+        }
+        const earliestLabel = formatCoverageDate(earliestTimestamp);
+        const latestLabel = formatCoverageDate(latestTimestamp);
+        if (earliestLabel && latestLabel) {
+          coverageDetails = earliestLabel === latestLabel
+            ? ` (${earliestLabel})`
+            : ` (${earliestLabel} - ${latestLabel})`;
+        }
+      }
+      const coverageText = `Time Range: ${timeRangeLabel}${coverageDetails}`;
+
+      doc.setFontSize(16);
+      doc.text('Financial Report', 14, 18);
+      doc.setFontSize(11);
+      doc.setTextColor(80);
+      doc.text(coverageText, 14, 26);
+      doc.setTextColor(0);
+
       doc.autoTable({
-        startY: 26,
+        startY: 34,
         head: [['Transaction ID', 'Order ID', 'Order Date', 'Payment Date', 'Customer', 'Product Total', 'Amount Paid', 'Method', 'Status', 'Reference']],
         body: rows,
         theme: 'grid',
         styles: { fontSize: 9 }
       });
 
-      doc.save('financial-report.pdf');
+      showFinancePdfPreview(doc, 'financial-report.pdf');
     });
   }
 </script>
