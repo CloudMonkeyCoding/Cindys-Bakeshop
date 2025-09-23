@@ -1048,7 +1048,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (changeClass) {
         changeSpan.className = changeClass;
       }
-      const formattedChange = `\${changeValue > 0 ? '+' : ''}\${numberFormatter.format(changeValue)} pcs`;
+      const formattedChange = `${changeValue > 0 ? '+' : ''}${numberFormatter.format(changeValue)} pcs`;
       changeSpan.textContent = formattedChange;
       changeCell.appendChild(changeSpan);
       row.appendChild(changeCell);
