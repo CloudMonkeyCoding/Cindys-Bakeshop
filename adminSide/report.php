@@ -100,9 +100,6 @@ include 'includes/sidebar.php';
 <div class="main">
   <div class="header">
     <h1>Inventory Report</h1>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;">
-      <button class="btn btn-primary" id="exportInventory">Export Inventory PDF</button>
-    </div>
   </div>
 
   <section class="stats-grid columns-4" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
@@ -138,6 +135,9 @@ include 'includes/sidebar.php';
   <div class="card" style="margin-top:24px;">
     <div class="table-actions">
       <input type="text" id="inventorySearch" placeholder="🔍 Search inventory item...">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-primary" type="button" id="exportInventory">Export Inventory PDF</button>
+      </div>
     </div>
     <div id="inventoryContainer" class="inventory-groups">
       <noscript>
@@ -217,9 +217,9 @@ include 'includes/sidebar.php';
     </table>
   </div>
 </div>
-
 <?php
-$extraScripts = <<<JS
+ob_start();
+?>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const inventoryEndpoint = '../PHP/inventory_functions.php';
@@ -297,7 +297,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (exportBtn) {
     exportBtn.addEventListener('click', () => {
-      exportInventoryToPDF();
+      if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
+        window.alert('PDF generator is not ready yet. Please try again in a moment.');
+        return;
+      }
+
+      const doc = buildInventoryPDFDocument();
+      if (!doc) {
+        window.alert('Unable to build the inventory report right now. Please try again.');
+        return;
+      }
+
+      showInventoryPdfPreview(doc, 'inventory-report.pdf');
     });
   }
 
@@ -754,9 +765,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  function exportInventoryToPDF() {
-    if (!window.jspdf) {
-      return;
+  function buildInventoryPDFDocument() {
+    if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
+      return null;
     }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -768,8 +779,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!categories.length) {
       doc.setFontSize(12);
       doc.text('No inventory records found.', 14, y);
-      doc.save('inventory-report.pdf');
-      return;
+      return doc;
     }
 
     categories.forEach((category) => {
@@ -793,20 +803,196 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      doc.autoTable({
-        startY: y,
-        head: [['Item Name', 'Stock']],
-        body,
-        theme: 'grid',
-        styles: { fontSize: 10 }
-      });
+      if (typeof doc.autoTable === 'function') {
+        doc.autoTable({
+          startY: y,
+          head: [['Item Name', 'Stock']],
+          body,
+          theme: 'grid',
+          styles: { fontSize: 10 }
+        });
 
-      if (doc.lastAutoTable) {
-        y = doc.lastAutoTable.finalY + 10;
+        if (doc.lastAutoTable) {
+          y = doc.lastAutoTable.finalY + 10;
+        } else {
+          y += 10;
+        }
+      } else {
+        doc.setFontSize(12);
+        body.forEach((row) => {
+          if (y > 280) {
+            doc.addPage();
+            y = 20;
+          }
+          doc.text(`${row[0]} - ${row[1]}`, 18, y);
+          y += 6;
+        });
+        y += 4;
       }
     });
 
-    doc.save('inventory-report.pdf');
+    return doc;
+  }
+
+  function showInventoryPdfPreview(pdfDoc, filename) {
+    if (!pdfDoc || typeof pdfDoc.output !== 'function') {
+      if (pdfDoc && typeof pdfDoc.save === 'function') {
+        pdfDoc.save(filename);
+      }
+      return;
+    }
+
+    const supportsObjectUrl = typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function';
+    let blobUrl = null;
+
+    if (supportsObjectUrl) {
+      try {
+        const blob = pdfDoc.output('blob');
+        if (blob instanceof Blob) {
+          blobUrl = URL.createObjectURL(blob);
+        }
+      } catch (error) {
+        console.error('Failed to build PDF blob for preview:', error);
+      }
+    }
+
+    if (!blobUrl) {
+      try {
+        const dataUrl = pdfDoc.output('dataurlstring');
+        if (dataUrl) {
+          const previewWindow = window.open(dataUrl, '_blank', 'noopener');
+          if (!previewWindow) {
+            window.alert('Unable to open preview window. The PDF will be downloaded instead.');
+            pdfDoc.save(filename);
+          }
+        } else {
+          pdfDoc.save(filename);
+        }
+      } catch (error) {
+        console.error('Failed to open PDF preview window:', error);
+        pdfDoc.save(filename);
+      }
+      return;
+    }
+
+    const existingOverlay = document.getElementById('inventoryPdfPreviewOverlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
+    }
+
+    if (!document.body) {
+      pdfDoc.save(filename);
+      return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'inventoryPdfPreviewOverlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Inventory report PDF preview');
+    overlay.style.cssText = [
+      'position:fixed',
+      'inset:0',
+      'background:rgba(0,0,0,0.65)',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'padding:24px',
+      'z-index:9999'
+    ].join(';');
+
+    const modal = document.createElement('div');
+    modal.style.cssText = [
+      'background:#ffffff',
+      'max-width:960px',
+      'width:100%',
+      'height:85vh',
+      'display:flex',
+      'flex-direction:column',
+      'border-radius:8px',
+      'box-shadow:0 12px 40px rgba(0,0,0,0.25)',
+      'overflow:hidden'
+    ].join(';');
+
+    const frame = document.createElement('iframe');
+    frame.src = blobUrl;
+    frame.title = 'Inventory report preview';
+    frame.style.cssText = ['flex:1', 'border:0'].join(';');
+
+    const actions = document.createElement('div');
+    actions.style.cssText = [
+      'display:flex',
+      'justify-content:flex-end',
+      'gap:12px',
+      'padding:12px 16px',
+      'background:#f5f6fa',
+      'border-top:1px solid #dcdde1'
+    ].join(';');
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.textContent = 'Close';
+    closeBtn.className = 'btn btn-secondary';
+    closeBtn.style.cssText = [
+      'padding:10px 18px',
+      'border:none',
+      'border-radius:4px',
+      'background:#7f8c8d',
+      'color:#fff',
+      'cursor:pointer',
+      'font-size:14px'
+    ].join(';');
+
+    const downloadBtn = document.createElement('button');
+    downloadBtn.type = 'button';
+    downloadBtn.textContent = 'Download PDF';
+    downloadBtn.className = 'btn btn-primary';
+    downloadBtn.style.cssText = [
+      'padding:10px 18px',
+      'border:none',
+      'border-radius:4px',
+      'background:#e67e22',
+      'color:#fff',
+      'cursor:pointer',
+      'font-size:14px'
+    ].join(';');
+
+    actions.append(closeBtn, downloadBtn);
+    modal.append(frame, actions);
+    overlay.appendChild(modal);
+
+    function cleanup() {
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+      document.removeEventListener('keydown', handleKeyDown);
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        cleanup();
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) {
+        cleanup();
+      }
+    });
+
+    closeBtn.addEventListener('click', cleanup);
+
+    downloadBtn.addEventListener('click', () => {
+      pdfDoc.save(filename);
+      cleanup();
+    });
+
+    document.body.appendChild(overlay);
   }
 
   function renderInventoryLogTable() {
@@ -862,7 +1048,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (changeClass) {
         changeSpan.className = changeClass;
       }
-      const formattedChange = `\${changeValue > 0 ? '+' : ''}\${numberFormatter.format(changeValue)} pcs`;
+      const formattedChange = `${changeValue > 0 ? '+' : ''}${numberFormatter.format(changeValue)} pcs`;
       changeSpan.textContent = formattedChange;
       changeCell.appendChild(changeSpan);
       row.appendChild(changeCell);
@@ -965,11 +1151,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  inventoryData = normalizeInventoryData({$inventoryJson});
-  inventoryLogEntries = normalizeInventoryLog({$inventoryLogJson});
+  inventoryData = normalizeInventoryData(<?= $inventoryJson; ?>);
+  inventoryLogEntries = normalizeInventoryLog(<?= $inventoryLogJson; ?>);
   renderInventoryUI();
   renderInventoryLogTable();
 });
 </script>
-JS;
+<?php
+$extraScripts = ob_get_clean();
 include 'includes/footer.php';
