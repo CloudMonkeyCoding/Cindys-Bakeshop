@@ -91,17 +91,37 @@ function deleteOrderById($pdo, $orderId) {
 }
 
 // 7) Count total orders
-function countOrders($pdo) {
-    $stmt = $pdo->query("SELECT COUNT(*) FROM `order`");
+function countOrders($pdo, $startDate = null, $endDate = null) {
+    if ($startDate && $endDate) {
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) FROM `order`
+            WHERE Order_Date BETWEEN :start_date AND :end_date
+        ");
+        $stmt->execute([
+            ':start_date' => $startDate,
+            ':end_date' => $endDate
+        ]);
+    } else {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM `order`");
+    }
+
     return $stmt->fetchColumn();
 }
 
 // 8) Get orders by status
-function getOrdersByStatus($pdo, $status) {
-    $stmt = $pdo->prepare("
-        SELECT * FROM `order` WHERE Status = :status
-    ");
-    $stmt->execute([':status' => $status]);
+function getOrdersByStatus($pdo, $status, $startDate = null, $endDate = null) {
+    $query = "SELECT * FROM `order` WHERE Status = :status";
+    $params = [':status' => $status];
+
+    if ($startDate && $endDate) {
+        $query .= " AND Order_Date BETWEEN :start_date AND :end_date";
+        $params[':start_date'] = $startDate;
+        $params[':end_date'] = $endDate;
+    }
+
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
+
     return $stmt->fetchAll();
 }
 

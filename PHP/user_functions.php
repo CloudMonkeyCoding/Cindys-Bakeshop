@@ -118,8 +118,23 @@ function addUser($pdo, $name, $email, $password, $address, $warning_count = 0, $
         return false; // Invalid
     }
 
-    function countUsers($pdo) {
-        $stmt = $pdo->query("SELECT COUNT(*) FROM user");
+    function countUsers($pdo, $startDate = null, $endDate = null, $dateColumn = null) {
+        $column = $dateColumn ? preg_replace('/[^A-Za-z0-9_]/', '', (string)$dateColumn) : '';
+
+        if ($startDate && $endDate && $column !== '') {
+            $query = sprintf(
+                "SELECT COUNT(*) FROM user WHERE `%s` BETWEEN :start_date AND :end_date",
+                $column
+            );
+            $stmt = $pdo->prepare($query);
+            $stmt->execute([
+                ':start_date' => $startDate,
+                ':end_date' => $endDate
+            ]);
+        } else {
+            $stmt = $pdo->query("SELECT COUNT(*) FROM user");
+        }
+
         return $stmt->fetchColumn();
     }
 
