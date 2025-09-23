@@ -107,7 +107,18 @@ include 'includes/sidebar.php';
       <div class="form-group">
         <label for="productImage">Image</label>
         <input type="file" name="image" id="productImage" accept="image/*">
+        <div class="image-preview" style="margin-top: 10px;">
+          <img id="productImagePreview" src="../Images/logo.png" data-placeholder="../Images/logo.png" alt="Product preview" style="width:120px;height:120px;border-radius:8px;object-fit:cover;display:none;">
+        </div>
+        <div class="image-controls" id="existingImageControls" style="display:none;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap;">
+          <label for="keepCurrentImage" style="display:flex;align-items:center;gap:8px;margin:0;">
+            <input type="checkbox" id="keepCurrentImage" name="keep_current_image" value="1">
+            <span>Keep current image</span>
+          </label>
+          <button type="button" class="btn btn-muted" id="removeImageButton">Remove image</button>
+        </div>
       </div>
+      <input type="hidden" name="remove_image" id="removeImageFlag" value="0">
       <div style="display:flex;gap:12px;justify-content:flex-end;">
         <button type="button" class="btn btn-muted" id="closeModal">Cancel</button>
         <button type="submit" class="btn btn-primary">Save</button>
@@ -126,6 +137,7 @@ $productsJson = json_encode(array_map(static function ($product) {
         'stock' => (int)$product['Stock_Quantity'],
         'category' => $product['Category'],
         'image' => $product['Image_Url'],
+        'imagePath' => $product['Image_Path'],
     ];
 }, $products));
 $extraScripts = <<<JS
@@ -143,9 +155,63 @@ $extraScripts = <<<JS
   const productPrice = document.getElementById('productPrice');
   const productStock = document.getElementById('productStock');
   const productImage = document.getElementById('productImage');
+  const imagePreview = document.getElementById('productImagePreview');
+  const keepCurrentImage = document.getElementById('keepCurrentImage');
+  const existingImageControls = document.getElementById('existingImageControls');
+  const removeImageButton = document.getElementById('removeImageButton');
+  const removeImageFlag = document.getElementById('removeImageFlag');
+  const previewPlaceholder = imagePreview ? (imagePreview.dataset.placeholder || imagePreview.src) : '';
+  const defaultImagePreview = previewPlaceholder || '../Images/logo.png';
+  let isEditingProduct = false;
+  let originalImageUrl = '';
+  let originalImagePath = '';
   const searchBox = document.getElementById('searchProduct');
   const filterCategory = document.getElementById('filterCategory');
   const productTableBody = document.querySelector('#productTable tbody');
+
+  if (Array.isArray(products)) {
+    products = products.map(product => ({
+      ...product,
+      image: product.image || defaultImagePreview,
+      imagePath: product.imagePath || ''
+    }));
+  } else {
+    products = [];
+  }
+
+  function updateImagePreview(src) {
+    if (!imagePreview) return;
+    const finalSrc = src || defaultImagePreview;
+    imagePreview.src = finalSrc;
+    imagePreview.style.display = finalSrc ? 'block' : 'none';
+  }
+
+  function handleKeepImageChange() {
+    if (!keepCurrentImage) return;
+    const keepActive = keepCurrentImage.checked && !keepCurrentImage.disabled;
+    if (productImage) {
+      productImage.disabled = keepActive;
+      if (keepActive) {
+        productImage.value = '';
+      }
+    }
+    if (keepActive) {
+      if (removeImageFlag) {
+        removeImageFlag.value = '0';
+      }
+      updateImagePreview(originalImageUrl || defaultImagePreview);
+    } else {
+      if (removeImageFlag && removeImageFlag.value === '1') {
+        updateImagePreview(defaultImagePreview);
+      } else if (productImage && productImage.files && productImage.files[0]) {
+        // Preview already handled by the file input change handler.
+      } else if (isEditingProduct && originalImagePath) {
+        updateImagePreview(originalImageUrl);
+      } else {
+        updateImagePreview(defaultImagePreview);
+      }
+    }
+  }
 
   function renderProducts(list) {
     if (!productTableBody) return;
@@ -167,7 +233,7 @@ $extraScripts = <<<JS
       row.dataset.category = product.category || '';
       row.innerHTML = `
         <td>\${index + 1}</td>
-        <td><img src="\${product.image || 'https://via.placeholder.com/80x80?text=No+Image'}" alt="\${product.name}" style="width:60px;height:60px;border-radius:8px;object-fit:cover;"></td>
+        <td><img src="\${product.image || defaultImagePreview}" alt="\${product.name}" style="width:60px;height:60px;border-radius:8px;object-fit:cover;"></td>
         <td>\${product.name}</td>
         <td>\${product.stock}</td>
         <td>₱\${Number(product.price).toFixed(2)}</td>
@@ -187,7 +253,25 @@ $extraScripts = <<<JS
     modal.classList.add('active');
     modalTitle.textContent = isEdit ? 'Edit Product' : 'Add New Product';
     productForm.reset();
-    productImage.value = '';
+    isEditingProduct = isEdit;
+    originalImageUrl = '';
+    originalImagePath = '';
+    if (productImage) {
+      productImage.value = '';
+      productImage.disabled = false;
+    }
+    if (removeImageFlag) {
+      removeImageFlag.value = '0';
+    }
+    if (keepCurrentImage) {
+      keepCurrentImage.checked = false;
+      keepCurrentImage.disabled = true;
+    }
+    if (existingImageControls) {
+      existingImageControls.style.display = 'none';
+    }
+    updateImagePreview(defaultImagePreview);
+
     if (isEdit && product) {
       productIdField.value = product.id;
       productName.value = product.name;
@@ -195,15 +279,109 @@ $extraScripts = <<<JS
       productCategory.value = product.category || 'Bread';
       productPrice.value = product.price;
       productStock.value = product.stock;
+      originalImageUrl = product.image || defaultImagePreview;
+      originalImagePath = product.imagePath || '';
+      const hasStoredImage = Boolean(originalImagePath);
+      if (keepCurrentImage) {
+        keepCurrentImage.disabled = !hasStoredImage;
+        keepCurrentImage.checked = hasStoredImage;
+      }
+      if (existingImageControls) {
+        existingImageControls.style.display = hasStoredImage ? 'flex' : 'none';
+      }
+      updateImagePreview(hasStoredImage ? originalImageUrl : defaultImagePreview);
     } else {
       productIdField.value = '';
       productCategory.value = 'Bread';
+      isEditingProduct = false;
     }
+
+    handleKeepImageChange();
   }
 
   function closeModal() {
     modal.classList.remove('active');
     productForm.reset();
+    isEditingProduct = false;
+    originalImageUrl = '';
+    originalImagePath = '';
+    if (removeImageFlag) {
+      removeImageFlag.value = '0';
+    }
+    if (keepCurrentImage) {
+      keepCurrentImage.checked = false;
+      keepCurrentImage.disabled = true;
+    }
+    if (existingImageControls) {
+      existingImageControls.style.display = 'none';
+    }
+    if (productImage) {
+      productImage.disabled = false;
+      productImage.value = '';
+    }
+    updateImagePreview(defaultImagePreview);
+  }
+
+  if (keepCurrentImage) {
+    keepCurrentImage.addEventListener('change', () => {
+      if (keepCurrentImage.checked && removeImageFlag) {
+        removeImageFlag.value = '0';
+      }
+      handleKeepImageChange();
+    });
+  }
+
+  if (removeImageButton) {
+    removeImageButton.addEventListener('click', () => {
+      if (!isEditingProduct || !originalImagePath) {
+        return;
+      }
+      if (removeImageFlag) {
+        removeImageFlag.value = '1';
+      }
+      if (keepCurrentImage) {
+        keepCurrentImage.checked = false;
+        keepCurrentImage.disabled = false;
+      }
+      if (productImage) {
+        productImage.disabled = false;
+        productImage.value = '';
+      }
+      updateImagePreview(defaultImagePreview);
+      handleKeepImageChange();
+    });
+  }
+
+  if (productImage) {
+    productImage.addEventListener('change', () => {
+      const file = productImage.files && productImage.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = event => {
+          const previewSrc = event && event.target && event.target.result ? event.target.result : defaultImagePreview;
+          updateImagePreview(previewSrc);
+        };
+        reader.readAsDataURL(file);
+        if (keepCurrentImage) {
+          keepCurrentImage.checked = false;
+          if (originalImagePath) {
+            keepCurrentImage.disabled = false;
+          }
+        }
+        if (removeImageFlag) {
+          removeImageFlag.value = '0';
+        }
+      } else {
+        if (removeImageFlag && removeImageFlag.value === '1') {
+          updateImagePreview(defaultImagePreview);
+        } else if (isEditingProduct && originalImagePath) {
+          updateImagePreview(originalImageUrl);
+        } else {
+          updateImagePreview(defaultImagePreview);
+        }
+      }
+      handleKeepImageChange();
+    });
   }
 
   openModalBtn.addEventListener('click', () => openModal(false));
@@ -249,7 +427,8 @@ $extraScripts = <<<JS
       price: Number(item.Price),
       stock: Number(item.Stock_Quantity),
       category: item.Category,
-      image: item.Image_Url || (item.Image_Path ? '../adminSide/products/uploads/' + item.Image_Path : '../Images/logo.png')
+      image: item.Image_Url || (item.Image_Path ? '../adminSide/products/uploads/' + item.Image_Path : defaultImagePreview),
+      imagePath: item.Image_Path || ''
     }));
     applyFilters();
   }
