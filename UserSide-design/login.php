@@ -1,3 +1,5 @@
+<?php
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,14 +11,12 @@
 * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',sans-serif; }
 body, html { height:100%; width:100%; }
 body {
-  background: url('bakery-bg.jpg') no-repeat center center/cover;
-  display:flex; flex-direction:column; min-height:100vh; position:relative;
+  background: linear-gradient(135deg, rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url('../userSide/Images/cakes/cake4.png') no-repeat center center/cover;
+  display:flex; flex-direction:column; min-height:100vh; position:relative; color:#fff;
 }
-body::before { content:""; position:absolute; inset:0; background:rgba(0,0,0,0.5); z-index:0; }
 
-/* Header / Nav same as home page */
 header {
-  background: #fff; /* same as home page */
+  background: rgba(255,255,255,0.95);
   padding: 1rem 2rem;
   display: flex;
   align-items: center;
@@ -25,22 +25,11 @@ header {
   z-index: 2;
   border-bottom: 1px solid #eee;
 }
-header .logo img {
-  height: 50px;
-}
-nav {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-}
-nav ul {
-  list-style: none;
-  display: flex;
-  gap: 2rem;
-  align-items: center;
-}
+header .logo img { height: 50px; }
+nav { flex: 1; display: flex; justify-content: center; }
+nav ul { list-style: none; display: flex; gap: 2rem; align-items: center; }
 nav ul li a {
-  color: #333; /* text color same as home page */
+  color: #333;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s ease;
@@ -49,64 +38,51 @@ nav ul li a {
 }
 nav ul li a.active,
 nav ul li a:hover {
-  background: #fcbf49; /* highlight same as home page */
+  background: #fcbf49;
   color: #333;
 }
 
-/* Hamburger Menu */
-.hamburger {
-  display: none;
-  font-size: 1.8rem;
-  cursor: pointer;
+.hamburger { display: none; font-size: 1.8rem; cursor: pointer; color:#333; }
+
+.main {
+  position:relative;
+  z-index:2;
+  flex:1;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:2rem;
 }
 
-/* Main Login Box */
-.main { 
-  position:relative; 
-  z-index:2; 
-  flex:1; 
-  display:flex; 
-  justify-content:center; 
-  align-items:center; 
-  padding:2rem; 
-}
-
-.login-box { 
-  background:rgba(255,255,255,0.98); 
-  padding:2.5rem; 
-  border-radius:12px; 
-  box-shadow:0 6px 20px rgba(0,0,0,0.2); 
-  max-width:400px; 
-  width:100%; 
+.login-box {
+  background:rgba(255,255,255,0.98);
+  padding:2.5rem;
+  border-radius:12px;
+  box-shadow:0 6px 20px rgba(0,0,0,0.3);
+  max-width:400px;
+  width:100%;
   display:flex;
   flex-direction:column;
   gap:16px;
+  color:#333;
 }
 
-.login-box h2 { color:#d62828; text-align:center; margin-bottom:1rem; font-size:1.5rem; }
+.login-box h2 { color:#d62828; text-align:center; margin-bottom:1rem; font-size:1.6rem; }
 
 .input-group { position:relative; display:flex; flex-direction:column; gap:6px; }
-.input-group input { 
-  padding:12px; 
-  border-radius:8px; 
-  border:1px solid #ccc; 
-  font-size:1rem; 
+.input-group label { font-weight:600; }
+.input-group input {
+  padding:12px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size:1rem;
   width:100%;
   transition: border-color 0.2s;
 }
 .input-group input:focus { border-color:#d62828; outline:none; }
 
-.password-wrapper {
-  position:relative;
-  display:flex;
-  align-items:center;
-}
-
-.password-wrapper input {
-  flex:1;
-  padding-right:40px;
-}
-
+.password-wrapper { position:relative; display:flex; align-items:center; }
+.password-wrapper input { flex:1; padding-right:40px; }
 .eye-icon {
   position:absolute;
   right:10px;
@@ -118,23 +94,25 @@ nav ul li a:hover {
 }
 .eye-icon:hover { fill:#d62828; }
 
-.login-box button { 
-  width:100%; 
-  padding:12px; 
-  background:#d62828; 
-  color:#fff; 
-  border:none; 
-  border-radius:8px; 
-  font-weight:700; 
-  cursor:pointer; 
+.login-box button {
+  width:100%;
+  padding:12px;
+  background:#d62828;
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  font-weight:700;
+  cursor:pointer;
   font-size:1rem;
   margin-top:8px;
+  transition:background 0.2s;
 }
+.login-box button:hover { background:#b71c1c; }
 
 .note { font-size:0.85rem; color:#666; margin-top:12px; text-align:center; }
 .note a { color:#d62828; font-weight:600; text-decoration:none; }
+.error { color:#d62828; font-size:0.9rem; text-align:center; min-height:1.2rem; }
 
-/* Responsive Hamburger Menu */
 @media (max-width: 768px) {
   nav {
     position: absolute;
@@ -158,18 +136,18 @@ nav ul li a:hover {
 
 <header>
   <div class="logo">
-    <img src="Cindys.png" alt="Cindy’s Logo">
+    <img src="../Kehnt_admin_Design/Cindys.png" alt="Cindy’s Logo">
   </div>
 
   <div class="hamburger" onclick="toggleMenu()">☰</div>
 
   <nav id="navMenu">
     <ul>
-      <li><a href="home.html">Home</a></li>
-      <li><a href="login.html" class="active">Login</a></li>
-      <li><a href="home.html#about">About</a></li>
-      <li><a href="home.html#visit">Contacts</a></li>
-      <li><a href="signup.html">Signup</a></li>
+      <li><a href="home.php">Home</a></li>
+      <li><a href="login.php" class="active">Login</a></li>
+      <li><a href="home.php#about">About</a></li>
+      <li><a href="home.php#visit">Contacts</a></li>
+      <li><a href="signup.php">Signup</a></li>
     </ul>
   </nav>
 </header>
@@ -177,7 +155,8 @@ nav ul li a:hover {
 <div class="main">
   <div class="login-box">
     <h2>Login</h2>
-    <form id="loginForm" action="login-process.php" method="post">
+    <div class="error" id="errorMsg"></div>
+    <form id="loginForm">
       <div class="input-group">
         <label for="email">Email</label>
         <input id="email" name="email" type="email" placeholder="Enter your email" required>
@@ -196,7 +175,7 @@ nav ul li a:hover {
       <button type="submit">Login</button>
     </form>
     <div class="note">
-      Don't have an account? <a href="signup.html">Sign up</a>
+      Don't have an account? <a href="signup.php">Sign up</a>
     </div>
   </div>
 </div>
@@ -216,5 +195,35 @@ function toggleMenu() {
 }
 </script>
 
+<script type="module">
+  import '../userSide/firebase-init.js';
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+  const form = document.getElementById('loginForm');
+  const errorMsg = document.getElementById('errorMsg');
+  const auth = getAuth();
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      window.location.href = 'menu.php';
+    }
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    errorMsg.textContent = '';
+
+    const email = document.getElementById('email').value.trim();
+    const password = passwordInput.value;
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      window.location.href = 'menu.php';
+    } catch (err) {
+      console.error(err);
+      errorMsg.textContent = err.message.replace('Firebase:', '').trim();
+    }
+  });
+</script>
 </body>
 </html>
