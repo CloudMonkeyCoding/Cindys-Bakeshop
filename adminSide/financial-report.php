@@ -521,6 +521,25 @@ ob_start();
     return parsedDays;
   };
 
+  const getFinanceTimeRangeLabel = () => {
+    if (!financeTimeRangeSelect) {
+      return 'All Time';
+    }
+    const selectedOption = financeTimeRangeSelect.options[financeTimeRangeSelect.selectedIndex];
+    if (!selectedOption) {
+      return 'All Time';
+    }
+    const optionText = typeof selectedOption.textContent === 'string' ? selectedOption.textContent.trim() : '';
+    if (optionText) {
+      return optionText;
+    }
+    const optionLabel = typeof selectedOption.label === 'string' ? selectedOption.label.trim() : '';
+    if (optionLabel) {
+      return optionLabel;
+    }
+    return 'All Time';
+  };
+
   const applyFinanceFilters = () => {
     if (!financeTableBody) {
       return;
@@ -757,16 +776,20 @@ ob_start();
       }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape' });
-      doc.setFontSize(16);
-      doc.text('Financial Report', 14, 18);
 
       const rows = [];
+      const visibleTimestamps = [];
       document.querySelectorAll('#financialTable tbody tr').forEach(tr => {
         if (rowIsHidden(tr)) {
           return;
         }
         const cells = Array.from(tr.cells).map(td => td.textContent.trim());
         rows.push(cells);
+        const tsAttr = tr.getAttribute('data-transaction-ts');
+        const tsSeconds = tsAttr ? Number.parseInt(tsAttr, 10) : NaN;
+        if (Number.isFinite(tsSeconds)) {
+          visibleTimestamps.push(tsSeconds * 1000);
+        }
       });
 
       if (warnOnEmptyFilteredExport && rows.length === 0) {
@@ -774,8 +797,54 @@ ob_start();
         return;
       }
 
+      const formatCoverageDate = timestampMs => {
+        if (!Number.isFinite(timestampMs)) {
+          return null;
+        }
+        const date = new Date(timestampMs);
+        if (Number.isNaN(date.getTime())) {
+          return null;
+        }
+        return date.toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      };
+
+      const timeRangeLabel = getFinanceTimeRangeLabel();
+      let coverageDetails = '';
+      if (visibleTimestamps.length > 0) {
+        let earliestTimestamp = visibleTimestamps[0];
+        let latestTimestamp = visibleTimestamps[0];
+        for (let index = 1; index < visibleTimestamps.length; index += 1) {
+          const currentTimestamp = visibleTimestamps[index];
+          if (currentTimestamp < earliestTimestamp) {
+            earliestTimestamp = currentTimestamp;
+          }
+          if (currentTimestamp > latestTimestamp) {
+            latestTimestamp = currentTimestamp;
+          }
+        }
+        const earliestLabel = formatCoverageDate(earliestTimestamp);
+        const latestLabel = formatCoverageDate(latestTimestamp);
+        if (earliestLabel && latestLabel) {
+          coverageDetails = earliestLabel === latestLabel
+            ? ` (${earliestLabel})`
+            : ` (${earliestLabel} - ${latestLabel})`;
+        }
+      }
+      const coverageText = `Time Range: ${timeRangeLabel}${coverageDetails}`;
+
+      doc.setFontSize(16);
+      doc.text('Financial Report', 14, 18);
+      doc.setFontSize(11);
+      doc.setTextColor(80);
+      doc.text(coverageText, 14, 26);
+      doc.setTextColor(0);
+
       doc.autoTable({
-        startY: 26,
+        startY: 34,
         head: [['Transaction ID', 'Order ID', 'Order Date', 'Payment Date', 'Customer', 'Product Total', 'Amount Paid', 'Method', 'Status', 'Reference']],
         body: rows,
         theme: 'grid',
