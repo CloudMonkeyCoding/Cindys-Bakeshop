@@ -229,7 +229,7 @@ if ($pdo) {
         $lowStockProducts = $stmtLowStock->fetchAll(PDO::FETCH_ASSOC);
         $inventoryFilterApplied = true;
     } else {
-        $stmtLowStockCount = $pdo->query("SELECT COUNT(*) FROM inventory WHERE $inventoryThreshold");
+        $stmtLowStockCount = $pdo->query("SELECT COUNT(*) FROM inventory i WHERE $inventoryThreshold");
         $lowStockCount = (int)($stmtLowStockCount ? $stmtLowStockCount->fetchColumn() : 0);
 
         $stmtLowStock = $pdo->query("
