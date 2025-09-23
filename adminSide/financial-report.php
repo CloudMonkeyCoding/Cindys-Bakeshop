@@ -204,7 +204,6 @@ include 'includes/sidebar.php';
     <h1>Financial Report</h1>
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
       <span style="font-size:14px;color:#7f8c8d;">Last payment: <?= htmlspecialchars($lastPaymentDisplay); ?></span>
-      <button class="btn btn-primary" id="exportFinance">Export Finance PDF</button>
     </div>
   </div>
 
@@ -253,7 +252,27 @@ include 'includes/sidebar.php';
 
   <div class="card" style="margin-top:24px;">
     <div class="table-actions">
-      <input type="text" id="financeSearch" placeholder="🔍 Search payment record...">
+      <input
+        type="text"
+        id="financeSearch"
+        placeholder="🔍 Search payment record..."
+        aria-label="Search finance transactions"
+      >
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+        <select
+          id="financeTimeRange"
+          aria-label="Filter finance records by time period"
+          style="padding:8px 12px;border:1px solid #dcdde1;border-radius:6px;font-size:14px;min-width:180px;"
+        >
+          <option value="all" data-days="0" selected>All Time</option>
+          <?php foreach ($timeRanges as $rangeKey => $rangeConfig): ?>
+            <option value="<?= htmlspecialchars($rangeKey); ?>" data-days="<?= (int)($rangeConfig['days'] ?? 0); ?>">
+              <?= htmlspecialchars($rangeConfig['label']); ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+        <button class="btn btn-primary" id="exportFinance">Export Finance PDF</button>
+      </div>
     </div>
     <div class="table-responsive">
       <?php if (empty($reportRows)): ?>
@@ -276,7 +295,14 @@ include 'includes/sidebar.php';
           </thead>
           <tbody>
             <?php foreach ($reportRows as $row): ?>
-              <tr>
+              <?php
+                $rawPaymentDate = $row['Payment_Date'] ?? null;
+                $rawOrderDate = $row['Order_Date'] ?? null;
+                $transactionDateForFilter = $rawPaymentDate ?: $rawOrderDate;
+                $transactionTimestamp = $transactionDateForFilter ? strtotime($transactionDateForFilter) : false;
+                $transactionTimestampAttr = $transactionTimestamp !== false ? (string)$transactionTimestamp : '';
+              ?>
+              <tr data-transaction-ts="<?= htmlspecialchars($transactionTimestampAttr); ?>">
                 <td>#<?= str_pad((int)$row['Transaction_ID'], 5, '0', STR_PAD_LEFT); ?></td>
                 <td><?= $row['Order_ID'] ? '#' . str_pad((int)$row['Order_ID'], 5, '0', STR_PAD_LEFT) : '—'; ?></td>
                 <td><?= htmlspecialchars($row['Order_Date'] ?? '—'); ?></td>
@@ -475,16 +501,64 @@ ob_start();
     });
   }
 
-  const searchInput = document.getElementById('financeSearch');
-  if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      const query = searchInput.value.toLowerCase();
-      document.querySelectorAll('#financialTable tbody tr').forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(query) ? '' : 'none';
-      });
+  const financeSearchInput = document.getElementById('financeSearch');
+  const financeTimeRangeSelect = document.getElementById('financeTimeRange');
+  const financeTableBody = document.querySelector('#financialTable tbody');
+
+  const getSelectedFinanceRangeDays = () => {
+    if (!financeTimeRangeSelect) {
+      return null;
+    }
+    const selectedOption = financeTimeRangeSelect.options[financeTimeRangeSelect.selectedIndex];
+    if (!selectedOption) {
+      return null;
+    }
+    const dayValueRaw = selectedOption.dataset ? selectedOption.dataset.days : undefined;
+    const parsedDays = dayValueRaw !== undefined ? Number.parseInt(dayValueRaw, 10) : NaN;
+    if (!Number.isFinite(parsedDays) || parsedDays <= 0) {
+      return null;
+    }
+    return parsedDays;
+  };
+
+  const applyFinanceFilters = () => {
+    if (!financeTableBody) {
+      return;
+    }
+    const rows = Array.from(financeTableBody.querySelectorAll('tr'));
+    if (!rows.length) {
+      return;
+    }
+    const searchQuery = financeSearchInput ? financeSearchInput.value.trim().toLowerCase() : '';
+    const rangeDays = getSelectedFinanceRangeDays();
+    const hasRangeFilter = typeof rangeDays === 'number';
+    const cutoffMs = hasRangeFilter ? Date.now() - rangeDays * 24 * 60 * 60 * 1000 : null;
+
+    rows.forEach(row => {
+      const matchesSearch = !searchQuery || row.textContent.toLowerCase().includes(searchQuery);
+      let matchesRange = true;
+      if (hasRangeFilter && cutoffMs !== null) {
+        const tsAttr = row.getAttribute('data-transaction-ts');
+        const tsSeconds = tsAttr ? Number.parseInt(tsAttr, 10) : NaN;
+        if (Number.isFinite(tsSeconds)) {
+          matchesRange = tsSeconds * 1000 >= cutoffMs;
+        } else {
+          matchesRange = false;
+        }
+      }
+      row.style.display = matchesSearch && matchesRange ? '' : 'none';
     });
+  };
+
+  if (financeSearchInput) {
+    financeSearchInput.addEventListener('input', applyFinanceFilters);
   }
+
+  if (financeTimeRangeSelect) {
+    financeTimeRangeSelect.addEventListener('change', applyFinanceFilters);
+  }
+
+  applyFinanceFilters();
 
   const hiddenClassTokens = ['hidden', 'is-hidden', 'd-none'];
   const rowIsHidden = row => {
