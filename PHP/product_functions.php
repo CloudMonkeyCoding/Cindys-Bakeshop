@@ -234,6 +234,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         case 'getAll':
             $products = getAllProducts($pdo);
+            $products = array_map(static function ($product) {
+                $product['Image_Url'] = getProductImageUrl($product, '../');
+                return $product;
+            }, $products);
             echo json_encode($products);
             break;
 
