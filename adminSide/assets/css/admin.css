@@ -154,6 +154,57 @@ img {
   color: #111;
 }
 
+.header-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timeframe-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.timeframe-form select,
+.timeframe-form input[type="date"] {
+  border: 1px solid #dcdde1;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 14px;
+  color: #2c3e50;
+  background: #fff;
+}
+
+.timeframe-custom-fields {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.timeframe-form .btn {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+.timeframe-summary {
+  font-size: 13px;
+  color: var(--muted-text);
+  margin: 0;
+}
+
+.range-separator {
+  color: var(--muted-text);
+  font-size: 13px;
+}
+
+.chart-title {
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
 .user-info {
   display: flex;
   align-items: center;

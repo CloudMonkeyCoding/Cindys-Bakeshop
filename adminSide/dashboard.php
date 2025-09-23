@@ -1,4 +1,6 @@
 <?php
+session_start();
+
 require_once '../PHP/db_connect.php';
 require_once '../PHP/order_functions.php';
 require_once '../PHP/order_item_functions.php';
@@ -9,6 +11,147 @@ require_once '../PHP/user_functions.php';
 $activePage = 'dashboard';
 $pageTitle = "Dashboard - Cindy's Bakeshop";
 $extraHead = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>';
+
+$timeframeOptions = [
+    'last_7_days' => 'Last 7 Days',
+    'last_30_days' => 'Last 30 Days',
+    'custom' => 'Custom Range'
+];
+
+function sanitizeDateValue($value)
+{
+    if (!is_string($value)) {
+        return null;
+    }
+
+    $value = trim($value);
+    if ($value === '') {
+        return null;
+    }
+
+    $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+
+    return ($date && $date->format('Y-m-d') === $value) ? $value : null;
+}
+
+function resolveDashboardDateRange($timeframe, $customStart, $customEnd)
+{
+    $today = new DateTimeImmutable('today');
+    $lastThirtyStart = $today->modify('-29 days');
+
+    switch ($timeframe) {
+        case 'last_7_days':
+            return [
+                'start' => $today->modify('-6 days'),
+                'end' => $today,
+                'timeframe' => 'last_7_days',
+                'customStart' => null,
+                'customEnd' => null,
+            ];
+        case 'last_30_days':
+            return [
+                'start' => $lastThirtyStart,
+                'end' => $today,
+                'timeframe' => 'last_30_days',
+                'customStart' => null,
+                'customEnd' => null,
+            ];
+        case 'custom':
+            $start = $customStart ? DateTimeImmutable::createFromFormat('!Y-m-d', $customStart) : null;
+            $end = $customEnd ? DateTimeImmutable::createFromFormat('!Y-m-d', $customEnd) : null;
+
+            if ($start && $end) {
+                if ($start > $end) {
+                    [$start, $end] = [$end, $start];
+                }
+
+                return [
+                    'start' => $start,
+                    'end' => $end,
+                    'timeframe' => 'custom',
+                    'customStart' => $start->format('Y-m-d'),
+                    'customEnd' => $end->format('Y-m-d'),
+                ];
+            }
+            break;
+    }
+
+    return [
+        'start' => $lastThirtyStart,
+        'end' => $today,
+        'timeframe' => 'last_30_days',
+        'customStart' => null,
+        'customEnd' => null,
+    ];
+}
+
+function getDateColumnIfExists(PDO $pdo, $table, array $candidates)
+{
+    static $cache = [];
+
+    $cacheKey = $table . '|' . implode(',', $candidates);
+    if (array_key_exists($cacheKey, $cache)) {
+        return $cache[$cacheKey];
+    }
+
+    if (empty($candidates)) {
+        $cache[$cacheKey] = null;
+        return null;
+    }
+
+    $placeholders = implode(',', array_fill(0, count($candidates), '?'));
+    $sql = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME IN ($placeholders) LIMIT 1";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute(array_merge([$table], $candidates));
+    $column = $stmt->fetchColumn() ?: null;
+
+    $cache[$cacheKey] = $column;
+
+    return $column;
+}
+
+$selectedTimeframe = $_SESSION['dashboard_timeframe'] ?? 'last_30_days';
+if (isset($_GET['timeframe']) && is_string($_GET['timeframe']) && isset($timeframeOptions[$_GET['timeframe']])) {
+    $selectedTimeframe = $_GET['timeframe'];
+}
+
+$requestedCustomStart = isset($_GET['start_date']) ? sanitizeDateValue($_GET['start_date']) : null;
+$requestedCustomEnd = isset($_GET['end_date']) ? sanitizeDateValue($_GET['end_date']) : null;
+
+$sessionCustomStart = isset($_SESSION['dashboard_custom_start']) ? sanitizeDateValue($_SESSION['dashboard_custom_start']) : null;
+$sessionCustomEnd = isset($_SESSION['dashboard_custom_end']) ? sanitizeDateValue($_SESSION['dashboard_custom_end']) : null;
+
+$customStartInput = $requestedCustomStart ?? $sessionCustomStart;
+$customEndInput = $requestedCustomEnd ?? $sessionCustomEnd;
+
+$range = resolveDashboardDateRange($selectedTimeframe, $customStartInput, $customEndInput);
+
+$rangeStart = $range['start'];
+$rangeEnd = $range['end'];
+$selectedTimeframe = $range['timeframe'];
+$customRangeStart = $range['customStart'];
+$customRangeEnd = $range['customEnd'];
+
+$_SESSION['dashboard_timeframe'] = $selectedTimeframe;
+$_SESSION['dashboard_range_start'] = $rangeStart->format('Y-m-d');
+$_SESSION['dashboard_range_end'] = $rangeEnd->format('Y-m-d');
+if ($selectedTimeframe === 'custom') {
+    $_SESSION['dashboard_custom_start'] = $customRangeStart;
+    $_SESSION['dashboard_custom_end'] = $customRangeEnd;
+}
+
+$rangeStartFormatted = $rangeStart->format('Y-m-d');
+$rangeEndFormatted = $rangeEnd->format('Y-m-d');
+$rangeDisplay = $rangeStart->format('M d, Y') . ' – ' . $rangeEnd->format('M d, Y');
+$rangeDays = (int)$rangeStart->diff($rangeEnd)->format('%a') + 1;
+$salesGranularity = $rangeDays <= 31 ? 'daily' : 'monthly';
+$salesGranularityLabel = $salesGranularity === 'daily' ? 'Daily' : 'Monthly';
+$salesChartTitle = $salesGranularity === 'daily' ? 'Sales Trend (Daily)' : 'Sales Trend (Monthly)';
+$timeframeLabel = $timeframeOptions[$selectedTimeframe] ?? 'Custom Range';
+$customStartValue = $customRangeStart ?? ($sessionCustomStart ?? '');
+$customEndValue = $customRangeEnd ?? ($sessionCustomEnd ?? '');
+$showCustomRange = $selectedTimeframe === 'custom';
 
 $totalOrders = 0;
 $pendingOrders = 0;
@@ -23,50 +166,170 @@ $topProductQty = null;
 $monthlySales = [];
 $categoryRevenueShare = [];
 $recentOrders = [];
+$userFilterApplied = false;
+$inventoryFilterApplied = false;
 
 if ($pdo) {
-    $totalOrders = countOrders($pdo);
-    $pendingOrders = count(getOrdersByStatus($pdo, 'Pending'));
-    $deliveredOrders = count(getOrdersByStatus($pdo, 'Delivered'));
+    $totalOrders = countOrders($pdo, $rangeStartFormatted, $rangeEndFormatted);
+    $pendingOrders = count(getOrdersByStatus($pdo, 'Pending', $rangeStartFormatted, $rangeEndFormatted));
+    $deliveredOrders = count(getOrdersByStatus($pdo, 'Delivered', $rangeStartFormatted, $rangeEndFormatted));
 
-    $stmtRevenue = $pdo->query("SELECT COALESCE(SUM(Amount_Paid), 0) FROM transaction");
-    $totalRevenue = (float)($stmtRevenue ? $stmtRevenue->fetchColumn() : 0);
+    $stmtRevenue = $pdo->prepare("SELECT COALESCE(SUM(Amount_Paid), 0) FROM transaction WHERE Payment_Date IS NOT NULL AND Payment_Date BETWEEN :start_date AND :end_date");
+    $stmtRevenue->execute([
+        ':start_date' => $rangeStartFormatted,
+        ':end_date' => $rangeEndFormatted,
+    ]);
+    $totalRevenue = (float)$stmtRevenue->fetchColumn();
 
-    $stmtUsers = $pdo->query("SELECT COUNT(*) FROM user");
-    $totalUsers = (int)($stmtUsers ? $stmtUsers->fetchColumn() : 0);
+    $userDateColumn = $pdo ? getDateColumnIfExists($pdo, 'user', [
+        'Created_At',
+        'CreatedAt',
+        'Registration_Date',
+        'Registered_On',
+        'Date_Created',
+        'DateCreated',
+        'Joined_At',
+    ]) : null;
+    $totalUsers = (int)countUsers($pdo, $rangeStartFormatted, $rangeEndFormatted, $userDateColumn);
+    $userFilterApplied = (bool)$userDateColumn;
 
-    $stmtLowStockCount = $pdo->query("SELECT COUNT(*) FROM inventory WHERE Stock_Quantity IS NULL OR Stock_Quantity <= 10");
-    $lowStockCount = (int)($stmtLowStockCount ? $stmtLowStockCount->fetchColumn() : 0);
+    $inventoryThreshold = 'i.Stock_Quantity IS NULL OR i.Stock_Quantity <= 10';
+    $inventoryDateColumn = $pdo ? getDateColumnIfExists($pdo, 'inventory', [
+        'Updated_At',
+        'UpdatedAt',
+        'Last_Updated',
+        'LastUpdated',
+        'Created_At',
+        'CreatedAt',
+        'Date_Added',
+        'DateAdded',
+    ]) : null;
 
-    $stmtLowStock = $pdo->query("SELECT p.Name, i.Stock_Quantity FROM inventory i JOIN product p ON i.Product_ID = p.Product_ID WHERE i.Stock_Quantity IS NULL OR i.Stock_Quantity <= 10 ORDER BY i.Stock_Quantity ASC LIMIT 6");
-    $lowStockProducts = $stmtLowStock ? $stmtLowStock->fetchAll(PDO::FETCH_ASSOC) : [];
+    if ($inventoryDateColumn) {
+        $inventoryDateClause = sprintf('i.`%s` BETWEEN :start_date AND :end_date', $inventoryDateColumn);
+        $stmtLowStockCount = $pdo->prepare("SELECT COUNT(*) FROM inventory i WHERE ($inventoryThreshold) AND $inventoryDateClause");
+        $stmtLowStockCount->execute([
+            ':start_date' => $rangeStartFormatted,
+            ':end_date' => $rangeEndFormatted,
+        ]);
+        $lowStockCount = (int)$stmtLowStockCount->fetchColumn();
 
-    $stmtTopProduct = $pdo->query("SELECT p.Name, SUM(oi.Quantity) AS total_qty FROM order_item oi JOIN product p ON oi.Product_ID = p.Product_ID GROUP BY p.Product_ID ORDER BY total_qty DESC LIMIT 1");
-    $topProduct = $stmtTopProduct ? $stmtTopProduct->fetch(PDO::FETCH_ASSOC) : null;
+        $stmtLowStock = $pdo->prepare("
+            SELECT p.Name, i.Stock_Quantity
+            FROM inventory i
+            JOIN product p ON i.Product_ID = p.Product_ID
+            WHERE ($inventoryThreshold) AND $inventoryDateClause
+            ORDER BY i.Stock_Quantity ASC, p.Name ASC
+            LIMIT 6
+        ");
+        $stmtLowStock->execute([
+            ':start_date' => $rangeStartFormatted,
+            ':end_date' => $rangeEndFormatted,
+        ]);
+        $lowStockProducts = $stmtLowStock->fetchAll(PDO::FETCH_ASSOC);
+        $inventoryFilterApplied = true;
+    } else {
+        $stmtLowStockCount = $pdo->query("SELECT COUNT(*) FROM inventory WHERE $inventoryThreshold");
+        $lowStockCount = (int)($stmtLowStockCount ? $stmtLowStockCount->fetchColumn() : 0);
+
+        $stmtLowStock = $pdo->query("
+            SELECT p.Name, i.Stock_Quantity
+            FROM inventory i
+            JOIN product p ON i.Product_ID = p.Product_ID
+            WHERE $inventoryThreshold
+            ORDER BY i.Stock_Quantity ASC, p.Name ASC
+            LIMIT 6
+        ");
+        $lowStockProducts = $stmtLowStock ? $stmtLowStock->fetchAll(PDO::FETCH_ASSOC) : [];
+    }
+
+    $stmtTopProduct = $pdo->prepare("
+        SELECT p.Name, SUM(oi.Quantity) AS total_qty
+        FROM order_item oi
+        JOIN product p ON oi.Product_ID = p.Product_ID
+        JOIN `order` o ON oi.Order_ID = o.Order_ID
+        WHERE o.Order_Date BETWEEN :start_date AND :end_date
+        GROUP BY p.Product_ID, p.Name
+        ORDER BY total_qty DESC
+        LIMIT 1
+    ");
+    $stmtTopProduct->execute([
+        ':start_date' => $rangeStartFormatted,
+        ':end_date' => $rangeEndFormatted,
+    ]);
+    $topProduct = $stmtTopProduct->fetch(PDO::FETCH_ASSOC) ?: null;
     $topProductName = is_array($topProduct) ? ($topProduct['Name'] ?? null) : null;
     $topProductQty = is_array($topProduct) && isset($topProduct['total_qty']) ? (int)$topProduct['total_qty'] : null;
 
-    $monthlyTotals = [];
-    $stmtMonthly = $pdo->query("SELECT DATE_FORMAT(Payment_Date, '%Y-%m') AS period, COALESCE(SUM(Amount_Paid), 0) AS total FROM transaction WHERE Payment_Date IS NOT NULL AND Payment_Date >= DATE_SUB(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 11 MONTH) GROUP BY period");
-    if ($stmtMonthly) {
+    if ($salesGranularity === 'daily') {
+        $stmtDaily = $pdo->prepare("
+            SELECT DATE(Payment_Date) AS period, COALESCE(SUM(Amount_Paid), 0) AS total
+            FROM transaction
+            WHERE Payment_Date IS NOT NULL
+              AND Payment_Date BETWEEN :start_date AND :end_date
+            GROUP BY DATE(Payment_Date)
+            ORDER BY period ASC
+        ");
+        $stmtDaily->execute([
+            ':start_date' => $rangeStartFormatted,
+            ':end_date' => $rangeEndFormatted,
+        ]);
+        $dailyTotals = [];
+        foreach ($stmtDaily->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $dailyTotals[$row['period']] = (float)$row['total'];
+        }
+
+        for ($date = $rangeStart; $date <= $rangeEnd; $date = $date->modify('+1 day')) {
+            $key = $date->format('Y-m-d');
+            $monthlySales[] = [
+                'label' => $date->format('M j'),
+                'value' => round($dailyTotals[$key] ?? 0, 2),
+            ];
+        }
+    } else {
+        $stmtMonthly = $pdo->prepare("
+            SELECT DATE_FORMAT(Payment_Date, '%Y-%m') AS period, COALESCE(SUM(Amount_Paid), 0) AS total
+            FROM transaction
+            WHERE Payment_Date IS NOT NULL
+              AND Payment_Date BETWEEN :start_date AND :end_date
+            GROUP BY DATE_FORMAT(Payment_Date, '%Y-%m')
+            ORDER BY period ASC
+        ");
+        $stmtMonthly->execute([
+            ':start_date' => $rangeStartFormatted,
+            ':end_date' => $rangeEndFormatted,
+        ]);
+        $monthlyTotals = [];
         foreach ($stmtMonthly->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $monthlyTotals[$row['period']] = (float)$row['total'];
         }
-    }
 
-    $currentMonth = new DateTime('first day of this month');
-    for ($i = 11; $i >= 0; $i--) {
-        $month = (clone $currentMonth)->modify("-{$i} months");
-        $periodKey = $month->format('Y-m');
-        $monthlySales[] = [
-            'label' => $month->format('M Y'),
-            'value' => round($monthlyTotals[$periodKey] ?? 0, 2)
-        ];
+        $monthCursor = new DateTimeImmutable($rangeStart->format('Y-m-01'));
+        $monthEndCursor = new DateTimeImmutable($rangeEnd->format('Y-m-01'));
+
+        while ($monthCursor <= $monthEndCursor) {
+            $key = $monthCursor->format('Y-m');
+            $monthlySales[] = [
+                'label' => $monthCursor->format('M Y'),
+                'value' => round($monthlyTotals[$key] ?? 0, 2),
+            ];
+            $monthCursor = $monthCursor->modify('+1 month');
+        }
     }
 
     $categoryExpression = "COALESCE(NULLIF(TRIM(p.Category), ''), 'Uncategorized')";
     $statusFilter = ['Delivered', 'Completed'];
-    $statusList = implode(',', array_map([$pdo, 'quote'], $statusFilter));
+    $statusPlaceholders = [];
+    $categoryParams = [
+        ':start_date' => $rangeStartFormatted,
+        ':end_date' => $rangeEndFormatted,
+    ];
+
+    foreach ($statusFilter as $index => $status) {
+        $placeholder = ':status_' . $index;
+        $statusPlaceholders[] = $placeholder;
+        $categoryParams[$placeholder] = $status;
+    }
 
     $categoryQuery = "
         SELECT
@@ -75,16 +338,20 @@ if ($pdo) {
         FROM order_item oi
         JOIN product p ON oi.Product_ID = p.Product_ID
         JOIN `order` o ON o.Order_ID = oi.Order_ID
-        WHERE o.Status IN ($statusList)
+        WHERE o.Order_Date BETWEEN :start_date AND :end_date
+    ";
+    if ($statusPlaceholders) {
+        $categoryQuery .= ' AND o.Status IN (' . implode(',', $statusPlaceholders) . ')';
+    }
+    $categoryQuery .= "
         GROUP BY $categoryExpression
         ORDER BY total_revenue DESC
         LIMIT 5
     ";
 
-    $stmtCategory = $pdo->query($categoryQuery);
-    if ($stmtCategory) {
-        $categoryRevenueShare = $stmtCategory->fetchAll(PDO::FETCH_ASSOC);
-    }
+    $stmtCategory = $pdo->prepare($categoryQuery);
+    $stmtCategory->execute($categoryParams);
+    $categoryRevenueShare = $stmtCategory->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
     $categoryRevenueShare = array_values(array_filter($categoryRevenueShare, function ($row) {
         return isset($row['total_revenue']) && (float)$row['total_revenue'] > 0;
@@ -98,23 +365,37 @@ if ($pdo) {
             FROM order_item oi
             JOIN product p ON oi.Product_ID = p.Product_ID
             JOIN `order` o ON o.Order_ID = oi.Order_ID
+            WHERE o.Order_Date BETWEEN :start_date AND :end_date
             GROUP BY $categoryExpression
             ORDER BY total_revenue DESC
             LIMIT 5
         ";
-        $stmtFallback = $pdo->query($fallbackQuery);
-        if ($stmtFallback) {
-            $categoryRevenueShare = $stmtFallback->fetchAll(PDO::FETCH_ASSOC);
-            $categoryRevenueShare = array_values(array_filter($categoryRevenueShare, function ($row) {
-                return isset($row['total_revenue']) && (float)$row['total_revenue'] > 0;
-            }));
-        }
+        $stmtFallback = $pdo->prepare($fallbackQuery);
+        $stmtFallback->execute([
+            ':start_date' => $rangeStartFormatted,
+            ':end_date' => $rangeEndFormatted,
+        ]);
+        $categoryRevenueShare = $stmtFallback->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $categoryRevenueShare = array_values(array_filter($categoryRevenueShare, function ($row) {
+            return isset($row['total_revenue']) && (float)$row['total_revenue'] > 0;
+        }));
     }
 
-    $stmtRecent = $pdo->query("SELECT o.Order_ID, o.Order_Date, o.Status, u.Name, COALESCE(SUM(oi.Subtotal),0) AS Total FROM `order` o LEFT JOIN user u ON o.User_ID = u.User_ID LEFT JOIN order_item oi ON oi.Order_ID = o.Order_ID GROUP BY o.Order_ID, o.Order_Date, o.Status, u.Name ORDER BY o.Order_Date DESC, o.Order_ID DESC LIMIT 6");
-    if ($stmtRecent) {
-        $recentOrders = $stmtRecent->fetchAll(PDO::FETCH_ASSOC);
-    }
+    $stmtRecent = $pdo->prepare("
+        SELECT o.Order_ID, o.Order_Date, o.Status, u.Name, COALESCE(SUM(oi.Subtotal), 0) AS Total
+        FROM `order` o
+        LEFT JOIN user u ON o.User_ID = u.User_ID
+        LEFT JOIN order_item oi ON oi.Order_ID = o.Order_ID
+        WHERE o.Order_Date BETWEEN :start_date AND :end_date
+        GROUP BY o.Order_ID, o.Order_Date, o.Status, u.Name
+        ORDER BY o.Order_Date DESC, o.Order_ID DESC
+        LIMIT 6
+    ");
+    $stmtRecent->execute([
+        ':start_date' => $rangeStartFormatted,
+        ':end_date' => $rangeEndFormatted,
+    ]);
+    $recentOrders = $stmtRecent->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
 
 $salesLabels = json_encode(!empty($monthlySales) ? array_column($monthlySales, 'label') : ['No Data']);
@@ -126,13 +407,39 @@ $categoryValues = json_encode(!empty($categoryRevenueShare) ? array_map(function
     return round((float)($item['total_revenue'] ?? 0), 2);
 }, $categoryRevenueShare) : [0]);
 
+$ordersCardSubtitle = 'Orders placed in range';
+$pendingCardSubtitle = 'Pending orders in range';
+$deliveredCardSubtitle = 'Delivered orders in range';
+$revenueCardSubtitle = 'Revenue collected in range';
+$userCardSubtitle = $userFilterApplied ? 'Customers added in range' : 'Registered customers';
+$inventoryCardSubtitle = $inventoryFilterApplied ? 'Low stock flagged in range' : 'Items at or below threshold';
+$topProductSubtitle = $topProductQty !== null ? 'Sold ' . number_format($topProductQty) . ' pcs in range' : 'No product sales in range';
+
 include 'includes/header.php';
 include 'includes/sidebar.php';
 ?>
 
 <div class="main">
   <div class="header">
-    <h1>Welcome back!</h1>
+    <div class="header-controls">
+      <h1>Welcome back!</h1>
+      <form id="dashboard-timeframe-form" class="timeframe-form" method="get" action="">
+        <select name="timeframe" id="dashboard-timeframe" aria-label="Select timeframe">
+          <?php foreach ($timeframeOptions as $key => $label): ?>
+            <option value="<?= htmlspecialchars($key); ?>" <?= $selectedTimeframe === $key ? 'selected' : ''; ?>>
+              <?= htmlspecialchars($label); ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+        <div id="dashboard-custom-range" class="timeframe-custom-fields" style="<?= $showCustomRange ? '' : 'display:none;'; ?>">
+          <input type="date" name="start_date" id="dashboard-start-date" value="<?= htmlspecialchars($customStartValue); ?>" <?= $showCustomRange ? '' : 'disabled'; ?> aria-label="Custom range start">
+          <span class="range-separator">to</span>
+          <input type="date" name="end_date" id="dashboard-end-date" value="<?= htmlspecialchars($customEndValue); ?>" <?= $showCustomRange ? '' : 'disabled'; ?> aria-label="Custom range end">
+          <button type="submit" class="btn btn-primary">Apply</button>
+        </div>
+      </form>
+      <p class="timeframe-summary">Showing <?= htmlspecialchars($timeframeLabel); ?> &middot; <?= htmlspecialchars($rangeDisplay); ?></p>
+    </div>
     <a href="edit-profile.php" class="user-info">
       <span>Admin</span>
       <img src="https://i.pravatar.cc/80" alt="Admin avatar">
@@ -144,49 +451,49 @@ include 'includes/sidebar.php';
       <div class="card-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></div>
       <div class="card-info">
         <h3><?= number_format($totalOrders); ?></h3>
-        <p>Total orders recorded</p>
+        <p><?= htmlspecialchars($ordersCardSubtitle); ?></p>
       </div>
     </div>
     <div class="card">
       <div class="card-icon"><i class="fa-solid fa-clock" aria-hidden="true"></i></div>
       <div class="card-info">
         <h3><?= number_format($pendingOrders); ?></h3>
-        <p>Orders awaiting preparation</p>
+        <p><?= htmlspecialchars($pendingCardSubtitle); ?></p>
       </div>
     </div>
     <div class="card">
       <div class="card-icon"><i class="fa-solid fa-truck" aria-hidden="true"></i></div>
       <div class="card-info">
         <h3><?= number_format($deliveredOrders); ?></h3>
-        <p>Completed deliveries</p>
+        <p><?= htmlspecialchars($deliveredCardSubtitle); ?></p>
       </div>
     </div>
     <div class="card">
       <div class="card-icon"><i class="fa-solid fa-coins" aria-hidden="true"></i></div>
       <div class="card-info">
         <h3>₱<?= number_format($totalRevenue, 2); ?></h3>
-        <p>Gross revenue to date</p>
+        <p><?= htmlspecialchars($revenueCardSubtitle); ?></p>
       </div>
     </div>
     <div class="card">
       <div class="card-icon"><i class="fa-solid fa-users" aria-hidden="true"></i></div>
       <div class="card-info">
         <h3><?= number_format($totalUsers); ?></h3>
-        <p>Registered customers</p>
+        <p><?= htmlspecialchars($userCardSubtitle); ?></p>
       </div>
     </div>
     <div class="card">
       <div class="card-icon"><i class="fa-solid fa-box-open" aria-hidden="true"></i></div>
       <div class="card-info">
         <h3><?= number_format($lowStockCount); ?></h3>
-        <p>Items at or below threshold</p>
+        <p><?= htmlspecialchars($inventoryCardSubtitle); ?></p>
       </div>
     </div>
     <div class="card">
       <div class="card-icon"><i class="fa-solid fa-crown" aria-hidden="true"></i></div>
       <div class="card-info">
         <h3><?= $topProductName ? htmlspecialchars($topProductName) : 'No data'; ?></h3>
-        <p><?= $topProductQty !== null ? 'Sold ' . number_format($topProductQty) . ' pcs' : 'Top product performance'; ?></p>
+        <p><?= htmlspecialchars($topProductSubtitle); ?></p>
       </div>
     </div>
     <div class="card">
@@ -201,7 +508,7 @@ include 'includes/sidebar.php';
 
   <div class="stats-grid columns-4" style="margin-top: 24px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
     <div class="card">
-      <h2 style="font-size:18px;margin-bottom:16px;">Monthly Sales</h2>
+      <h2 class="chart-title"><?= htmlspecialchars($salesChartTitle); ?></h2>
       <canvas id="salesChart" height="220"></canvas>
     </div>
     <div class="card">
@@ -269,6 +576,38 @@ include 'includes/sidebar.php';
 <?php
 $extraScripts = <<<JS
 <script>
+  const timeframeForm = document.getElementById('dashboard-timeframe-form');
+  if (timeframeForm) {
+    const timeframeSelect = document.getElementById('dashboard-timeframe');
+    const customContainer = document.getElementById('dashboard-custom-range');
+    const startInput = document.getElementById('dashboard-start-date');
+    const endInput = document.getElementById('dashboard-end-date');
+
+    const toggleCustomFields = () => {
+      const isCustom = timeframeSelect && timeframeSelect.value === 'custom';
+      if (customContainer) {
+        customContainer.style.display = isCustom ? 'flex' : 'none';
+      }
+      if (startInput) {
+        startInput.disabled = !isCustom;
+      }
+      if (endInput) {
+        endInput.disabled = !isCustom;
+      }
+    };
+
+    if (timeframeSelect) {
+      timeframeSelect.addEventListener('change', () => {
+        const isCustom = timeframeSelect.value === 'custom';
+        toggleCustomFields();
+        if (!isCustom) {
+          timeframeForm.submit();
+        }
+      });
+      toggleCustomFields();
+    }
+  }
+
   const salesLabels = $salesLabels;
   const salesValues = $salesValues;
   const categoryLabels = $categoryLabels;
