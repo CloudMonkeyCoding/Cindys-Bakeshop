@@ -100,9 +100,6 @@ include 'includes/sidebar.php';
 <div class="main">
   <div class="header">
     <h1>Inventory Report</h1>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;">
-      <button class="btn btn-primary" id="exportInventory">Export Inventory PDF</button>
-    </div>
   </div>
 
   <section class="stats-grid columns-4" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
@@ -138,6 +135,7 @@ include 'includes/sidebar.php';
   <div class="card" style="margin-top:24px;">
     <div class="table-actions">
       <input type="text" id="inventorySearch" placeholder="🔍 Search inventory item...">
+      <button class="btn btn-primary" type="button" id="exportInventory">Export Inventory PDF</button>
     </div>
     <div id="inventoryContainer" class="inventory-groups">
       <noscript>
@@ -218,6 +216,22 @@ include 'includes/sidebar.php';
   </div>
 </div>
 
+<div class="modal pdf-preview-modal" id="pdfPreviewModal" aria-hidden="true" role="dialog" aria-labelledby="pdfPreviewTitle">
+  <div class="modal-content pdf-preview-content" role="document">
+    <div class="pdf-preview-header">
+      <h2 id="pdfPreviewTitle">Inventory PDF Preview</h2>
+      <button type="button" class="pdf-preview-close" data-close-pdf-preview aria-label="Close preview">&times;</button>
+    </div>
+    <div class="pdf-preview-body">
+      <iframe id="pdfPreviewFrame" class="pdf-preview-frame" title="Inventory PDF Preview"></iframe>
+    </div>
+    <div class="pdf-preview-footer">
+      <button type="button" class="btn btn-secondary" data-close-pdf-preview>Close</button>
+      <button type="button" class="btn btn-primary" id="pdfPreviewDownload">Download PDF</button>
+    </div>
+  </div>
+</div>
+
 <?php
 $extraScripts = <<<JS
 <script>
@@ -228,6 +242,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const exportBtn = document.getElementById('exportInventory');
   const logSearchInput = document.getElementById('inventoryLogSearch');
   const logTableBody = document.getElementById('inventoryLogBody');
+  const pdfPreviewModal = document.getElementById('pdfPreviewModal');
+  const pdfPreviewFrame = document.getElementById('pdfPreviewFrame');
+  const pdfPreviewDownloadBtn = document.getElementById('pdfPreviewDownload');
+  const pdfPreviewCloseButtons = pdfPreviewModal ? pdfPreviewModal.querySelectorAll('[data-close-pdf-preview]') : [];
   const statsEls = {
     categoryCount: document.getElementById('inventoryCategoryCount'),
     skuCount: document.getElementById('inventorySkuCount'),
@@ -243,6 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let inventoryIndex = new Map();
   let inventoryData = {};
   let inventoryLogEntries = [];
+  const pdfPreviewState = { url: null, doc: null };
 
   if (searchInput) {
     currentSearchTerm = searchInput.value.toLowerCase();
@@ -297,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (exportBtn) {
     exportBtn.addEventListener('click', () => {
-      exportInventoryToPDF();
+      openInventoryPdfPreview();
     });
   }
 
@@ -308,6 +327,42 @@ document.addEventListener('DOMContentLoaded', () => {
       renderInventoryLogTable();
     });
   }
+
+  if (pdfPreviewModal && pdfPreviewCloseButtons.length) {
+    pdfPreviewCloseButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        closeInventoryPdfPreview();
+      });
+    });
+  }
+
+  if (pdfPreviewModal) {
+    pdfPreviewModal.addEventListener('click', (event) => {
+      if (event.target === pdfPreviewModal) {
+        closeInventoryPdfPreview();
+      }
+    });
+  }
+
+  if (pdfPreviewDownloadBtn) {
+    pdfPreviewDownloadBtn.disabled = true;
+    pdfPreviewDownloadBtn.addEventListener('click', () => {
+      if (pdfPreviewState.doc) {
+        pdfPreviewState.doc.save('inventory-report.pdf');
+      } else {
+        const doc = buildInventoryPDFDocument();
+        if (doc) {
+          doc.save('inventory-report.pdf');
+        }
+      }
+    });
+  }
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && pdfPreviewModal && pdfPreviewModal.classList.contains('active')) {
+      closeInventoryPdfPreview();
+    }
+  });
 
   function renderInventoryUI() {
     buildInventoryIndex();
@@ -754,9 +809,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  function exportInventoryToPDF() {
+  function buildInventoryPDFDocument() {
     if (!window.jspdf) {
-      return;
+      return null;
     }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -768,8 +823,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!categories.length) {
       doc.setFontSize(12);
       doc.text('No inventory records found.', 14, y);
-      doc.save('inventory-report.pdf');
-      return;
+      return doc;
     }
 
     categories.forEach((category) => {
@@ -793,20 +847,90 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      doc.autoTable({
-        startY: y,
-        head: [['Item Name', 'Stock']],
-        body,
-        theme: 'grid',
-        styles: { fontSize: 10 }
-      });
+      if (typeof doc.autoTable === 'function') {
+        doc.autoTable({
+          startY: y,
+          head: [['Item Name', 'Stock']],
+          body,
+          theme: 'grid',
+          styles: { fontSize: 10 }
+        });
 
-      if (doc.lastAutoTable) {
-        y = doc.lastAutoTable.finalY + 10;
+        if (doc.lastAutoTable) {
+          y = doc.lastAutoTable.finalY + 10;
+        } else {
+          y += 10;
+        }
+      } else {
+        doc.setFontSize(12);
+        body.forEach((row) => {
+          if (y > 280) {
+            doc.addPage();
+            y = 20;
+          }
+          doc.text(`${row[0]} - ${row[1]}`, 18, y);
+          y += 6;
+        });
+        y += 4;
       }
     });
 
-    doc.save('inventory-report.pdf');
+    return doc;
+  }
+
+  function openInventoryPdfPreview() {
+    const doc = buildInventoryPDFDocument();
+    if (!doc) {
+      if (typeof window.alert === 'function') {
+        window.alert('PDF generation is not available at the moment.');
+      }
+      return;
+    }
+
+    if (!pdfPreviewModal || !pdfPreviewFrame) {
+      doc.save('inventory-report.pdf');
+      return;
+    }
+
+    if (pdfPreviewState.url) {
+      URL.revokeObjectURL(pdfPreviewState.url);
+    }
+
+    const blob = doc.output('blob');
+    const objectUrl = URL.createObjectURL(blob);
+    pdfPreviewState.doc = doc;
+    pdfPreviewState.url = objectUrl;
+    pdfPreviewFrame.src = objectUrl;
+    pdfPreviewModal.classList.add('active');
+    pdfPreviewModal.setAttribute('aria-hidden', 'false');
+
+    if (pdfPreviewDownloadBtn) {
+      pdfPreviewDownloadBtn.disabled = false;
+    }
+  }
+
+  function closeInventoryPdfPreview() {
+    if (!pdfPreviewModal) {
+      return;
+    }
+
+    pdfPreviewModal.classList.remove('active');
+    pdfPreviewModal.setAttribute('aria-hidden', 'true');
+
+    if (pdfPreviewFrame) {
+      pdfPreviewFrame.src = 'about:blank';
+    }
+
+    if (pdfPreviewState.url) {
+      URL.revokeObjectURL(pdfPreviewState.url);
+      pdfPreviewState.url = null;
+    }
+
+    pdfPreviewState.doc = null;
+
+    if (pdfPreviewDownloadBtn) {
+      pdfPreviewDownloadBtn.disabled = true;
+    }
   }
 
   function renderInventoryLogTable() {
