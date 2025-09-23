@@ -135,7 +135,9 @@ include 'includes/sidebar.php';
   <div class="card" style="margin-top:24px;">
     <div class="table-actions">
       <input type="text" id="inventorySearch" placeholder="🔍 Search inventory item...">
-      <button class="btn btn-primary" type="button" id="exportInventory">Export Inventory PDF</button>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-primary" type="button" id="exportInventory">Export Inventory PDF</button>
+      </div>
     </div>
     <div id="inventoryContainer" class="inventory-groups">
       <noscript>
@@ -215,25 +217,9 @@ include 'includes/sidebar.php';
     </table>
   </div>
 </div>
-
-<div class="modal pdf-preview-modal" id="pdfPreviewModal" aria-hidden="true" role="dialog" aria-labelledby="pdfPreviewTitle">
-  <div class="modal-content pdf-preview-content" role="document">
-    <div class="pdf-preview-header">
-      <h2 id="pdfPreviewTitle">Inventory PDF Preview</h2>
-      <button type="button" class="pdf-preview-close" data-close-pdf-preview aria-label="Close preview">&times;</button>
-    </div>
-    <div class="pdf-preview-body">
-      <iframe id="pdfPreviewFrame" class="pdf-preview-frame" title="Inventory PDF Preview"></iframe>
-    </div>
-    <div class="pdf-preview-footer">
-      <button type="button" class="btn btn-secondary" data-close-pdf-preview>Close</button>
-      <button type="button" class="btn btn-primary" id="pdfPreviewDownload">Download PDF</button>
-    </div>
-  </div>
-</div>
-
 <?php
-$extraScripts = <<<JS
+ob_start();
+?>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const inventoryEndpoint = '../PHP/inventory_functions.php';
@@ -242,10 +228,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const exportBtn = document.getElementById('exportInventory');
   const logSearchInput = document.getElementById('inventoryLogSearch');
   const logTableBody = document.getElementById('inventoryLogBody');
-  const pdfPreviewModal = document.getElementById('pdfPreviewModal');
-  const pdfPreviewFrame = document.getElementById('pdfPreviewFrame');
-  const pdfPreviewDownloadBtn = document.getElementById('pdfPreviewDownload');
-  const pdfPreviewCloseButtons = pdfPreviewModal ? pdfPreviewModal.querySelectorAll('[data-close-pdf-preview]') : [];
   const statsEls = {
     categoryCount: document.getElementById('inventoryCategoryCount'),
     skuCount: document.getElementById('inventorySkuCount'),
@@ -261,7 +243,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let inventoryIndex = new Map();
   let inventoryData = {};
   let inventoryLogEntries = [];
-  const pdfPreviewState = { url: null, doc: null };
 
   if (searchInput) {
     currentSearchTerm = searchInput.value.toLowerCase();
@@ -316,7 +297,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (exportBtn) {
     exportBtn.addEventListener('click', () => {
-      openInventoryPdfPreview();
+      if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
+        window.alert('PDF generator is not ready yet. Please try again in a moment.');
+        return;
+      }
+
+      const doc = buildInventoryPDFDocument();
+      if (!doc) {
+        window.alert('Unable to build the inventory report right now. Please try again.');
+        return;
+      }
+
+      showInventoryPdfPreview(doc, 'inventory-report.pdf');
     });
   }
 
@@ -327,42 +319,6 @@ document.addEventListener('DOMContentLoaded', () => {
       renderInventoryLogTable();
     });
   }
-
-  if (pdfPreviewModal && pdfPreviewCloseButtons.length) {
-    pdfPreviewCloseButtons.forEach((button) => {
-      button.addEventListener('click', () => {
-        closeInventoryPdfPreview();
-      });
-    });
-  }
-
-  if (pdfPreviewModal) {
-    pdfPreviewModal.addEventListener('click', (event) => {
-      if (event.target === pdfPreviewModal) {
-        closeInventoryPdfPreview();
-      }
-    });
-  }
-
-  if (pdfPreviewDownloadBtn) {
-    pdfPreviewDownloadBtn.disabled = true;
-    pdfPreviewDownloadBtn.addEventListener('click', () => {
-      if (pdfPreviewState.doc) {
-        pdfPreviewState.doc.save('inventory-report.pdf');
-      } else {
-        const doc = buildInventoryPDFDocument();
-        if (doc) {
-          doc.save('inventory-report.pdf');
-        }
-      }
-    });
-  }
-
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && pdfPreviewModal && pdfPreviewModal.classList.contains('active')) {
-      closeInventoryPdfPreview();
-    }
-  });
 
   function renderInventoryUI() {
     buildInventoryIndex();
@@ -810,7 +766,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function buildInventoryPDFDocument() {
-    if (!window.jspdf) {
+    if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
       return null;
     }
     const { jsPDF } = window.jspdf;
@@ -878,59 +834,165 @@ document.addEventListener('DOMContentLoaded', () => {
     return doc;
   }
 
-  function openInventoryPdfPreview() {
-    const doc = buildInventoryPDFDocument();
-    if (!doc) {
-      if (typeof window.alert === 'function') {
-        window.alert('PDF generation is not available at the moment.');
+  function showInventoryPdfPreview(pdfDoc, filename) {
+    if (!pdfDoc || typeof pdfDoc.output !== 'function') {
+      if (pdfDoc && typeof pdfDoc.save === 'function') {
+        pdfDoc.save(filename);
       }
       return;
     }
 
-    if (!pdfPreviewModal || !pdfPreviewFrame) {
-      doc.save('inventory-report.pdf');
+    const supportsObjectUrl = typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function';
+    let blobUrl = null;
+
+    if (supportsObjectUrl) {
+      try {
+        const blob = pdfDoc.output('blob');
+        if (blob instanceof Blob) {
+          blobUrl = URL.createObjectURL(blob);
+        }
+      } catch (error) {
+        console.error('Failed to build PDF blob for preview:', error);
+      }
+    }
+
+    if (!blobUrl) {
+      try {
+        const dataUrl = pdfDoc.output('dataurlstring');
+        if (dataUrl) {
+          const previewWindow = window.open(dataUrl, '_blank', 'noopener');
+          if (!previewWindow) {
+            window.alert('Unable to open preview window. The PDF will be downloaded instead.');
+            pdfDoc.save(filename);
+          }
+        } else {
+          pdfDoc.save(filename);
+        }
+      } catch (error) {
+        console.error('Failed to open PDF preview window:', error);
+        pdfDoc.save(filename);
+      }
       return;
     }
 
-    if (pdfPreviewState.url) {
-      URL.revokeObjectURL(pdfPreviewState.url);
+    const existingOverlay = document.getElementById('inventoryPdfPreviewOverlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
     }
 
-    const blob = doc.output('blob');
-    const objectUrl = URL.createObjectURL(blob);
-    pdfPreviewState.doc = doc;
-    pdfPreviewState.url = objectUrl;
-    pdfPreviewFrame.src = objectUrl;
-    pdfPreviewModal.classList.add('active');
-    pdfPreviewModal.setAttribute('aria-hidden', 'false');
-
-    if (pdfPreviewDownloadBtn) {
-      pdfPreviewDownloadBtn.disabled = false;
-    }
-  }
-
-  function closeInventoryPdfPreview() {
-    if (!pdfPreviewModal) {
+    if (!document.body) {
+      pdfDoc.save(filename);
       return;
     }
 
-    pdfPreviewModal.classList.remove('active');
-    pdfPreviewModal.setAttribute('aria-hidden', 'true');
+    const overlay = document.createElement('div');
+    overlay.id = 'inventoryPdfPreviewOverlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Inventory report PDF preview');
+    overlay.style.cssText = [
+      'position:fixed',
+      'inset:0',
+      'background:rgba(0,0,0,0.65)',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'padding:24px',
+      'z-index:9999'
+    ].join(';');
 
-    if (pdfPreviewFrame) {
-      pdfPreviewFrame.src = 'about:blank';
+    const modal = document.createElement('div');
+    modal.style.cssText = [
+      'background:#ffffff',
+      'max-width:960px',
+      'width:100%',
+      'height:85vh',
+      'display:flex',
+      'flex-direction:column',
+      'border-radius:8px',
+      'box-shadow:0 12px 40px rgba(0,0,0,0.25)',
+      'overflow:hidden'
+    ].join(';');
+
+    const frame = document.createElement('iframe');
+    frame.src = blobUrl;
+    frame.title = 'Inventory report preview';
+    frame.style.cssText = ['flex:1', 'border:0'].join(';');
+
+    const actions = document.createElement('div');
+    actions.style.cssText = [
+      'display:flex',
+      'justify-content:flex-end',
+      'gap:12px',
+      'padding:12px 16px',
+      'background:#f5f6fa',
+      'border-top:1px solid #dcdde1'
+    ].join(';');
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.textContent = 'Close';
+    closeBtn.className = 'btn btn-secondary';
+    closeBtn.style.cssText = [
+      'padding:10px 18px',
+      'border:none',
+      'border-radius:4px',
+      'background:#7f8c8d',
+      'color:#fff',
+      'cursor:pointer',
+      'font-size:14px'
+    ].join(';');
+
+    const downloadBtn = document.createElement('button');
+    downloadBtn.type = 'button';
+    downloadBtn.textContent = 'Download PDF';
+    downloadBtn.className = 'btn btn-primary';
+    downloadBtn.style.cssText = [
+      'padding:10px 18px',
+      'border:none',
+      'border-radius:4px',
+      'background:#e67e22',
+      'color:#fff',
+      'cursor:pointer',
+      'font-size:14px'
+    ].join(';');
+
+    actions.append(closeBtn, downloadBtn);
+    modal.append(frame, actions);
+    overlay.appendChild(modal);
+
+    function cleanup() {
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+      document.removeEventListener('keydown', handleKeyDown);
     }
 
-    if (pdfPreviewState.url) {
-      URL.revokeObjectURL(pdfPreviewState.url);
-      pdfPreviewState.url = null;
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        cleanup();
+      }
     }
 
-    pdfPreviewState.doc = null;
+    document.addEventListener('keydown', handleKeyDown);
 
-    if (pdfPreviewDownloadBtn) {
-      pdfPreviewDownloadBtn.disabled = true;
-    }
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) {
+        cleanup();
+      }
+    });
+
+    closeBtn.addEventListener('click', cleanup);
+
+    downloadBtn.addEventListener('click', () => {
+      pdfDoc.save(filename);
+      cleanup();
+    });
+
+    document.body.appendChild(overlay);
   }
 
   function renderInventoryLogTable() {
@@ -1089,11 +1151,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  inventoryData = normalizeInventoryData({$inventoryJson});
-  inventoryLogEntries = normalizeInventoryLog({$inventoryLogJson});
+  inventoryData = normalizeInventoryData(<?= $inventoryJson; ?>);
+  inventoryLogEntries = normalizeInventoryLog(<?= $inventoryLogJson; ?>);
   renderInventoryUI();
   renderInventoryLogTable();
 });
 </script>
-JS;
+<?php
+$extraScripts = ob_get_clean();
 include 'includes/footer.php';
