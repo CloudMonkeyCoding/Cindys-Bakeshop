@@ -7,14 +7,10 @@ $pageTitle = "Products - Cindy's Bakeshop";
 
 $products = [];
 if ($pdo) {
-    $products = getAllProducts($pdo);
-}
-
-function productImagePath($product) {
-    if (!empty($product['Image_Path'])) {
-        return '../adminSide/products/uploads/' . $product['Image_Path'];
-    }
-    return "https://via.placeholder.com/80x80?text=No+Image";
+    $products = array_map(static function ($product) {
+        $product['Image_Url'] = getProductImageUrl($product, '../');
+        return $product;
+    }, getAllProducts($pdo) ?: []);
 }
 
 include 'includes/header.php';
@@ -62,7 +58,7 @@ include 'includes/sidebar.php';
           <?php foreach ($products as $index => $product): ?>
             <tr data-product-id="<?= $product['Product_ID']; ?>" data-category="<?= htmlspecialchars($product['Category'] ?? ''); ?>">
               <td><?= $index + 1; ?></td>
-              <td><img src="<?= htmlspecialchars(productImagePath($product)); ?>" alt="<?= htmlspecialchars($product['Name']); ?>" style="width:60px;height:60px;border-radius:8px;object-fit:cover;"></td>
+              <td><img src="<?= htmlspecialchars($product['Image_Url']); ?>" alt="<?= htmlspecialchars($product['Name']); ?>" style="width:60px;height:60px;border-radius:8px;object-fit:cover;"></td>
               <td><?= htmlspecialchars($product['Name']); ?></td>
               <td><?= number_format($product['Stock_Quantity'] ?? 0); ?></td>
               <td>₱<?= number_format($product['Price'], 2); ?></td>
@@ -129,7 +125,7 @@ $productsJson = json_encode(array_map(static function ($product) {
         'price' => (float)$product['Price'],
         'stock' => (int)$product['Stock_Quantity'],
         'category' => $product['Category'],
-        'image' => empty($product['Image_Path']) ? '' : '../adminSide/products/uploads/' . $product['Image_Path'],
+        'image' => $product['Image_Url'],
     ];
 }, $products));
 $extraScripts = <<<JS
@@ -253,7 +249,7 @@ $extraScripts = <<<JS
       price: Number(item.Price),
       stock: Number(item.Stock_Quantity),
       category: item.Category,
-      image: item.Image_Path ? '../adminSide/products/uploads/' + item.Image_Path : ''
+      image: item.Image_Url || (item.Image_Path ? '../adminSide/products/uploads/' + item.Image_Path : '../Images/logo.png')
     }));
     applyFilters();
   }

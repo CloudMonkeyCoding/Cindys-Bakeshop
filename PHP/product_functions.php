@@ -34,6 +34,55 @@ function getProductsByCategory($pdo, $category) {
     return $stmt->fetchAll();
 }
 
+function getProductImageUrl(array $product, string $relativePrefix = ''): string
+{
+    $relativePrefix = $relativePrefix === '' ? '' : rtrim($relativePrefix, '/\\') . '/';
+    $imagePath = isset($product['Image_Path']) ? trim((string)$product['Image_Path']) : '';
+    if ($imagePath === '') {
+        return $relativePrefix . 'Images/logo.png';
+    }
+
+    $imageFile = basename(str_replace('\\', '/', $imagePath));
+    if ($imageFile === '') {
+        return $relativePrefix . 'Images/logo.png';
+    }
+
+    $projectRoot = realpath(__DIR__ . '/..');
+    if ($projectRoot === false) {
+        $projectRoot = dirname(__DIR__);
+    }
+
+    $uploadsAbsolute = $projectRoot . '/adminSide/products/uploads/' . $imageFile;
+    if (is_file($uploadsAbsolute)) {
+        return $relativePrefix . 'adminSide/products/uploads/' . $imageFile;
+    }
+
+    $categoryKey = strtolower((string)($product['Category'] ?? ''));
+    $categoryMap = [
+        'bread' => 'bread',
+        'breads' => 'bread',
+        'cake' => 'cakes',
+        'cakes' => 'cakes',
+        'pastry' => 'pastry',
+        'pastries' => 'pastry',
+    ];
+
+    if (isset($categoryMap[$categoryKey])) {
+        $categoryDir = $categoryMap[$categoryKey];
+        $categoryAbsolute = $projectRoot . '/Images/' . $categoryDir . '/' . $imageFile;
+        if (is_file($categoryAbsolute)) {
+            return $relativePrefix . 'Images/' . $categoryDir . '/' . $imageFile;
+        }
+    }
+
+    $imagesAbsolute = $projectRoot . '/Images/' . $imageFile;
+    if (is_file($imagesAbsolute)) {
+        return $relativePrefix . 'Images/' . $imageFile;
+    }
+
+    return $relativePrefix . 'Images/logo.png';
+}
+
 // 3) Get a product by ID
 function getProductById($pdo, $productId) {
     $stmt = $pdo->prepare("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path FROM product WHERE Product_ID = :product_id");
@@ -185,6 +234,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         case 'getAll':
             $products = getAllProducts($pdo);
+            $products = array_map(static function ($product) {
+                $product['Image_Url'] = getProductImageUrl($product, '../');
+                return $product;
+            }, $products);
             echo json_encode($products);
             break;
 

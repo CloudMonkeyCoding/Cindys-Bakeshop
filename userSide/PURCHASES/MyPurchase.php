@@ -79,7 +79,7 @@
           orders.forEach(order => {
             const div = document.createElement('div');
             div.classList.add('order-card');
-            const imgSrc = order.Image_Path ? '../../adminSide/products/uploads/' + order.Image_Path : '../Images/cindy_s logo.png';
+            const imgSrc = order.Image_Path ? '../../adminSide/products/uploads/' + order.Image_Path : '../../Images/logo.png';
             div.innerHTML = `
               <div class="order-info">
                 <img src="${imgSrc}" class="order-img" alt="Product">
