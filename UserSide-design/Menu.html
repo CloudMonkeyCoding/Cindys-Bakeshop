@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cindy’s Bakeshop - Main Menu</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:"Poppins",sans-serif; }
+    body { background:#fcfbf9; color:#3c3c3c; line-height:1.5; }
+
+    nav { background:#fff9f3; display:flex; justify-content:space-between; align-items:center; padding:1rem 2rem; position:sticky; top:0; z-index:1000; box-shadow:0 1px 5px rgba(0,0,0,0.05); }
+    nav .logo { font-size:1.3rem; font-weight:600; color:#a66e44; }
+    nav ul { list-style:none; display:flex; gap:1.2rem; align-items:center; }
+    nav ul li a { color:#3c3c3c; text-decoration:none; font-weight:500; }
+    nav ul li a:hover { color:#a66e44; }
+    nav .menu-toggle { display:none; font-size:1.8rem; cursor:pointer; }
+
+    @media (max-width:768px) {
+      nav ul { display:none; flex-direction:column; gap:1rem; background:#fff9f3; position:absolute; top:60px; left:0; right:0; padding:1rem 2rem; border-top:1px solid #e2d6c9; }
+      nav ul.show { display:flex; }
+      .menu-toggle { display:block; }
+      .profile-dropdown .dropdown-menu { position:static; box-shadow:none; border-radius:6px; background:#fff9f3; margin-top:0.5rem; width:100%; }
+      .profile-dropdown .dropdown-menu li { padding:0.7rem 0.5rem; border-top:1px solid #f0e5da; }
+      .profile-dropdown .dropdown-menu li:first-child { border-top:none; }
+    }
+
+    .profile-dropdown { position:relative; }
+    .profile-dropdown span { cursor:pointer; }
+    .profile-dropdown .dropdown-menu { position:absolute; top:120%; right:0; background:#fff; color:#3c3c3c; border-radius:8px; box-shadow:0 3px 10px rgba(0,0,0,0.08); display:none; flex-direction:column; min-width:160px; z-index:2000; }
+    .profile-dropdown .dropdown-menu li { padding:0.7rem 1rem; }
+    .profile-dropdown .dropdown-menu li a { text-decoration:none; color:#3c3c3c; display:block; }
+    .profile-dropdown .dropdown-menu li:hover { background:#f9f6f2; }
+    .profile-dropdown.show .dropdown-menu { display:flex; }
+
+    header { background:#fff4ea; text-align:center; padding:2.5rem 1rem; }
+    header h1 { font-size:2.2rem; font-weight:600; color:#a66e44; }
+    header p { font-size:1rem; opacity:0.85; margin-top:0.3rem; }
+
+    .best-sellers { max-width:1200px; margin:1.5rem auto; background:#fff8e7; padding:20px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+    .best-sellers h2 { font-size:1.5rem; margin-bottom:15px; color:#d35400; }
+    .best-seller-list { display:flex; gap:1rem; overflow-x:auto; padding:0.5rem 0; }
+    .best-seller-list::-webkit-scrollbar { height:8px; }
+    .best-seller-list::-webkit-scrollbar-thumb { background:#ffb703; border-radius:4px; }
+
+    .controls { max-width:1200px; margin:1.5rem auto; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; padding:0 1rem; }
+    .categories { display:flex; gap:0.6rem; flex-wrap:wrap; }
+    .categories button { padding:0.5rem 1rem; border:1px solid #e2d6c9; border-radius:20px; background:#fff; cursor:pointer; font-weight:500; transition:0.2s; }
+    .categories button.active, .categories button:hover { background:#a66e44; color:#fff; border-color:#a66e44; }
+    .search-bar input { padding:0.5rem 1rem; border:1px solid #e2d6c9; border-radius:20px; outline:none; width:200px; background:#fff; }
+
+    .menu-section { max-width:1200px; margin:1rem auto; padding:0 1rem; }
+    .menu-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 280px)); justify-content:left; gap:1.2rem; }
+    .menu-item { position:relative; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,0.05); transition:0.2s; }
+    .menu-item:hover { transform:translateY(-2px); box-shadow:0 3px 10px rgba(0,0,0,0.07); }
+    .menu-item img { width:100%; height:160px; object-fit:cover; }
+    .favorite-btn { position:absolute; top:10px; right:10px; cursor:pointer; font-size:1.3rem; width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.9); display:flex; align-items:center; justify-content:center; color:#bbb; transition:all 0.25s ease; box-shadow:0 2px 6px rgba(0,0,0,0.12); }
+    .favorite-btn::before { content:"♡"; }
+    .favorite-btn:hover { background:#fff; transform:scale(1.1); color:#e76f51; }
+    .favorite-btn.favorited { background:#ffeaea; color:#e63946; transform:scale(1.15); box-shadow:0 0 10px rgba(230,57,70,0.3); }
+    .favorite-btn.favorited::before { content:"♥"; }
+
+    .menu-content { padding:1rem; }
+    .menu-content h3 { font-size:1.1rem; font-weight:600; color:#a66e44; margin-bottom:0.4rem; }
+    .menu-footer { display:flex; justify-content:space-between; align-items:center; margin-top:0.5rem; }
+    .price { font-size:1rem; font-weight:bold; color:#a66e44; }
+    .add-btn { margin-left:auto; background:#a66e44; color:#fff; border:none; border-radius:20px; padding:0.4rem 1rem; cursor:pointer; font-size:0.9rem; }
+    .add-btn:hover { background:#b77952; }
+
+    .stock { font-size:0.85rem; color:#666; margin-left:8px; }
+    .out-of-stock { color:red; font-weight:600; }
+
+    .preorder-badge { position:absolute; top:10px; left:10px; background:#f4a261; color:#fff; font-weight:600; font-size:0.8rem; padding:4px 8px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.15); z-index:10; }
+
+    footer { text-align:center; padding:1.5rem; background:#fff9f3; color:#3c3c3c; margin-top:2rem; font-size:0.9rem; }
+
+    .modal { display:none; position:fixed; z-index:3000; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; border-radius:12px; box-shadow:0 3px 12px rgba(0,0,0,0.15); width:320px; max-width:90%; padding:1.5rem; text-align:center; }
+    .modal.show { display:block; }
+    .modal-actions { display:flex; justify-content:space-between; margin-top:1rem; gap:10px; }
+    .modal-actions button { flex:1; padding:0.6rem; border-radius:20px; border:none; font-weight:600; cursor:pointer; }
+    #confirmAdd { background:#a66e44; color:#fff; }
+    #confirmAdd:hover { background:#b77952; }
+    #cancelBtn { background:#ddd; color:#333; }
+    #cancelBtn:hover { background:#bbb; }
+
+    .toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#a66e44; color:#fff; padding:0.8rem 1.5rem; border-radius:25px; opacity:0; pointer-events:none; transition:opacity 0.5s, transform 0.5s; z-index:4000; font-weight:500; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(-10px); }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo">🍞 Cindy’s Bakeshop</div>
+    <div class="menu-toggle" id="menuToggle">☰</div>
+    <ul id="navMenu">
+      <li>Home</li>
+      <li>Menu</li>
+      <li>About Us</li>
+      <li>Contact</li>
+      <li><a href="checkout.html">Cart 🛒</a></li>
+      <li class="profile-dropdown">
+        <span id="profileToggle">👤 Profile ▾</span>
+        <ul class="dropdown-menu" id="profileMenu">
+          <li><a href="profile.html">View Profile</a></li>
+          <li><a href="orders.html">Order History</a></li>
+          <li><a href="logout.html">Logout</a></li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+
+  <header>
+    <h1>Freshly Baked with Love</h1>
+    <p>Delicious breads, cakes, and pastries made daily</p>
+  </header>
+
+  <section class="best-sellers">
+    <h2>⭐ Best Sellers</h2>
+    <div class="best-seller-list"></div>
+  </section>
+
+  <div class="controls">
+    <div class="categories">
+      <button class="active" data-category="all">All</button>
+      <button data-category="bread">Breads</button>
+      <button data-category="cakes">Cakes</button>
+      <button data-category="pastries">Pastries</button>
+      <button data-category="favorites">Favorites ❤️</button>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search for items..." />
+    </div>
+  </div>
+
+  <section class="menu-section">
+    <div class="menu-grid" id="menuGrid">
+      <!-- Example items -->
+      <div class="menu-item" data-category="bread" data-bestseller="true" data-stock="20">
+        <img src="https://via.placeholder.com/300x180?text=Pandesal" alt="Pandesal"/>
+        <span class="favorite-btn" data-name="Pandesal"></span>
+        <div class="menu-content">
+          <h3>Pandesal</h3>
+          <div class="menu-footer">
+            <span class="price">₱3</span>
+            <span class="stock"></span>
+            <button class="add-btn" data-name="Pandesal" data-price="3">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-item" data-category="cakes" data-bestseller="true" data-stock="5">
+        <img src="https://via.placeholder.com/300x180?text=Chocolate+Cake" alt="Chocolate Cake"/>
+        <span class="favorite-btn" data-name="Chocolate Cake"></span>
+        <div class="menu-content">
+          <h3>Chocolate Cake</h3>
+          <div class="menu-footer">
+            <span class="price">₱150</span>
+            <span class="stock"></span>
+            <button class="add-btn" data-name="Chocolate Cake" data-price="150">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-item" data-category="cakes" data-bestseller="true" data-stock="0" data-preorder="true">
+        <img src="https://via.placeholder.com/300x180?text=Red+Velvet+Cake" alt="Red Velvet Cake"/>
+        <span class="favorite-btn" data-name="Red Velvet Cake"></span>
+        <div class="menu-content">
+          <h3>Red Velvet Cake</h3>
+          <div class="menu-footer">
+            <span class="price">₱180</span>
+            <span class="stock"></span>
+            <button class="add-btn" data-name="Red Velvet Cake" data-price="180">Pre-order</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>© 2025 Cindy’s Bakeshop • Freshness Guaranteed</footer>
+
+  <!-- Modal -->
+  <div class="modal" id="cartModal">
+    <h2 id="modalItemName"></h2>
+    <p id="modalItemPrice" style="font-weight:600; color:#d2691e"></p>
+    <div class="quantity-control">
+      <button id="decreaseQty">−</button>
+      <span id="itemQty">1</span>
+      <button id="increaseQty">+</button>
+    </div>
+    <p id="modalTotal" style="margin:10px 0; font-weight:600">Total: ₱0</p>
+    <div class="modal-actions">
+      <button id="cancelBtn">Cancel</button>
+      <button id="confirmAdd">Add to Cart</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Item added to cart!</div>
+
+  <script>
+   
+      const menuToggle = document.getElementById("menuToggle"),
+        navMenu = document.getElementById("navMenu");
+      menuToggle.addEventListener("click", () =>
+        navMenu.classList.toggle("show")
+      );
+
+      const profileToggle = document.getElementById("profileToggle"),
+        profileMenu = document.getElementById("profileMenu");
+      profileToggle.addEventListener("click", () =>
+        profileMenu.parentElement.classList.toggle("show")
+      );
+      window.addEventListener("click", (e) => {
+        if (!e.target.closest(".profile-dropdown"))
+          profileMenu.parentElement.classList.remove("show");
+      });
+
+      const categoryButtons = document.querySelectorAll(".categories button"),
+        menuItems = document.querySelectorAll(".menu-item"),
+        searchInput = document.getElementById("searchInput");
+
+      categoryButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          categoryButtons.forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          const category = btn.getAttribute("data-category");
+          menuItems.forEach((item) => {
+            if (category === "favorites") {
+              let favorites =
+                JSON.parse(localStorage.getItem("favorites")) || [];
+              item.style.display = favorites.includes(
+                item.querySelector("h3").textContent
+              )
+                ? "block"
+                : "none";
+            } else {
+              item.style.display =
+                category === "all" || item.dataset.category === category
+                  ? "block"
+                  : "none";
+            }
+          });
+        });
+      });
+
+      searchInput.addEventListener("keyup", () => {
+        const query = searchInput.value.toLowerCase();
+        menuItems.forEach((item) => {
+          const name = item.querySelector("h3").textContent.toLowerCase();
+          item.style.display = name.includes(query) ? "block" : "none";
+        });
+      });
+      
+      const modal = document.getElementById("cartModal"),
+        modalItemName = document.getElementById("modalItemName"),
+        modalItemPrice = document.getElementById("modalItemPrice"),
+        modalTotal = document.getElementById("modalTotal"),
+        itemQty = document.getElementById("itemQty"),
+        decreaseQty = document.getElementById("decreaseQty"),
+        increaseQty = document.getElementById("increaseQty"),
+        confirmAdd = document.getElementById("confirmAdd"),
+        cancelBtn = document.getElementById("cancelBtn"),
+        toast = document.getElementById("toast");
+
+      let currentItem = {},
+        qty = 1;
+      function updateModalTotal() {
+        modalTotal.textContent = `Total: ₱${(currentItem.price * qty).toFixed(2)}`;
+        itemQty.textContent = qty;
+      }
+     
+
+      document.querySelectorAll(".add-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const name = btn.getAttribute("data-name"),
+          price = parseFloat(btn.getAttribute("data-price")),
+          itemElem = btn.closest(".menu-item"),
+          maxStock = parseInt(itemElem.dataset.stock),
+          isPreorder = itemElem.dataset.preorder === "true";
+
+    currentItem = { name, price };
+    qty = 1;
+    modalItemName.textContent = name;
+    modalItemPrice.textContent = "₱" + price.toFixed(2);
+    updateModalTotal();
+
+    if (isPreorder) {
+      modalTotal.textContent = "This item is available for pre-order. You can select quantity.";
+    } else {
+      updateModalTotal();
+    }
+
+    increaseQty.disabled = isPreorder ? false : maxStock <= 1;
+    decreaseQty.disabled = true;
+
+    modal.classList.add("show");
+  });
+});
+
+      increaseQty.addEventListener("click", () => {
+  const maxStock = parseInt(
+    document
+      .querySelector(`.add-btn[data-name="${currentItem.name}"]`)
+      .closest(".menu-item").dataset.stock
+  );
+
+  if (qty < maxStock) {
+    qty++;
+    updateModalTotal();
+  }
+
+  // Disable plus if reached max stock
+  if (qty >= maxStock) {
+    increaseQty.disabled = true;
+  }
+
+  // ✅ Enable minus if qty > 1
+  if (qty > 1) {
+    decreaseQty.disabled = false;
+  }
+});
+
+decreaseQty.addEventListener("click", () => {
+  if (qty > 1) {
+    qty--;
+    updateModalTotal();
+  }
+
+  // Disable minus if qty back to 1
+  if (qty <= 1) {
+    decreaseQty.disabled = true;
+  }
+
+  // ✅ Re-enable plus if previously disabled
+  increaseQty.disabled = false;
+});
+
+
+    confirmAdd.addEventListener("click", () => {
+  let cart = JSON.parse(localStorage.getItem("cart")) || [];
+  const existing = cart.find((i) => i.name === currentItem.name);
+
+  existing ? (existing.qty += qty) : cart.push({ ...currentItem, qty });
+  localStorage.setItem("cart", JSON.stringify(cart));
+
+  // ✅ Reduce stock
+  updateStock(currentItem.name, qty);
+
+  modal.classList.remove("show");
+  toast.textContent = "Item added to cart!";
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 2000);
+});
+
+      // ===============================
+// STOCK MANAGEMENT
+// ===============================
+const menuItemsList = document.querySelectorAll(".menu-item");
+
+// Initialize stock display + pre-order
+menuItemsList.forEach(item => {
+  const stock = parseInt(item.dataset.stock);
+  const isPreorder = item.dataset.preorder === "true";
+  const stockSpan = item.querySelector(".stock");
+  const addBtn = item.querySelector(".add-btn");
+
+  if (isPreorder) {
+    stockSpan.textContent = "Available for Pre-order";
+    addBtn.textContent = "Pre-order";
+    addBtn.disabled = false;
+    addBtn.style.background = "#f4a261"; // different color for preorder
+  } else {
+    if (stockSpan) {
+      stockSpan.textContent = stock > 0 ? `Stock: ${stock}` : "Out of stock";
+    }
+    if (stock <= 0) {
+      if (stockSpan) stockSpan.classList.add("out-of-stock");
+      addBtn.disabled = true;
+      addBtn.style.background = "#ccc";
+    }
+  }
+});
+
+
+// Update stock everywhere (original + best sellers)
+function updateStock(itemName, qtyBought) {
+  const allItems = document.querySelectorAll(`.menu-item`);
+  allItems.forEach(item => {
+    if (item.querySelector(".add-btn").dataset.name === itemName) {
+      let stock = parseInt(item.dataset.stock);
+      stock -= qtyBought;
+      item.dataset.stock = stock;
+
+      const stockSpan = item.querySelector(".stock");
+      const addBtn = item.querySelector(".add-btn");
+
+      if (stock > 0) {
+        stockSpan.textContent = `Stock: ${stock}`;
+        stockSpan.classList.remove("out-of-stock");
+        addBtn.disabled = false;
+        addBtn.style.background = "";
+      } else {
+        stockSpan.textContent = "Out of stock";
+        stockSpan.classList.add("out-of-stock");
+        addBtn.disabled = true;
+        addBtn.style.background = "#ccc";
+      }
+    }
+  });
+}
+
+
+// Cancel button closes the modal
+cancelBtn.addEventListener("click", () => {
+  modal.classList.remove("show");
+});
+
+
+
+      // ===============================
+      // Favorite functionality + reorder
+      // ===============================
+      const favButtons = document.querySelectorAll(".favorite-btn");
+      let favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+
+      favButtons.forEach((btn) => {
+        if (favorites.includes(btn.dataset.name))
+          btn.classList.add("favorited");
+      });
+
+      function reorderFavorites() {
+        const menuGrid = document.getElementById("menuGrid");
+        const items = Array.from(menuGrid.querySelectorAll(".menu-item"));
+        items.sort((a, b) => {
+          const aFav = favorites.includes(a.querySelector("h3").textContent);
+          const bFav = favorites.includes(b.querySelector("h3").textContent);
+          return bFav - aFav;
+        });
+        items.forEach((item) => menuGrid.appendChild(item));
+      }
+
+      reorderFavorites();
+
+      favButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const itemName = btn.dataset.name;
+          if (favorites.includes(itemName)) {
+            favorites = favorites.filter((i) => i !== itemName);
+            btn.classList.remove("favorited");
+            toast.textContent = "Removed from favorites!";
+          } else {
+            favorites.push(itemName);
+            btn.classList.add("favorited");
+            toast.textContent = "Added to favorites!";
+          }
+          localStorage.setItem("favorites", JSON.stringify(favorites));
+          reorderFavorites();
+          toast.classList.add("show");
+          setTimeout(() => toast.classList.remove("show"), 2000);
+        });
+      });
+
+      // ✅ BEST SELLERS LOGIC (with working favorites & stock)
+const bestsellerItems = document.querySelectorAll('.menu-item[data-bestseller="true"]');
+const bestsellerContainer = document.querySelector('.best-seller-list');
+
+bestsellerItems.forEach(item => {
+  let clone = item.cloneNode(true);
+  clone.style.minWidth = "200px";
+
+  // Re-attach Add to Cart event
+  const addBtn = clone.querySelector(".add-btn");
+  addBtn.addEventListener("click", () => {
+    const name = addBtn.getAttribute("data-name"),
+      price = parseFloat(addBtn.getAttribute("data-price")),
+      maxStock = parseInt(item.dataset.stock); // ✅ reference original item stock
+
+    currentItem = { name, price };
+    qty = 1;
+    modalItemName.textContent = name;
+    modalItemPrice.textContent = "₱" + price.toFixed(2);
+    updateModalTotal();
+
+    increaseQty.disabled = maxStock <= 1;
+    decreaseQty.disabled = true;
+
+    modal.classList.add("show");
+  });
+
+  // Re-attach favorite toggle
+  const favBtn = clone.querySelector(".favorite-btn");
+  favBtn.addEventListener("click", () => {
+    const itemName = favBtn.dataset.name;
+    if (favorites.includes(itemName)) {
+      favorites = favorites.filter((i) => i !== itemName);
+      favBtn.classList.remove("favorited");
+      toast.textContent = "Removed from favorites!";
+    } else {
+      favorites.push(itemName);
+      favBtn.classList.add("favorited");
+      toast.textContent = "Added to favorites!";
+    }
+    localStorage.setItem("favorites", JSON.stringify(favorites));
+    reorderFavorites();
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 2000);
+  });
+
+  bestsellerContainer.appendChild(clone);
+});
+
+// Add Pre-order badge dynamically
+menuItemsList.forEach(item => {
+  if (item.dataset.preorder === "true") {
+    const badge = document.createElement("span");
+    badge.className = "preorder-badge";
+    badge.textContent = "Pre-order";
+    item.appendChild(badge);
+  }
+});
+
+menuItemsList.forEach(item => {
+  const stock = parseInt(item.dataset.stock);
+  const isPreorder = item.dataset.preorder === "true";
+  const stockSpan = item.querySelector(".stock");
+  const addBtn = item.querySelector(".add-btn");
+
+  if (isPreorder) {
+    stockSpan.textContent = "Available for Pre-order";
+    addBtn.textContent = "Pre-order";
+    addBtn.disabled = false;
+    addBtn.style.background = "#f4a261";
+  } else {
+    if (stockSpan) stockSpan.textContent = stock > 0 ? `Stock: ${stock}` : "Out of stock";
+    if (stock <= 0) {
+      if (stockSpan) stockSpan.classList.add("out-of-stock");
+      addBtn.disabled = true;
+      addBtn.style.background = "#ccc";
+    }
+  }
+});
+
+    </script>
+  </body>
+</html>
