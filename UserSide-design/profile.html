@@ -9,152 +9,288 @@
     *{margin:0;padding:0;box-sizing:border-box;font-family:"Poppins",sans-serif;}
     body{background:#faf9f7;color:#333;}
 
-    nav{background:#8b4513;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:1rem 2rem;}
+    nav{background:#8b4513;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:1rem 2rem;flex-wrap:wrap;}
     nav .logo{font-size:1.4rem;font-weight:600;}
-    nav ul{list-style:none;display:flex;gap:1.5rem;align-items:center;}
-    nav ul li a{color:#fff;text-decoration:none;font-weight:500;}
-    nav ul li a:hover{text-decoration:underline;}
+    nav ul{list-style:none;display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap;}
+    nav ul li a{color:#fff;text-decoration:none;font-weight:500;padding:0.4rem 0.8rem;border-radius:999px;}
+    nav ul li a:hover,nav ul li a.active{background:rgba(255,255,255,0.2);}
 
-    .profile-container{max-width:600px;margin:2rem auto;background:#fff;padding:2rem;border-radius:12px;box-shadow:0 3px 10px rgba(0,0,0,0.1);text-align:center;}
-    .profile-container h2{color:#8b4513;margin-bottom:1rem;}
+    .profile-container{max-width:650px;margin:2rem auto;background:#fff;padding:2.5rem 2rem;border-radius:16px;box-shadow:0 3px 12px rgba(0,0,0,0.12);text-align:center;}
+    .profile-container h2{color:#8b4513;margin-bottom:1.5rem;letter-spacing:1px;}
 
-    .profile-pic{
-      width:120px;
-      height:120px;
-      border-radius:50%;
-      object-fit:cover;
-      margin-bottom:1rem;
-      border:3px solid #8b4513;
-      cursor:pointer;
-      transition:0.3s;
-    }
-    .profile-pic:hover{opacity:0.8;}
+    .profile-pic{width:140px;height:140px;border-radius:50%;object-fit:cover;margin:0 auto 1rem;border:4px solid #8b4513;transition:0.3s;cursor:pointer;background:#f4e8dc;display:block;}
+    .profile-pic:hover{opacity:0.85;}
 
-    .profile-view p{margin:0.8rem 0;font-size:1rem;text-align:left;}
-    .profile-view span{font-weight:600;color:#8b4513;}
+    .profile-view{display:flex;flex-direction:column;gap:0.6rem;text-align:left;}
+    .profile-view p{margin:0;font-size:1rem;display:flex;justify-content:space-between;gap:0.8rem;}
+    .profile-view span.label{font-weight:600;color:#8b4513;min-width:120px;}
 
-    .btn{margin-top:1.5rem;background:#8b4513;color:#fff;border:none;padding:0.8rem 1.5rem;border-radius:8px;cursor:pointer;font-weight:600;width:100%;}
+    .btn{margin-top:1.5rem;background:#8b4513;color:#fff;border:none;padding:0.9rem 1.5rem;border-radius:10px;cursor:pointer;font-weight:600;width:100%;transition:0.2s;}
     .btn:hover{background:#a0522d;}
+    .btn:disabled{opacity:0.7;cursor:not-allowed;}
 
-    .profile-form{display:none;text-align:left;}
-    .profile-form label{display:block;font-weight:600;margin-top:1rem;}
-    .profile-form input,.profile-form textarea{width:100%;padding:0.7rem;border:1px solid #ddd;border-radius:8px;margin-top:0.3rem;font-size:1rem;}
-    .profile-form textarea{resize:none;height:80px;}
+    .profile-form{text-align:left;margin-top:1.5rem;display:none;}
+    .profile-form label{display:block;font-weight:600;margin-top:1rem;color:#8b4513;}
+    .profile-form input,.profile-form textarea{width:100%;padding:0.75rem;border:1px solid #ddd;border-radius:10px;margin-top:0.4rem;font-size:1rem;}
+    .profile-form textarea{resize:none;height:90px;}
 
-    /* Hide file input */
-    #picUpload{display:none;}
+    #profileMessage{margin-top:1rem;font-size:0.9rem;min-height:1.2rem;text-align:center;}
+    #profileMessage.error{color:#b3261e;}
+    #profileMessage.success{color:#1b5e20;}
 
     footer{text-align:center;padding:1.5rem;background:#8b4513;color:#fff;margin-top:2rem;font-size:0.9rem;}
   </style>
 </head>
 <body>
-  <!-- Navbar -->
   <nav>
     <div class="logo">🍞 Cindy’s Bakeshop</div>
     <ul>
-      <li><a href="index.html">Home</a></li>
-      <li><a href="checkout.html">Cart 🛒</a></li>
+      <li><a href="home.html">Home</a></li>
+      <li><a href="Menu.html">Menu</a></li>
+      <li><a href="checkout.html">Cart</a></li>
+      <li><a href="orders.html">Orders</a></li>
+      <li><a href="profile.html" class="active">Profile</a></li>
+      <li><a href="../userSide/LOGIN_SIGNUP/logout.html">Logout</a></li>
     </ul>
   </nav>
 
-  <!-- Profile Section -->
   <div class="profile-container">
     <h2>My Profile</h2>
 
-    <!-- Profile view (default) -->
+    <img src="https://via.placeholder.com/140?text=Profile" alt="Profile Picture" id="profilePic" class="profile-pic"/>
+
     <div class="profile-view" id="profileView">
-      <img src="https://via.placeholder.com/120" alt="Profile Picture" id="profilePic" class="profile-pic"/>
-      <p><span>Full Name:</span> Juan Dela Cruz</p>
-      <p><span>Email:</span> juan@email.com</p>
-      <p><span>Phone:</span> 09123456789</p>
-      <p><span>Address:</span> 123 Street, Barangay, City</p>
+      <p><span class="label">Full Name:</span> <span id="viewName">Loading…</span></p>
+      <p><span class="label">Email:</span> <span id="viewEmail">Loading…</span></p>
+      <p><span class="label">Phone:</span> <span id="viewPhone">Not set</span></p>
+      <p><span class="label">Address:</span> <span id="viewAddress">Not set</span></p>
       <button class="btn" id="editBtn">Edit Profile</button>
     </div>
 
-    <!-- Edit form (hidden by default) -->
-    <form class="profile-form" id="profileForm">
-      <!-- Hidden file input (triggered by picture click) -->
-      <input type="file" id="picUpload" accept="image/*" capture="environment"/>
-
+    <form class="profile-form" id="profileForm" enctype="multipart/form-data">
       <label for="name">Full Name</label>
-      <input type="text" id="name" value="Juan Dela Cruz" />
+      <input type="text" id="name" required />
 
       <label for="email">Email Address</label>
-      <input type="email" id="email" value="juan@email.com" />
+      <input type="email" id="email" readonly />
 
       <label for="phone">Phone Number</label>
-      <input type="text" id="phone" value="09123456789" />
+      <input type="text" id="phone" placeholder="09xxxxxxxxx" />
 
       <label for="address">Delivery Address</label>
-      <textarea id="address">123 Street, Barangay, City</textarea>
+      <textarea id="address" placeholder="House No., Street, Barangay, City"></textarea>
 
-      <label for="password">Change Password</label>
-      <input type="password" id="password" placeholder="••••••••" />
+      <label for="newPassword">Change Password</label>
+      <input type="password" id="newPassword" placeholder="Leave blank to keep current password" />
+
+      <label for="picUpload">Profile Picture</label>
+      <input type="file" id="picUpload" accept="image/*" />
 
       <button type="button" class="btn" id="saveBtn">Save Changes</button>
     </form>
+
+    <div id="profileMessage"></div>
   </div>
 
   <footer>© 2025 Cindy’s Bakeshop • Freshness Guaranteed</footer>
 
-  <script>
-    const profileView = document.getElementById("profileView");
-    const profileForm = document.getElementById("profileForm");
-    const editBtn = document.getElementById("editBtn");
-    const saveBtn = document.getElementById("saveBtn");
-    const profilePic = document.getElementById("profilePic");
-    const picUpload = document.getElementById("picUpload");
+  <script type="module">
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import "../userSide/firebase-init.js";
 
-    let uploadedImage = profilePic.src; // default image
+    const DEFAULT_AVATAR = "https://via.placeholder.com/140?text=Profile";
+    const profilePic = document.getElementById('profilePic');
+    const profileView = document.getElementById('profileView');
+    const profileForm = document.getElementById('profileForm');
+    const editBtn = document.getElementById('editBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const messageEl = document.getElementById('profileMessage');
+    const nameInput = document.getElementById('name');
+    const emailInput = document.getElementById('email');
+    const phoneInput = document.getElementById('phone');
+    const addressInput = document.getElementById('address');
+    const passwordInput = document.getElementById('newPassword');
+    const picUpload = document.getElementById('picUpload');
+    const viewName = document.getElementById('viewName');
+    const viewEmail = document.getElementById('viewEmail');
+    const viewPhone = document.getElementById('viewPhone');
+    const viewAddress = document.getElementById('viewAddress');
 
-    // Click profile pic → open file selector (always works)
-    profilePic.addEventListener("click", () => {
-      picUpload.click();
-    });
+    let currentUserEmail = null;
+    let currentProfile = { name: '', address: '', face: null };
 
-    // Preview uploaded picture immediately
-    picUpload.addEventListener("change", (event) => {
-      const file = event.target.files[0];
-      if(file){
+    function setMessage(text, type = '') {
+      messageEl.textContent = text || '';
+      messageEl.classList.toggle('error', type === 'error');
+      messageEl.classList.toggle('success', type === 'success');
+    }
+
+    function resolveImage(path) {
+      if (!path) return DEFAULT_AVATAR;
+      if (path.startsWith('http')) return path;
+      if (path.startsWith('/')) return path;
+      return '/' + path.replace(/^\/+/, '');
+    }
+
+    function updateView(phoneValue) {
+      viewName.textContent = currentProfile.name || 'Not set';
+      viewEmail.textContent = currentUserEmail || 'Not set';
+      viewPhone.textContent = phoneValue || 'Not set';
+      viewAddress.textContent = currentProfile.address || 'Not set';
+      profilePic.src = resolveImage(currentProfile.face);
+    }
+
+    function loadStoredPhone(email) {
+      return localStorage.getItem(`userPhone:${email}`) || '';
+    }
+
+    function saveStoredPhone(email, value) {
+      if (value) {
+        localStorage.setItem(`userPhone:${email}`, value);
+      } else {
+        localStorage.removeItem(`userPhone:${email}`);
+      }
+    }
+
+    async function loadProfile(email) {
+      try {
+        const res = await fetch(`../PHP/user_api.php?action=get_profile&email=${encodeURIComponent(email)}`);
+        if (!res.ok) {
+          throw new Error('Unable to load profile information.');
+        }
+        const data = await res.json();
+        currentProfile = {
+          name: data.name || '',
+          address: data.address || '',
+          face: data.face_image_path || null
+        };
+        const storedPhone = loadStoredPhone(email);
+        updateView(storedPhone);
+      } catch (err) {
+        console.error(err);
+        setMessage('Unable to load profile. Please refresh the page.', 'error');
+        currentProfile = { name: '', address: '', face: null };
+        updateView(loadStoredPhone(email));
+      }
+    }
+
+    function toggleEditMode(showForm) {
+      profileForm.style.display = showForm ? 'block' : 'none';
+      profileView.style.display = showForm ? 'none' : 'flex';
+      messageEl.textContent = '';
+    }
+
+    function prepareForm() {
+      nameInput.value = currentProfile.name || '';
+      emailInput.value = currentUserEmail || '';
+      addressInput.value = currentProfile.address || '';
+      phoneInput.value = loadStoredPhone(currentUserEmail) || '';
+      passwordInput.value = '';
+      picUpload.value = '';
+    }
+
+    async function saveProfile() {
+      if (!currentUserEmail) return;
+      const fullName = nameInput.value.trim();
+      const address = addressInput.value.trim();
+      const phone = phoneInput.value.trim();
+      const password = passwordInput.value;
+      const file = picUpload.files[0];
+
+      if (!fullName) {
+        setMessage('Full name is required.', 'error');
+        return;
+      }
+
+      if (phone && !/^09\d{9}$/.test(phone)) {
+        setMessage('Please enter a valid phone number (09xxxxxxxxx).', 'error');
+        return;
+      }
+
+      const [firstName, ...rest] = fullName.split(/\s+/);
+      const lastName = rest.join(' ');
+
+      const formData = new FormData();
+      formData.append('first_name', firstName || fullName);
+      formData.append('last_name', lastName);
+      formData.append('email', currentUserEmail);
+      formData.append('address', address);
+      if (password) {
+        formData.append('password', password);
+      }
+      if (file) {
+        formData.append('profile_picture', file);
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving…';
+      setMessage('');
+
+      try {
+        const res = await fetch('../PHP/user_api.php?action=update_profile', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          throw new Error(data.error || 'Failed to update profile.');
+        }
+        currentProfile.name = fullName;
+        currentProfile.address = address;
+        currentProfile.face = data.face_image_path || currentProfile.face;
+        saveStoredPhone(currentUserEmail, phone);
+        updateView(phone);
+        toggleEditMode(false);
+        setMessage(data.message || 'Profile updated successfully.', 'success');
+      } catch (err) {
+        console.error('Profile update failed:', err);
+        setMessage(err.message || 'Unable to update profile.', 'error');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Changes';
+        passwordInput.value = '';
+      }
+    }
+
+    picUpload.addEventListener('change', () => {
+      const file = picUpload.files[0];
+      if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+          setMessage('Profile picture must be 5MB or less.', 'error');
+          picUpload.value = '';
+          return;
+        }
         const reader = new FileReader();
-        reader.onload = (e) => {
-          uploadedImage = e.target.result;
-          profilePic.src = uploadedImage; // update instantly
+        reader.onload = e => {
+          profilePic.src = e.target.result;
         };
         reader.readAsDataURL(file);
+      } else {
+        profilePic.src = resolveImage(currentProfile.face);
       }
     });
 
-    // Switch to edit mode
-    editBtn.addEventListener("click", () => {
-      profileView.style.display = "none";
-      profileForm.style.display = "block";
+    profilePic.addEventListener('click', () => {
+      if (profileForm.style.display === 'block') {
+        picUpload.click();
+      }
     });
 
-    // Save changes
-    saveBtn.addEventListener("click", () => {
-      alert("✅ Your profile has been updated!");
-      profileForm.style.display = "none";
-      profileView.style.display = "block";
+    editBtn.addEventListener('click', () => {
+      prepareForm();
+      toggleEditMode(true);
+    });
 
-      // Update profile view with new values
-      profileView.innerHTML = `
-        <img src="${uploadedImage}" alt="Profile Picture" id="profilePic" class="profile-pic"/>
-        <p><span>Full Name:</span> ${document.getElementById("name").value}</p>
-        <p><span>Email:</span> ${document.getElementById("email").value}</p>
-        <p><span>Phone:</span> ${document.getElementById("phone").value}</p>
-        <p><span>Address:</span> ${document.getElementById("address").value}</p>
-        <button class="btn" id="editBtn">Edit Profile</button>
-      `;
+    saveBtn.addEventListener('click', saveProfile);
 
-      // Reattach event listeners
-      document.getElementById("editBtn").addEventListener("click", () => {
-        profileView.style.display = "none";
-        profileForm.style.display = "block";
-      });
-      document.getElementById("profilePic").addEventListener("click", () => {
-        picUpload.click();
-      });
+    const auth = getAuth();
+    onAuthStateChanged(auth, user => {
+      if (user && user.email) {
+        currentUserEmail = user.email;
+        loadProfile(user.email);
+      } else {
+        window.location.href = 'login.html';
+      }
     });
   </script>
 </body>

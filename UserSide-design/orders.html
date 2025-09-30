@@ -6,34 +6,36 @@
   <title>Cindy's Bakery — Order History</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Poppins', sans-serif;
       background: #f7f7f7;
       margin: 0;
       padding: 0;
+      color:#333;
     }
     header {
       display: flex;
       align-items: center;
-      background: #ff6a00;
+      background: #8B4513;
       color: white;
-      padding: 12px 16px;
+      padding: 16px 20px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      justify-content: space-between;
+      flex-wrap:wrap;
     }
-    header button {
-      background: white;
-      color: #ff6a00;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      margin-right: 10px;
+    header .logo {
+      font-weight:600;
+      font-size:1.1rem;
     }
-    header h1 {
-      font-size: 18px;
-      margin: 0;
-      flex: 1;
-      text-align: center;
+    header nav a {
+      color:#fff;
+      text-decoration:none;
+      margin-left:1rem;
+      font-weight:500;
+      padding:0.4rem 0.8rem;
+      border-radius:999px;
+    }
+    header nav a:hover, header nav a.active {
+      background:rgba(255,255,255,0.25);
     }
     .tabs {
       display: flex;
@@ -53,49 +55,54 @@
       transition: all 0.2s ease;
     }
     .tab.active {
-      background: #ff6a00;
+      background: #8B4513;
       color: white;
-      border-color: #ff6a00;
+      border-color: #8B4513;
     }
     .orders {
-      max-width: 700px;
+      max-width: 900px;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
       gap: 15px;
-      padding: 0 15px 20px;
+      padding: 0 15px 40px;
     }
     .order-card {
       background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      padding: 15px;
+      border-radius: 16px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      padding: 18px;
     }
     .order-header {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       font-size: 14px;
       color: #666;
+      flex-wrap:wrap;
+      gap:0.5rem;
     }
     .order-items {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 10px;
+      gap: 14px;
+      margin-bottom: 12px;
+      flex-wrap:wrap;
     }
     .order-items img {
-      width: 70px;
-      height: 70px;
+      width: 90px;
+      height: 90px;
       object-fit: cover;
-      border-radius: 8px;
+      border-radius: 12px;
+      border:1px solid #f1e2d3;
     }
     .item-info {
       flex: 1;
+      min-width:180px;
     }
     .item-info h3 {
       margin: 0;
-      font-size: 15px;
+      font-size: 16px;
       color: #333;
     }
     .item-info p {
@@ -107,29 +114,51 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap:wrap;
+      gap:0.6rem;
     }
     .status {
       font-size: 13px;
       font-weight: bold;
+      padding:0.3rem 0.8rem;
+      border-radius:999px;
+      background:#f5ede5;
+      color:#8B4513;
     }
-    .status.completed { color: green; }
-    .status.cancelled { color: red; }
-    .status.pending { color: #ff6a00; }
+    .status.completed { background:#e6f4ea; color:#1b5e20; }
+    .status.cancelled { background:#fdecea; color:#b3261e; }
+    .status.pending { background:#fff4e5; color:#c26516; }
     .total {
       font-weight: bold;
       font-size: 15px;
       color: #111;
     }
+    .details-link {
+      text-decoration:none;
+      color:#8B4513;
+      font-weight:600;
+    }
+    .info-text {
+      text-align:center;
+      color:#b3261e;
+      font-size:0.9rem;
+      min-height:1.2rem;
+      margin-bottom:1.5rem;
+    }
   </style>
 </head>
 <body>
-  <!-- Header -->
   <header>
-    <button onclick="history.back()">← Back</button>
-    <h1>Order History</h1>
+    <div class="logo">🍞 Cindy’s Bakeshop</div>
+    <nav>
+      <a href="home.html">Home</a>
+      <a href="Menu.html">Menu</a>
+      <a href="checkout.html">Cart</a>
+      <a href="orders.html" class="active">Orders</a>
+      <a href="profile.html">Profile</a>
+    </nav>
   </header>
 
-  <!-- Tabs -->
   <div class="tabs">
     <div class="tab active" data-filter="all">All</div>
     <div class="tab" data-filter="topay">To Pay</div>
@@ -138,86 +167,145 @@
     <div class="tab" data-filter="completed">Completed</div>
   </div>
 
-  <!-- Orders -->
-  <div class="orders">
-    <!-- Order 1 -->
-    <div class="order-card" data-status="completed">
-      <div class="order-header">
-        <span>Order #1025</span>
-        <span>Sept 11, 2025</span>
-      </div>
-      <div class="order-items">
-        <img src="https://via.placeholder.com/70x70.png?text=Cake" alt="Chocolate Cake">
-        <div class="item-info">
-          <h3>Chocolate Cake</h3>
-          <p>1x, Paid with GCash</p>
-        </div>
-      </div>
-      <div class="order-footer">
-        <span class="status completed">✔ Completed</span>
-        <span class="total">₱820.00</span>
-      </div>
-    </div>
+  <div class="info-text" id="ordersMessage"></div>
+  <div class="orders" id="ordersContainer"></div>
 
-    <!-- Order 2 -->
-    <div class="order-card" data-status="toreceive">
-      <div class="order-header">
-        <span>Order #1024</span>
-        <span>Sept 09, 2025</span>
-      </div>
-      <div class="order-items">
-        <img src="https://via.placeholder.com/70x70.png?text=Pandesal" alt="Pandesal Pack">
-        <div class="item-info">
-          <h3>Pandesal Pack (5x)</h3>
-          <p>Cash on Pickup</p>
-        </div>
-      </div>
-      <div class="order-footer">
-        <span class="status pending">To Receive</span>
-        <span class="total">₱250.00</span>
-      </div>
-    </div>
+  <script type="module">
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import "../userSide/firebase-init.js";
 
-    <!-- Order 3 -->
-    <div class="order-card" data-status="toprepare">
-      <div class="order-header">
-        <span>Order #1023</span>
-        <span>Sept 08, 2025</span>
-      </div>
-      <div class="order-items">
-        <img src="https://via.placeholder.com/70x70.png?text=Tapsilog" alt="Tapsilog Meal">
-        <div class="item-info">
-          <h3>Tapsilog Meal</h3>
-          <p>2x, Cash</p>
-        </div>
-      </div>
-      <div class="order-footer">
-        <span class="status pending">To Prepare</span>
-        <span class="total">₱450.00</span>
-      </div>
-    </div>
-  </div>
+    const ordersContainer = document.getElementById('ordersContainer');
+    const tabs = document.querySelectorAll('.tab');
+    const ordersMessage = document.getElementById('ordersMessage');
 
-  <script>
-    const tabs = document.querySelectorAll(".tab");
-    const orders = document.querySelectorAll(".order-card");
+    const auth = getAuth();
+    let userEmail = null;
+    let ordersData = [];
+    let activeFilter = 'all';
+
+    function setMessage(text, type = 'error') {
+      ordersMessage.textContent = text || '';
+      ordersMessage.style.color = type === 'error' ? '#b3261e' : '#1b5e20';
+    }
+
+    function mapStatus(status) {
+      const value = (status || '').toLowerCase();
+      if (['pending', 'awaiting payment', 'to pay'].includes(value)) return 'topay';
+      if (['processing', 'to prepare', 'preparing'].includes(value)) return 'toprepare';
+      if (['to receive', 'for delivery', 'shipped', 'out for delivery'].includes(value)) return 'toreceive';
+      if (['completed', 'delivered', 'finished'].includes(value)) return 'completed';
+      if (['cancelled', 'canceled'].includes(value)) return 'cancelled';
+      return 'other';
+    }
+
+    function statusClass(statusKey) {
+      switch (statusKey) {
+        case 'completed': return 'status completed';
+        case 'cancelled': return 'status cancelled';
+        case 'topay':
+        case 'toprepare':
+        case 'toreceive':
+          return 'status pending';
+        default: return 'status';
+      }
+    }
+
+    function formatDate(value) {
+      if (!value) return '';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function renderOrders(filter) {
+      activeFilter = filter;
+      ordersContainer.innerHTML = '';
+      const filtered = ordersData.filter(order => filter === 'all' || mapStatus(order.Status) === filter);
+      if (!filtered.length) {
+        setMessage('No orders found for this category.', 'error');
+        return;
+      }
+      setMessage('');
+      filtered.forEach(order => {
+        const statusKey = mapStatus(order.Status);
+        const card = document.createElement('div');
+        card.className = 'order-card';
+        card.dataset.status = statusKey;
+
+        const detail = order.detail || {};
+        const items = (detail.items || []).map(item => `${item.Quantity} × ${item.Name}`).join(', ');
+        const total = detail.transaction?.Amount_Paid || detail.transaction?.Total_Amount || detail.order?.Total_Amount || null;
+        const amountText = total ? `₱${parseFloat(total).toFixed(2)}` : (order.Total ? `₱${parseFloat(order.Total).toFixed(2)}` : '');
+        const imagePath = order.Image_Path ? `../adminSide/products/uploads/${order.Image_Path}` : '../userSide/Images/cindy_s logo.png';
+
+        card.innerHTML = `
+          <div class="order-header">
+            <span>Order #${order.Order_ID}</span>
+            <span>${formatDate(order.Order_Date)}</span>
+          </div>
+          <div class="order-items">
+            <img src="${imagePath}" alt="Order ${order.Order_ID}">
+            <div class="item-info">
+              <h3>${items || 'Items in this order'}</h3>
+              <p>Status: ${order.Status || 'N/A'}</p>
+            </div>
+          </div>
+          <div class="order-footer">
+            <span class="${statusClass(statusKey)}">${order.Status || 'Unknown'}</span>
+            <span class="total">${amountText || ''}</span>
+            <a class="details-link" href="../userSide/INVOICE/orderDetails.php?order_id=${order.Order_ID}" target="_blank" rel="noopener">View Details</a>
+          </div>
+        `;
+        ordersContainer.appendChild(card);
+      });
+    }
 
     tabs.forEach(tab => {
-      tab.addEventListener("click", () => {
-        // Reset active tab
-        tabs.forEach(t => t.classList.remove("active"));
-        tab.classList.add("active");
-
-        const filter = tab.dataset.filter;
-
-        orders.forEach(order => {
-          if (filter === "all" || order.dataset.status === filter) {
-            order.style.display = "block";
-          } else {
-            order.style.display = "none";
-          }
-        });
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        renderOrders(tab.dataset.filter);
       });
+    });
+
+    async function loadOrders() {
+      if (!userEmail) return;
+      setMessage('Loading orders…', 'success');
+      try {
+        const res = await fetch(`../PHP/order_api.php?action=list&email=${encodeURIComponent(userEmail)}`);
+        if (!res.ok) {
+          throw new Error('Unable to load orders.');
+        }
+        const orders = await res.json();
+        const detailed = await Promise.all(orders.map(async order => {
+          try {
+            const detailRes = await fetch(`../PHP/order_api.php?action=view&order_id=${encodeURIComponent(order.Order_ID)}`);
+            if (!detailRes.ok) {
+              throw new Error('');
+            }
+            const detailData = await detailRes.json();
+            return { ...order, detail: detailData };
+          } catch (err) {
+            console.warn('Failed to load order details for', order.Order_ID, err);
+            return { ...order, detail: null };
+          }
+        }));
+        ordersData = detailed;
+        renderOrders(activeFilter);
+      } catch (err) {
+        console.error(err);
+        ordersData = [];
+        setMessage('Failed to load your orders. Please refresh the page.', 'error');
+      }
+    }
+
+    onAuthStateChanged(auth, user => {
+      if (user && user.email) {
+        userEmail = user.email;
+        loadOrders();
+      } else {
+        window.location.href = 'login.html';
+      }
     });
   </script>
 </body>
