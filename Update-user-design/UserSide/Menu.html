@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cindy's Bakeshop - Main Menu</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:"Poppins",sans-serif; }
+    body { 
+      background: linear-gradient(135deg, #faf8f5 0%, #f5f3f0 100%); 
+      color: #8b4513; 
+      line-height: 1.6; 
+      min-height: 100vh; 
+    }
+
+    /* HEADER */
+    header {
+      background: linear-gradient(135deg, #f5f3f0 0%, #faf8f5 100%);
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      padding: 1.5rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid rgba(139, 69, 19, 0.1);
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 32px rgba(139, 69, 19, 0.1);
+    }
+
+    header.scrolled {
+      background: rgba(245, 243, 240, 0.98);
+      box-shadow: 0 4px 20px rgba(139, 69, 19, 0.1);
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .logo-icon {
+      font-size: 2rem;
+      transition: transform 0.3s ease;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    }
+
+    .logo:hover .logo-icon {
+      transform: scale(1.1) rotate(5deg);
+    }
+
+    .logo-text {
+      font-size: 1.8rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #8b4513, #a0522d);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-decoration: none;
+      letter-spacing: -0.5px;
+    }
+
+    nav {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 2.5rem;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      position: relative;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .cart-link {
+      color: #333;
+      text-decoration: none;
+      font-weight: 600;
+      position: relative;
+      transition: all 0.3s ease;
+      padding: 0.8rem 1.5rem;
+      border-radius: 25px;
+      font-size: 0.95rem;
+    }
+
+    .cart-link:hover {
+      background: linear-gradient(135deg, #8b4513, #a0522d);
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(139, 69, 19, 0.3);
+    }
+
+    nav ul li a {
+      color: #8b4513;
+      text-decoration: none;
+      font-weight: 600;
+      position: relative;
+      transition: all 0.3s ease;
+      padding: 0.8rem 1.5rem;
+      border-radius: 25px;
+      font-size: 0.95rem;
+    }
+
+    nav ul li a:hover {
+      background: linear-gradient(135deg, #8b4513, #a0522d);
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(139, 69, 19, 0.3);
+    }
+
+    nav ul li a.active {
+      background: #e9ecef;
+      color: #333;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-shrink: 0;
+      margin-left: auto;
+      margin-right: 0;
+    }
+
+    .cart-link {
+      color: #8b4513;
+      text-decoration: none;
+      font-weight: 600;
+      position: relative;
+      -webkit-transition: all 0.3s ease;
+      -moz-transition: all 0.3s ease;
+      -o-transition: all 0.3s ease;
+      transition: all 0.3s ease;
+      padding: 0.8rem 1.5rem;
+      border-radius: 25px;
+      font-size: 0.95rem;
+    }
+
+    .cart-link:hover {
+      background: linear-gradient(135deg, #8b4513, #a0522d);
+      color: #fff;
+      -webkit-transform: translateY(-2px);
+      -moz-transform: translateY(-2px);
+      -ms-transform: translateY(-2px);
+      -o-transform: translateY(-2px);
+      transform: translateY(-2px);
+      -webkit-box-shadow: 0 8px 25px rgba(139, 69, 19, 0.3);
+      -moz-box-shadow: 0 8px 25px rgba(139, 69, 19, 0.3);
+      box-shadow: 0 8px 25px rgba(139, 69, 19, 0.3);
+    }
+
+    .menu-toggle {
+      display: none;
+      font-size: 1.8rem;
+      cursor: pointer;
+      color: #8b4513;
+      -webkit-transition: transform 0.3s ease;
+      -moz-transition: transform 0.3s ease;
+      -o-transition: transform 0.3s ease;
+      transition: transform 0.3s ease;
+    }
+
+    .menu-toggle:hover {
+      -webkit-transform: scale(1.1);
+      -moz-transform: scale(1.1);
+      -ms-transform: scale(1.1);
+      -o-transform: scale(1.1);
+      transform: scale(1.1);
+    }
+
+    .profile-dropdown { position:relative; }
+    .profile-dropdown .profile-img { 
+      cursor:pointer; 
+      width: 40px; 
+      height: 40px; 
+      border-radius: 50%; 
+      object-fit: cover; 
+      border: 2px solid #8b4513; 
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(139, 69, 19, 0.2);
+    }
+    .profile-dropdown .profile-img:hover { 
+      transform: scale(1.1); 
+      box-shadow: 0 4px 12px rgba(139, 69, 19, 0.3);
+      border-color: #a0522d;
+    }
+    .profile-dropdown .dropdown-menu { position:absolute; top:120%; right:0; background:#ffffff; color:#666666; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.1); display:none; flex-direction:column; min-width:180px; z-index:2000; border: 1px solid #ddd; list-style: none; }
+    .profile-dropdown .dropdown-menu li { padding:0.7rem 1rem; }
+    .profile-dropdown .dropdown-menu li a { text-decoration:none; color:#666666; display:block; transition:all 0.3s ease; }
+    .profile-dropdown .dropdown-menu li:hover { background:#f5f3f0; }
+    .profile-dropdown .dropdown-menu li a:hover { color:#8b4513; }
+    .profile-dropdown.show .dropdown-menu { display:flex; }
+
+    /* Ensure navigation is visible on desktop */
+    @media (min-width: 769px) {
+      nav {
+        display: flex !important;
+        position: static !important;
+        background: transparent !important;
+        backdrop-filter: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        width: auto !important;
+      }
+      
+      nav ul {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 2.5rem !important;
+        width: auto !important;
+      }
+    }
+
+    @media (max-width:768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .nav-right {
+        order: -1;
+        justify-content: center;
+        width: 100%;
+      }
+
+      .cart-link {
+        display: block;
+        text-align: center;
+        padding: 1rem 2rem;
+        width: 100%;
+        border-radius: 15px;
+        font-size: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      nav {
+        position: fixed;
+        top: 70px;
+        left: 0;
+        right: 0;
+        background: rgba(245, 243, 240, 0.98);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        display: none;
+        flex-direction: column;
+        text-align: center;
+        border-bottom: 1px solid rgba(139, 69, 19, 0.1);
+        padding: 2rem 0;
+        box-shadow: 0 4px 20px rgba(139, 69, 19, 0.1);
+        width: 100%;
+      }
+
+      nav.active {
+        display: flex;
+      }
+
+      nav ul {
+        flex-direction: column;
+        gap: 0.5rem;
+        width: 100%;
+      }
+
+      nav ul li a {
+        display: block;
+        text-align: center;
+        padding: 1rem 2rem;
+        width: 100%;
+        border-radius: 15px;
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .menu-toggle {
+        display: block;
+      }
+
+      .profile-dropdown .dropdown-menu { position:static; box-shadow:none; border-radius:8px; background:#f5f5f5; margin-top:0.5rem; width:100%; }
+      .profile-dropdown .dropdown-menu li { padding:0.7rem 0.5rem; border-top:1px solid #ddd; }
+      .profile-dropdown .dropdown-menu li:first-child { border-top:none; }
+    }
+
+    .profile-dropdown { position:relative; }
+    .profile-dropdown span { cursor:pointer; color:#666666; padding:0.5rem 1rem; border-radius:8px; transition:all 0.3s ease; }
+    .profile-dropdown span:hover { background: #fff5f5; color:#e74c3c; }
+    .profile-dropdown .dropdown-menu { position:absolute; top:120%; right:0; background:#ffffff; color:#666666; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.1); display:none; flex-direction:column; min-width:180px; z-index:2000; border: 1px solid #ddd; }
+    .profile-dropdown .dropdown-menu li { padding:0.7rem 1rem; }
+    .profile-dropdown .dropdown-menu li a { text-decoration:none; color:#666666; display:block; transition:all 0.3s ease; }
+    .profile-dropdown .dropdown-menu li:hover { background:#fff5f5; }
+    .profile-dropdown .dropdown-menu li a:hover { color:#e74c3c; }
+    .profile-dropdown.show .dropdown-menu { display:flex; }
+
+    /* PAGE HEADER */
+    .page-header { 
+      background: linear-gradient(135deg, #8b4513, #a0522d); 
+      text-align:center; 
+      padding:4rem 1rem; 
+      color: white; 
+      margin-top: 80px;
+    }
+    .page-header h1 { font-size:3rem; font-weight:700; color:#fff; }
+    .page-header p { font-size:1.2rem; opacity:0.9; margin-top:1rem; }
+
+    @media (max-width:768px) {
+      .page-header { padding:2rem 1rem; margin-top: 120px; }
+      .page-header h1 { font-size:2rem; }
+      .page-header p { font-size:1rem; }
+    }
+
+    /* BEST SELLERS & PRE-ORDERS */
+    .best-sellers, .preorder-section { max-width:1200px; margin:1.5rem auto; background:#ffffff; padding:1.5rem; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.1); border: 1px solid #ddd; }
+    .preorder-section { background: #f8f9fa; border: 1px solid #e9ecef; }
+    .best-sellers h2, .preorder-section h2 { font-size:1.6rem; margin-bottom:1rem; color:#8b4513; font-weight:700; }
+    .preorder-section h2 { color: #8b4513; }
+    .preorder-section p { font-size:0.85rem; color:#666; margin-bottom:0.8rem; font-weight:500; }
+    .best-seller-list, .preorder-list { display:flex; gap:1.2rem; overflow-x:auto; padding:0.5rem 0; }
+    .best-seller-list::-webkit-scrollbar, .preorder-list::-webkit-scrollbar { height:6px; }
+    .best-seller-list::-webkit-scrollbar-thumb, .preorder-list::-webkit-scrollbar-thumb { background: #8b4513; border-radius:8px; }
+
+    @media (max-width:768px) {
+      .best-sellers, .preorder-section { margin:0.8rem auto; padding:1rem; }
+      .best-sellers h2, .preorder-section h2 { font-size:1.3rem; margin-bottom:0.8rem; }
+      .preorder-section p { font-size:0.8rem; margin-bottom:0.6rem; }
+      .best-seller-list, .preorder-list { gap:1rem; padding:0.3rem 0; }
+    }
+
+    /* CONTROLS */
+    .controls { max-width:1200px; margin:2rem auto; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; padding:2rem; background:#ffffff; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.1); border: 1px solid #ddd; }
+    .categories { display:flex; gap:1rem; flex-wrap:wrap; }
+    .categories button { padding:0.8rem 1.5rem; border:none; border-radius:8px; background:#f8f9fa; cursor:pointer; font-weight:600; transition:all 0.3s ease; color:#666666; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .categories button.active, .categories button:hover { background: #e74c3c; color:#fff; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4); }
+    .search-bar input { padding:0.8rem 1.5rem; border:2px solid #ddd; border-radius:25px; outline:none; width:280px; background:#ffffff; transition:all 0.3s ease; color:#2c2c2c; }
+    .search-bar input:focus { border-color:#e74c3c; box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1); }
+    .search-bar input::placeholder { color:#999999; }
+
+    @media (max-width:768px) {
+      .controls { margin:1rem auto; padding:1rem; flex-direction:column; gap:1rem; }
+      .categories { justify-content:center; gap:0.5rem; }
+      .categories button { padding:0.6rem 1rem; font-size:0.9rem; }
+      .search-bar { width:100%; }
+      .search-bar input { width:100%; max-width:300px; }
+    }
+
+    /* MENU GRID */
+    .menu-section { max-width:1200px; margin:2rem auto; padding:0 2rem; }
+    .menu-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); justify-content:left; gap:1.5rem; }
+    .menu-item { position:relative; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.08); transition:all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: none; min-height: 400px; }
+    .menu-item:hover { transform:translateY(-8px) scale(1.02); box-shadow:0 12px 40px rgba(0,0,0,0.15); }
+    .menu-item img { width:100%; height:200px; object-fit:cover; transition:transform 0.4s ease; }
+    .menu-item:hover img { transform:scale(1.08); }
+    .favorite-btn { position:absolute; top:12px; right:12px; cursor:pointer; font-size:1.4rem; width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.9); display:flex; align-items:center; justify-content:center; color:#999999; transition:all 0.3s ease; box-shadow:0 2px 12px rgba(0,0,0,0.15); backdrop-filter: blur(10px); }
+    .favorite-btn::before { content:"♡"; }
+    .favorite-btn:hover { background:rgba(231, 76, 60, 0.1); transform:scale(1.1); color:#e74c3c; box-shadow:0 4px 16px rgba(231, 76, 60, 0.3); }
+    .favorite-btn.favorited { background: linear-gradient(135deg, #e74c3c, #c0392b); color:#fff; transform:scale(1.1); box-shadow:0 4px 20px rgba(231, 76, 60, 0.5); }
+    .favorite-btn.favorited::before { content:"♥"; }
+
+    .menu-content { padding:1.5rem; background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); display:flex; flex-direction:column; height:calc(100% - 200px); }
+    .menu-content h3 { font-size:1.3rem; font-weight:700; color:#2c2c2c; margin-bottom:0.8rem; line-height:1.3; }
+    .menu-footer { display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:1rem; border-top: 1px solid #e9ecef; min-height: 80px; }
+    .price-section { display:flex; flex-direction:column; align-items:flex-start; }
+    .stock { font-size:0.8rem; color:#666; margin-bottom:0.4rem; display:block; font-weight:500; min-height: 1rem; }
+    .price { font-size:1.3rem; font-weight:700; color:#e74c3c; }
+    .add-btn { margin-left:auto; background: linear-gradient(135deg, #e74c3c, #c0392b); color:#fff; border:none; border-radius:12px; padding:0.8rem 1.8rem; cursor:pointer; font-size:0.9rem; font-weight:600; transition:all 0.3s ease; box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3); position: relative; overflow: hidden; display: block; }
+    .add-btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transition: left 0.5s; }
+    .add-btn:hover::before { left: 100%; }
+    .add-btn:hover { background: linear-gradient(135deg, #c0392b, #a93226); transform: translateY(-3px); box-shadow:0 8px 25px rgba(231, 76, 60, 0.4); }
+
+    /* Laptop Screen Optimization */
+    @media (min-width: 1024px) and (max-width: 1440px) {
+      .menu-item { min-height: 420px; }
+      .menu-content { height:calc(100% - 200px); padding:1.2rem; }
+      .menu-footer { min-height: 90px; }
+      .add-btn { padding:0.7rem 1.5rem; font-size:0.85rem; }
+    }
+
+    @media (max-width:768px) {
+      .menu-section { margin:1rem auto; padding:0 1rem; }
+      .menu-grid { grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:1rem; }
+      .menu-item { min-height: 350px; }
+      .menu-item img { height:160px; }
+      .menu-content { padding:1.2rem; height:calc(100% - 160px); }
+      .menu-content h3 { font-size:1.2rem; margin-bottom:0.6rem; }
+      .menu-footer { flex-direction:column; gap:0.8rem; align-items:flex-start; margin-top:auto; padding-top:0.8rem; min-height: 70px; }
+      .price-section { align-items:flex-start; }
+      .add-btn { margin-left:0; width:100%; padding:0.7rem 1rem; font-size:0.85rem; }
+      .favorite-btn { width:36px; height:36px; font-size:1.2rem; top:10px; right:10px; }
+      .preorder-badge { top:10px; left:10px; font-size:0.7rem; padding:4px 8px; }
+    }
+
+    .stock { font-size:0.9rem; color:#666666; margin-left:8px; font-weight:500; }
+    .out-of-stock { color:#e74c3c; font-weight:700; }
+    .preorder-badge { position:absolute; top:12px; left:12px; background: linear-gradient(135deg, #2c2c2c, #1a1a1a); color:#fff; font-weight:700; font-size:0.75rem; padding:6px 12px; border-radius:20px; box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:10; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+
+    /* OUT OF STOCK OVERLAY */
+    .menu-item.out-of-stock { position: relative; opacity: 0.4; pointer-events: none; }
+    .menu-item.out-of-stock::after {
+      content: "Out of Stock";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #e74c3c;
+      font-size: 1.3rem;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 0.6rem 1.2rem;
+      border-radius: 12px;
+      text-align: center;
+      z-index: 50;
+      border: 2px solid #e74c3c;
+    }
+    .menu-item.out-of-stock .favorite-btn,
+    .menu-item.out-of-stock .add-btn { display: none; }
+
+    /* FOOTER */
+    footer { text-align:center; padding:3rem; background: #2c2c2c; color:#f5f5f5; margin-top:4rem; font-size:0.9rem; }
+
+    @media (max-width:768px) {
+      footer { padding:2rem 1rem; margin-top:2rem; font-size:0.8rem; }
+    }
+
+    @media (max-width:480px) {
+      .menu-grid { grid-template-columns:1fr; }
+      .menu-item img { height:180px; }
+      .categories button { padding:0.5rem 0.8rem; font-size:0.8rem; }
+      .search-bar input { padding:0.6rem 1rem; font-size:0.9rem; }
+      .modal, .preorder-modal { width:95%; padding:1rem; }
+      .quantity-control, .preorder-quantity { gap:0.5rem; }
+      .quantity-control button, .preorder-quantity button { width:32px; height:32px; font-size:1rem; }
+    }
+
+    /* MODAL */
+    .modal { display:none; position:fixed; z-index:3000; left:50%; top:50%; transform:translate(-50%,-50%); background:#ffffff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.2); width:380px; max-width:90%; padding:2.5rem; text-align:center; border: 1px solid #ddd; }
+    .modal.show { display:block; }
+    .modal h2 { color:#2c2c2c; margin-bottom:1rem; font-weight:700; }
+    .modal p { color:#666666; margin-bottom:1.5rem; }
+    .quantity-control { display:flex; justify-content:center; align-items:center; gap:1.5rem; margin:2rem 0; }
+    .quantity-control button { width:48px; height:48px; border:none; background:#f8f9fa; color:#e74c3c; border-radius:8px; cursor:pointer; font-size:1.4rem; font-weight:bold; transition:all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .quantity-control button:hover { background:#e74c3c; color:#fff; transform:scale(1.05); box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3); }
+    .quantity-control span { font-size:1.4rem; font-weight:700; color:#2c2c2c; min-width:40px; }
+    .modal-actions { display:flex; justify-content:space-between; margin-top:2rem; gap:1rem; }
+    .modal-actions button { flex:1; padding:1rem; border-radius:8px; border:none; font-weight:600; cursor:pointer; transition:all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    #confirmAdd { background: linear-gradient(135deg, #e74c3c, #c0392b); color:#fff; }
+    #confirmAdd:hover { background: linear-gradient(135deg, #c0392b, #a93226); transform: translateY(-2px); box-shadow:0 6px 20px rgba(231, 76, 60, 0.4); }
+    #cancelBtn { background:#f8f9fa; color:#666666; }
+    #cancelBtn:hover { background:#e9ecef; color:#2c2c2c; transform: translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.15); }
+
+    @media (max-width:768px) {
+      .modal { width:90%; padding:1.5rem; }
+      .quantity-control { gap:1rem; margin:1.5rem 0; }
+      .quantity-control button { width:40px; height:40px; font-size:1.2rem; }
+      .quantity-control span { font-size:1.2rem; min-width:30px; }
+      .modal-actions { flex-direction:column; gap:0.5rem; }
+      .modal-actions button { padding:0.8rem; }
+    }
+
+    /* PRE-ORDER CONFIRMATION MODAL */
+    .preorder-modal { display:none; position:fixed; z-index:3000; left:50%; top:50%; transform:translate(-50%,-50%); background:#ffffff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.2); width:400px; max-width:90%; padding:2rem; text-align:center; border: 1px solid #ddd; }
+    .preorder-modal.show { display:block; }
+    .preorder-modal h2 { color:#2c2c2c; margin-bottom:1rem; font-weight:700; }
+    .preorder-item { background:#f5f5f5; padding:1rem; border-radius:8px; margin:1rem 0; border-left:4px solid #e74c3c; }
+    .preorder-item h3 { color:#2c2c2c; margin-bottom:0.5rem; font-weight:700; }
+    .preorder-item p { color:#666666; margin:0.3rem 0; }
+    .preorder-quantity { display:flex; justify-content:center; align-items:center; gap:1rem; margin:1.5rem 0; }
+    .preorder-quantity button { width:40px; height:40px; border:none; background:#f8f9fa; color:#e74c3c; border-radius:8px; cursor:pointer; font-size:1.2rem; font-weight:bold; transition:all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .preorder-quantity button:hover { background:#e74c3c; color:#fff; transform:scale(1.05); box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3); }
+    .preorder-quantity span { font-size:1.2rem; font-weight:700; color:#2c2c2c; min-width:30px; }
+    .preorder-actions { display:flex; justify-content:space-between; margin-top:1.5rem; gap:1rem; }
+    .preorder-actions button { flex:1; padding:0.8rem; border-radius:8px; border:none; font-weight:600; cursor:pointer; transition:all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    #confirmPreorder { background: linear-gradient(135deg, #e74c3c, #c0392b); color:#fff; }
+    #confirmPreorder:hover { background: linear-gradient(135deg, #c0392b, #a93226); transform: translateY(-2px); box-shadow:0 6px 20px rgba(231, 76, 60, 0.4); }
+    #cancelPreorder { background:#f8f9fa; color:#666666; }
+    #cancelPreorder:hover { background:#e9ecef; color:#2c2c2c; transform: translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.15); }
+
+    @media (max-width:768px) {
+      .preorder-modal { width:90%; padding:1.5rem; }
+      .preorder-quantity { gap:0.8rem; margin:1rem 0; }
+      .preorder-quantity button { width:36px; height:36px; font-size:1rem; }
+      .preorder-quantity span { font-size:1rem; min-width:25px; }
+      .preorder-actions { flex-direction:column; gap:0.5rem; }
+      .preorder-actions button { padding:0.7rem; }
+    }
+
+    /* TOAST */
+    .toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background: #e74c3c; color:#fff; padding:1.2rem 2.5rem; border-radius:50px; opacity:0; pointer-events:none; transition:all 0.5s ease; z-index:4000; font-weight:600; box-shadow:0 8px 25px rgba(231, 76, 60, 0.3); }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(-20px); }
+  </style>
+</head>
+<body>
+
+  <header id="header">
+    <div class="header-content">
+      <div class="logo">
+        <div class="logo-icon">🍞</div>
+        <a href="home.html" class="logo-text">Cindy's Bakeshop</a>
+      </div>
+
+      <div class="menu-toggle" id="menuToggle">
+        <i class="fas fa-bars"></i>
+      </div>
+
+      <nav id="navMenu">
+        <ul>
+          <li><a href="home.html">Home</a></li>
+          <li><a href="Menu.html">Menu</a></li>
+          <li><a href="home.html#about">About</a></li>
+          <li><a href="home.html#visit">Contact</a></li>
+          <li><a href="checkout.html" class="cart-link">Cart 🛒</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-right">
+        <div class="profile-dropdown">
+          <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face" alt="Profile" class="profile-img" id="profileToggle" />
+          <ul class="dropdown-menu" id="profileMenu">
+            <li><a href="profile.html">View Profile</a></li>
+            <li><a href="order-history.html">Order History</a></li>
+            <li><a href="logout.html">Logout</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="page-header">
+    <h1>Freshly Baked with Love</h1>
+    <p>Delicious breads, cakes, and pastries made daily</p>
+  </section>
+
+  <section class="best-sellers">
+    <h2>⭐ Best Sellers</h2>
+    <div class="best-seller-list"></div>
+  </section>
+
+  <section class="preorder-section">
+    <h2>📅 Pre-order Specialties</h2>
+    <p style="font-size: 0.9rem; color: #d63031; margin-bottom: 1rem;">Order these special items 2+ days in advance!</p>
+    <div class="preorder-list"></div>
+  </section>
+
+  <div class="controls">
+    <div class="categories">
+      <button class="active" data-category="all">All</button>
+      <button data-category="bread">Breads</button>
+      <button data-category="cakes">Cakes</button>
+      <button data-category="pastries">Pastries</button>
+      <button data-category="favorites">Favorites ❤️</button>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search for items..." />
+    </div>
+  </div>
+
+  <section class="menu-section">
+    <div class="menu-grid" id="menuGrid">
+      <!-- Example Menu Items -->
+      <div class="menu-item" data-category="bread" data-bestseller="true" data-stock="20">
+        <img src="https://images.unsplash.com/photo-1509440159596-0249088772ff?w=300&h=180&fit=crop&crop=center" alt="Pandesal"/>
+        <span class="favorite-btn" data-name="Pandesal"></span>
+        <div class="menu-content">
+          <h3>Pandesal</h3>
+          <div class="menu-footer">
+            <div class="price-section">
+              <span class="stock">Stock: 20</span>
+              <span class="price">₱3</span>
+            </div>
+            <button class="add-btn" data-name="Pandesal" data-price="3">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-item" data-category="cakes" data-bestseller="true" data-stock="5">
+        <img src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=300&h=180&fit=crop&crop=center" alt="Chocolate Cake"/>
+        <span class="favorite-btn" data-name="Chocolate Cake"></span>
+        <div class="menu-content">
+          <h3>Chocolate Cake</h3>
+          <div class="menu-footer">
+            <div class="price-section">
+              <span class="stock">Stock: 5</span>
+              <span class="price">₱150</span>
+            </div>
+            <button class="add-btn" data-name="Chocolate Cake" data-price="150">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-item" data-category="cakes" data-bestseller="true" data-stock="0" data-preorder="true">
+        <img src="https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=300&h=180&fit=crop&crop=center" alt="Red Velvet Cake"/>
+        <span class="favorite-btn" data-name="Red Velvet Cake"></span>
+        <div class="menu-content">
+          <h3>Red Velvet Cake</h3>
+          <div class="menu-footer">
+            <div class="price-section">
+              <span class="stock">Available for pre-order</span>
+              <span class="price">₱180</span>
+            </div>
+            <button class="add-btn" data-name="Red Velvet Cake" data-price="180">Pre-order</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional pre-order items -->
+      <div class="menu-item" data-category="cakes" data-stock="0" data-preorder="true">
+        <img src="https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=300&h=180&fit=crop&crop=center" alt="Custom Birthday Cake"/>
+        <span class="favorite-btn" data-name="Custom Birthday Cake"></span>
+        <div class="menu-content">
+          <h3>Custom Birthday Cake</h3>
+          <div class="menu-footer">
+            <div class="price-section">
+              <span class="stock">Available for pre-order</span>
+              <span class="price">₱250</span>
+            </div>
+            <button class="add-btn" data-name="Custom Birthday Cake" data-price="250">Pre-order</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-item" data-category="pastries" data-stock="0" data-preorder="true">
+        <img src="https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&h=180&fit=crop&crop=center" alt="Special Croissants"/>
+        <span class="favorite-btn" data-name="Special Croissants"></span>
+        <div class="menu-content">
+          <h3>Special Croissants</h3>
+          <div class="menu-footer">
+            <div class="price-section">
+              <span class="stock">Available for pre-order</span>
+              <span class="price">₱25</span>
+            </div>
+            <button class="add-btn" data-name="Special Croissants" data-price="25">Pre-order</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>© 2025 Cindy's Bakeshop • Freshness Guaranteed</footer>
+
+  <!-- Regular Item Modal -->
+  <div class="modal" id="cartModal">
+    <h2 id="modalItemName"></h2>
+    <p id="modalItemPrice" style="font-weight:600; color:#228b22"></p>
+    <div class="quantity-control">
+      <button id="decreaseQty">−</button>
+      <span id="itemQty">1</span>
+      <button id="increaseQty">+</button>
+    </div>
+    <p id="modalTotal" style="margin:15px 0; font-weight:600; color:#8b4513">Total: ₱0</p>
+    <div class="modal-actions">
+      <button id="cancelBtn">Cancel</button>
+      <button id="confirmAdd">Add to Cart</button>
+    </div>
+  </div>
+
+  <!-- Pre-order Confirmation Modal -->
+  <div class="preorder-modal" id="preorderModal">
+    <h2>📅 Pre-order Item</h2>
+    
+    <div class="preorder-item">
+      <h3 id="preorderItemName"></h3>
+      <p><strong>Price:</strong> <span id="preorderItemPrice"></span></p>
+      <p><strong>Total:</strong> <span id="preorderTotal"></span></p>
+    </div>
+    
+    <div class="preorder-quantity">
+      <button id="decreasePreorderQty">−</button>
+      <span id="preorderQuantity">1</span>
+      <button id="increasePreorderQty">+</button>
+    </div>
+    
+    <div class="preorder-actions">
+      <button id="cancelPreorder">Cancel</button>
+      <button id="confirmPreorder">Add to Cart</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Item added to cart!</div>
+
+  <script>
+  // Navigation functionality
+  const menuToggle = document.getElementById("menuToggle");
+  const navMenu = document.getElementById("navMenu");
+
+  function toggleMenu() { 
+    navMenu.classList.toggle("active");
+  }
+
+  menuToggle.addEventListener('click', toggleMenu);
+
+  // Close menu when clicking outside
+  document.addEventListener('click', function(event) {
+    if (!navMenu.contains(event.target) && !menuToggle.contains(event.target)) {
+      navMenu.classList.remove('active');
+    }
+  });
+
+  // Close menu when clicking on a link
+  document.querySelectorAll('nav ul li a').forEach(link => {
+    link.addEventListener('click', () => {
+      navMenu.classList.remove('active');
+    });
+  });
+
+  // Category filtering
+  const categoryButtons = document.querySelectorAll(".categories button"),
+        menuItems = document.querySelectorAll(".menu-item"),
+        searchInput = document.getElementById("searchInput");
+
+  categoryButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      categoryButtons.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const category = btn.dataset.category;
+      menuItems.forEach(item => {
+        if(category === "favorites"){
+          let favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+          item.style.display = favorites.includes(item.querySelector("h3").textContent) ? "block" : "none";
+        } else {
+          item.style.display = category === "all" || item.dataset.category === category ? "block" : "none";
+        }
+      });
+    });
+  });
+
+  // Search
+  searchInput.addEventListener("keyup", () => {
+    const query = searchInput.value.toLowerCase();
+    menuItems.forEach(item => {
+      const name = item.querySelector("h3").textContent.toLowerCase();
+      item.style.display = name.includes(query) ? "block" : "none";
+    });
+  });
+
+  // Unified Add Button Handler
+  function handleAddButtonClick(btn) {
+    const name = btn.dataset.name;
+    const price = parseFloat(btn.dataset.price);
+    const itemElem = btn.closest(".menu-item");
+    const maxStock = parseInt(itemElem.dataset.stock);
+    const isPreorder = itemElem.dataset.preorder === "true";
+
+    console.log(`Clicked: ${name}, Preorder: ${isPreorder}, Data attributes:`, {
+      name: btn.dataset.name,
+      price: btn.dataset.price,
+      preorder: itemElem.dataset.preorder,
+      stock: itemElem.dataset.stock
+    }); // Enhanced debug log
+
+    if(isPreorder) {
+      // Show pre-order confirmation modal
+      console.log("Showing pre-order modal for:", name);
+      showPreorderModal(name, price);
+      return;
+    }
+
+    // Regular item modal flow
+    console.log("Showing regular modal for:", name);
+    currentItem = {name, price};
+    qty = 1;
+    modalItemName.textContent = name;
+    modalItemPrice.textContent = "₱" + price.toFixed(2);
+    updateModalTotal();
+    increaseQty.disabled = maxStock <= 1;
+    decreaseQty.disabled = true;
+    modal.classList.add("show");
+  }
+
+  // Pre-order modal functions
+  let preorderItem = { name: "", price: 0 };
+  let preorderQty = 1;
+
+  function showPreorderModal(name, price) {
+    const preorderModal = document.getElementById("preorderModal");
+    const preorderItemName = document.getElementById("preorderItemName");
+    const preorderItemPrice = document.getElementById("preorderItemPrice");
+    const preorderQuantity = document.getElementById("preorderQuantity");
+    const preorderTotal = document.getElementById("preorderTotal");
+    
+    preorderItem = { name, price };
+    preorderQty = 1;
+    
+    preorderItemName.textContent = name;
+    preorderItemPrice.textContent = "₱" + price.toFixed(2);
+    preorderQuantity.textContent = "1";
+    preorderTotal.textContent = "₱" + price.toFixed(2);
+    
+    preorderModal.classList.add("show");
+  }
+
+  function updatePreorderTotal() {
+    const preorderTotal = document.getElementById("preorderTotal");
+    const preorderQuantity = document.getElementById("preorderQuantity");
+    const total = preorderItem.price * preorderQty;
+    
+    preorderTotal.textContent = "₱" + total.toFixed(2);
+    preorderQuantity.textContent = preorderQty;
+  }
+
+  function closePreorderModal() {
+    const preorderModal = document.getElementById("preorderModal");
+    preorderModal.classList.remove("show");
+  }
+
+  // Modal & Cart logic
+  const modal = document.getElementById("cartModal"),
+        modalItemName = document.getElementById("modalItemName"),
+        modalItemPrice = document.getElementById("modalItemPrice"),
+        modalTotal = document.getElementById("modalTotal"),
+        itemQty = document.getElementById("itemQty"),
+        decreaseQty = document.getElementById("decreaseQty"),
+        increaseQty = document.getElementById("increaseQty"),
+        confirmAdd = document.getElementById("confirmAdd"),
+        cancelBtn = document.getElementById("cancelBtn"),
+        toast = document.getElementById("toast");
+
+  let currentItem = {}, qty = 1;
+
+  function updateModalTotal(){
+    modalTotal.textContent = `Total: ₱${(currentItem.price*qty).toFixed(2)}`;
+    itemQty.textContent = qty;
+  }
+
+  // Main menu add buttons
+  document.querySelectorAll(".add-btn").forEach(btn => {
+    btn.addEventListener("click", () => handleAddButtonClick(btn));
+  });
+
+  increaseQty.addEventListener("click", ()=>{
+    const maxStock = parseInt(document.querySelector(`.add-btn[data-name="${currentItem.name}"]`).closest(".menu-item").dataset.stock);
+    if(qty<maxStock) qty++;
+    updateModalTotal();
+    increaseQty.disabled = qty>=maxStock;
+    decreaseQty.disabled = qty>1 ? false : true;
+  });
+
+  decreaseQty.addEventListener("click", ()=>{
+    if(qty>1) qty--;
+    updateModalTotal();
+    decreaseQty.disabled = qty<=1;
+    increaseQty.disabled = false;
+  });
+
+  confirmAdd.addEventListener("click", ()=>{
+    let cart = JSON.parse(localStorage.getItem("cartData")) || [];
+    const existing = cart.find(i=>i.name===currentItem.name);
+    existing ? existing.qty+=qty : cart.push({...currentItem, qty});
+    localStorage.setItem("cartData", JSON.stringify(cart));
+    updateStock(currentItem.name, qty);
+    modal.classList.remove("show");
+    toast.textContent = "Item added to cart!";
+    toast.classList.add("show");
+    setTimeout(()=>toast.classList.remove("show"),2000);
+  });
+
+  cancelBtn.addEventListener("click", ()=>{ modal.classList.remove("show"); });
+
+  // Pre-order modal event listeners
+  const preorderModal = document.getElementById("preorderModal");
+  const cancelPreorder = document.getElementById("cancelPreorder");
+  const confirmPreorder = document.getElementById("confirmPreorder");
+  const increasePreorderQty = document.getElementById("increasePreorderQty");
+  const decreasePreorderQty = document.getElementById("decreasePreorderQty");
+
+  cancelPreorder.addEventListener("click", closePreorderModal);
+  
+  increasePreorderQty.addEventListener("click", () => {
+    preorderQty++;
+    updatePreorderTotal();
+  });
+
+  decreasePreorderQty.addEventListener("click", () => {
+    if (preorderQty > 1) {
+      preorderQty--;
+      updatePreorderTotal();
+    }
+  });
+  
+  confirmPreorder.addEventListener("click", () => {
+    // Add to cart as pre-order
+    let cart = JSON.parse(localStorage.getItem("cartData")) || [];
+    const existing = cart.find(i => i.name === preorderItem.name && i.preorder);
+    
+    if (existing) {
+      existing.qty += preorderQty;
+    } else {
+      cart.push({
+        name: preorderItem.name,
+        price: preorderItem.price,
+        qty: preorderQty,
+        preorder: true
+      });
+    }
+    
+    localStorage.setItem("cartData", JSON.stringify(cart));
+    closePreorderModal();
+    
+    toast.textContent = "Pre-order added to cart!";
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 2000);
+  });
+
+  // Close pre-order modal when clicking outside
+  preorderModal.addEventListener("click", (e) => {
+    if (e.target === preorderModal) {
+      closePreorderModal();
+    }
+  });
+
+  // ================================
+  // STOCK MANAGEMENT
+  // ================================
+  function applyStockStatus(item){
+    const stock = parseInt(item.dataset.stock);
+    const isPreorder = item.dataset.preorder === "true";
+    const stockSpan = item.querySelector(".stock");
+    const addBtn = item.querySelector(".add-btn");
+
+    if(isPreorder){
+      if(stockSpan) stockSpan.textContent = "Available for Pre-order";
+      addBtn.textContent = "Pre-order";
+      addBtn.disabled = false;
+      addBtn.style.background = "linear-gradient(135deg, #e17055, #d63031)";
+      item.classList.remove("out-of-stock");
+      // Ensure data-preorder attribute is set
+      item.setAttribute("data-preorder", "true");
+    } else {
+      if(stock > 0){
+        if(stockSpan) stockSpan.textContent = `Stock: ${stock}`;
+        addBtn.textContent = "Add to Cart";
+        addBtn.disabled = false;
+        addBtn.style.background = "linear-gradient(135deg, #e74c3c, #c0392b)";
+        item.classList.remove("out-of-stock");
+      } else {
+        if(stockSpan) stockSpan.textContent = "Out of Stock";
+        addBtn.disabled = true;
+        addBtn.style.background = "#bdc3c7";
+        item.classList.add("out-of-stock");
+      }
+    }
+  }
+
+  function updateStock(itemName, qtyBought){
+    const allItems = document.querySelectorAll(".menu-item");
+    allItems.forEach(item => {
+      const addBtn = item.querySelector(".add-btn");
+      if(addBtn && addBtn.dataset.name === itemName){
+        let stock = parseInt(item.dataset.stock);
+        stock -= qtyBought;
+        item.dataset.stock = stock;
+        applyStockStatus(item);
+      }
+    });
+  }
+
+  const menuItemsList = document.querySelectorAll(".menu-item");
+  menuItemsList.forEach(item => applyStockStatus(item));
+
+  // FAVORITES
+  const favButtons = document.querySelectorAll(".favorite-btn");
+  let favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+
+  favButtons.forEach(btn => { if(favorites.includes(btn.dataset.name)) btn.classList.add("favorited"); });
+
+  function reorderFavorites(){
+    const menuGrid = document.getElementById("menuGrid");
+    const items = Array.from(menuGrid.querySelectorAll(".menu-item"));
+    items.sort((a,b)=> favorites.includes(b.querySelector("h3").textContent)-favorites.includes(a.querySelector("h3").textContent));
+    items.forEach(item=>menuGrid.appendChild(item));
+  }
+  reorderFavorites();
+
+  favButtons.forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const itemName = btn.dataset.name;
+      if(favorites.includes(itemName)){
+        favorites = favorites.filter(i=>i!==itemName);
+        btn.classList.remove("favorited");
+        toast.textContent = "Removed from favorites!";
+      } else {
+        favorites.push(itemName);
+        btn.classList.add("favorited");
+        toast.textContent = "Added to favorites!";
+      }
+      localStorage.setItem("favorites", JSON.stringify(favorites));
+      reorderFavorites();
+      toast.classList.add("show");
+      setTimeout(()=>toast.classList.remove("show"),2000);
+    });
+  });
+
+  // BEST SELLERS
+  const bestsellerItems = document.querySelectorAll('.menu-item[data-bestseller="true"]');
+  const bestsellerContainer = document.querySelector('.best-seller-list');
+
+  bestsellerItems.forEach(item=>{
+    let clone = item.cloneNode(true);
+    clone.style.minWidth="280px";
+    clone.style.maxWidth="280px";
+
+    const addBtn = clone.querySelector(".add-btn");
+    addBtn.addEventListener("click", () => handleAddButtonClick(addBtn));
+
+    const favBtn = clone.querySelector(".favorite-btn");
+    favBtn.addEventListener("click", ()=>{
+      const itemName = favBtn.dataset.name;
+      if(favorites.includes(itemName)){
+        favorites=favorites.filter(i=>i!==itemName);
+        favBtn.classList.remove("favorited");
+        toast.textContent="Removed from favorites!";
+      } else {
+        favorites.push(itemName);
+        favBtn.classList.add("favorited");
+        toast.textContent="Added to favorites!";
+      }
+      localStorage.setItem("favorites",JSON.stringify(favorites));
+      reorderFavorites();
+      toast.classList.add("show");
+      setTimeout(()=>toast.classList.remove("show"),2000);
+    });
+
+    applyStockStatus(clone);
+    bestsellerContainer.appendChild(clone);
+  });
+
+  // PRE-ORDER SECTION
+  const preorderItems = document.querySelectorAll('.menu-item[data-preorder="true"]');
+  const preorderContainer = document.querySelector('.preorder-list');
+
+  preorderItems.forEach(item=>{
+    let clone = item.cloneNode(true);
+    clone.style.minWidth="280px";
+    clone.style.maxWidth="280px";
+
+    const addBtn = clone.querySelector(".add-btn");
+    addBtn.addEventListener("click", () => handleAddButtonClick(addBtn));
+
+    const favBtn = clone.querySelector(".favorite-btn");
+    favBtn.addEventListener("click", ()=>{
+      const itemName = favBtn.dataset.name;
+      if(favorites.includes(itemName)){
+        favorites=favorites.filter(i=>i!==itemName);
+        favBtn.classList.remove("favorited");
+        toast.textContent="Removed from favorites!";
+      } else {
+        favorites.push(itemName);
+        favBtn.classList.add("favorited");
+        toast.textContent="Added to favorites!";
+      }
+      localStorage.setItem("favorites",JSON.stringify(favorites));
+      reorderFavorites();
+      toast.classList.add("show");
+      setTimeout(()=>toast.classList.remove("show"),2000);
+    });
+
+    applyStockStatus(clone);
+    preorderContainer.appendChild(clone);
+  });
+
+  // Add Pre-order badge dynamically
+  menuItemsList.forEach(item=>{
+    if(item.dataset.preorder==="true"){
+      const badge = document.createElement("span");
+      badge.className="preorder-badge"; badge.textContent="Pre-order";
+      item.appendChild(badge);
+    }
+  });
+
+  // ENHANCED HAMBURGER MENU FUNCTIONALITY
+  // Close mobile menu when clicking on a link
+  navMenu.addEventListener('click', (e) => {
+    if (e.target.tagName === 'A') {
+      navMenu.classList.remove('show');
+    }
+  });
+
+  // Close mobile menu when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('nav')) {
+      navMenu.classList.remove('show');
+    }
+  });
+
+  // Profile dropdown
+  const profileToggle = document.getElementById("profileToggle"),
+        profileMenu = document.getElementById("profileMenu");
+  profileToggle.addEventListener("click", () => profileMenu.parentElement.classList.toggle("show"));
+  window.addEventListener("click", (e) => {
+    if (!e.target.closest(".profile-dropdown")) profileMenu.parentElement.classList.remove("show");
+  });
+
+  </script>
+
+</body>
+</html>
