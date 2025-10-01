@@ -14,7 +14,7 @@
       import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
       async function loadFirebase() {
-        const configUrl = new URL('../../../PHP/firebase_config.php', import.meta.url);
+        const configUrl = new URL('../../PHP/firebase_config.php', import.meta.url);
         const response = await fetch(configUrl, { credentials: 'same-origin' });
         if (!response.ok) {
           throw new Error(`Unable to load Firebase configuration: ${response.status}`);

@@ -26,7 +26,7 @@ function startInactivityTimer(auth) {
 
 try {
   if (!getApps().length) {
-    const configUrl = new URL('../../../PHP/firebase_config.php', import.meta.url);
+    const configUrl = new URL('../../PHP/firebase_config.php', import.meta.url);
     const response = await fetch(configUrl, { credentials: 'same-origin' });
     if (!response.ok) {
       throw new Error(`Unable to load Firebase configuration: ${response.status}`);
