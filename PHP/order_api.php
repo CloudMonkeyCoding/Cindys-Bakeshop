@@ -28,7 +28,15 @@ switch ($action) {
         } else {
             $userId = (int)($_GET['user_id'] ?? 0);
         }
-        $orders = getOrdersByUserId($pdo, $userId);
+        $orders = getOrdersByUserId($pdo, $userId) ?: [];
+        $orders = array_map(static function ($order) {
+            $imageMeta = [
+                'Image_Path' => $order['Image_Path'] ?? '',
+                'Category' => $order['Category'] ?? '',
+            ];
+            $order['Image_Url'] = getProductImageUrl($imageMeta, '/');
+            return $order;
+        }, $orders);
         echo json_encode($orders);
         break;
     case 'create':

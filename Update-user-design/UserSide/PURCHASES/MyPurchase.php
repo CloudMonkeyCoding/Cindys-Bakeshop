@@ -308,6 +308,31 @@
       ['Cancelled', 'completed']
     ]);
 
+    function normalizeImagePath(path) {
+      if (!path) {
+        return '/Images/logo.png';
+      }
+      const trimmed = path.trim();
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+        return trimmed;
+      }
+      return trimmed.startsWith('/') ? trimmed : `/${trimmed.replace(/^\/+/, '')}`;
+    }
+
+    function resolveOrderImage(order) {
+      const apiProvided = typeof order.Image_Url === 'string' ? order.Image_Url.trim() : '';
+      if (apiProvided) {
+        return normalizeImagePath(apiProvided);
+      }
+
+      const legacyPath = typeof order.Image_Path === 'string' ? order.Image_Path.trim() : '';
+      if (legacyPath) {
+        return normalizeImagePath(`/adminSide/products/uploads/${legacyPath}`);
+      }
+
+      return '/Images/logo.png';
+    }
+
     function statusToCategory(status) {
       return STATUS_MAP.get(status) || 'to-process';
     }
@@ -335,7 +360,7 @@
         const card = document.createElement('article');
         card.className = 'order-card';
         const category = statusToCategory(order.Status);
-        const imgSrc = order.Image_Path ? `../../../adminSide/products/uploads/${order.Image_Path}` : '../../../Images/logo.png';
+        const imgSrc = resolveOrderImage(order);
         card.innerHTML = `
           <div class="order-summary">
             <img src="${imgSrc}" alt="Order product image">

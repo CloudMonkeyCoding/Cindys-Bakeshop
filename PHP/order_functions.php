@@ -41,6 +41,7 @@ function getOrdersByUserId($pdo, $userId) {
                o.Fulfillment_Type,
                o.Status,
                MIN(p.Image_Path) AS Image_Path,
+               MIN(p.Category) AS Category,
                COALESCE(SUM(oi.Quantity), 0) AS Item_Count,
                COALESCE(SUM(oi.Subtotal), 0) AS Total_Amount,
                GROUP_CONCAT(
