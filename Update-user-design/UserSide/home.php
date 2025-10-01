@@ -1,3 +1,18 @@
+<?php
+$trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1);
+$callerFile = $trace[0]['file'] ?? __FILE__;
+$callerDir = str_replace('\\', '/', dirname($callerFile));
+$baseDir = str_replace('\\', '/', __DIR__);
+$depth = 0;
+if (strpos($callerDir, $baseDir) === 0) {
+    $relative = trim(substr($callerDir, strlen($baseDir)), '/');
+    $depth = $relative === '' ? 0 : substr_count($relative, '/') + 1;
+}
+$userPrefix = str_repeat('../', $depth);
+$rootPrefix = str_repeat('../', $depth + 2);
+$imagesBase = $rootPrefix . 'Images/';
+$productBase = $userPrefix . 'PRODUCT/';
+?>
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -6,6 +21,7 @@
     <title>Cindy's Bakeshop Hagonoy - Fresh Baked Delights</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="<?= htmlspecialchars($userPrefix . 'styles.css', ENT_QUOTES) ?>">
     <style>
       * {
         margin: 0;
@@ -24,88 +40,6 @@
         line-height: 1.6;
         overflow-x: hidden;
       }
-
-       /* Header */
-       header {
-         background: linear-gradient(135deg, #f5f3f0 0%, #faf8f5 100%);
-         -webkit-backdrop-filter: blur(20px);
-         backdrop-filter: blur(20px);
-         padding: 1.5rem 2rem;
-         display: flex;
-         align-items: center;
-         justify-content: space-between;
-         border-bottom: 2px solid rgba(139, 69, 19, 0.1);
-         position: fixed;
-         top: 0;
-         left: 0;
-         right: 0;
-         z-index: 1000;
-         transition: all 0.3s ease;
-         box-shadow: 0 8px 32px rgba(139, 69, 19, 0.1);
-       }
-
-       header.scrolled {
-         background: rgba(245, 243, 240, 0.98);
-         box-shadow: 0 4px 20px rgba(139, 69, 19, 0.1);
-       }
-
-      .logo {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      .logo-icon {
-        font-size: 2rem;
-        transition: transform 0.3s ease;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-      }
-
-      .logo:hover .logo-icon {
-        transform: scale(1.1) rotate(5deg);
-      }
-
-       .logo-text {
-         font-size: 1.8rem;
-         font-weight: 800;
-         background: linear-gradient(135deg, #8b4513, #a0522d);
-         -webkit-background-clip: text;
-         -webkit-text-fill-color: transparent;
-         background-clip: text;
-         text-decoration: none;
-         letter-spacing: -0.5px;
-       }
-
-      nav {
-        flex: 1;
-        display: flex;
-        justify-content: center;
-      }
-
-      nav ul {
-        list-style: none;
-        display: flex;
-        gap: 2.5rem;
-        align-items: center;
-      }
-
-       nav ul li a {
-         color: #8b4513;
-         text-decoration: none;
-         font-weight: 600;
-         position: relative;
-         transition: all 0.3s ease;
-         padding: 0.8rem 1.5rem;
-         border-radius: 25px;
-         font-size: 0.95rem;
-       }
-
-       nav ul li a:hover {
-         background: linear-gradient(135deg, #8b4513, #a0522d);
-         color: #fff;
-         transform: translateY(-2px);
-         box-shadow: 0 8px 25px rgba(139, 69, 19, 0.3);
-       }
 
       .download-btn {
         background: linear-gradient(135deg, #8b4513, #a0522d);
@@ -995,35 +929,9 @@
     </style>
   </head>
   <body>
-    <!-- Header -->
-    <header id="header">
-      <div class="logo">
-        <div class="logo-icon">🍞</div>
-        <a href="#" class="logo-text">Cindy's Bakeshop</a>
-      </div>
+    <?php include __DIR__ . '/topbar.php'; ?>
 
-      <div class="hamburger" onclick="toggleMenu()">
-        <i class="fas fa-bars"></i>
-      </div>
-
-      <nav id="navMenu">
-        <ul>
-          <li><a href="home.html">Home</a></li>
-          <li><a href="#" id="menuLink">Menu</a></li>
-          <li><a href="home.html#about">About</a></li>
-          <li><a href="home.html#visit">Contact</a></li>
-          <li><a href="login.html">Login</a></li>
-          <li><a href="signup.html">Signup</a></li>
-          <li>
-            <a href="download-app.html" class="download-btn">
-              <i class="fas fa-download"></i>
-              Download App
-            </a>
-          </li>
-        </ul>
-      </nav>
-    </header>
-
+    <main>
     <!-- Hero Section -->
     <section class="hero">
       <div class="hero-content">
@@ -1038,7 +946,7 @@
           Experience the authentic taste of home-baked perfection.
         </p>
         <div class="hero-buttons">
-          <a href="#" id="exploreMenuBtn" class="btn-primary">
+          <a href="<?= htmlspecialchars($productBase . 'MENU.php', ENT_QUOTES) ?>" id="exploreMenuBtn" class="btn-primary">
             <i class="fas fa-utensils"></i>
             Explore Menu
           </a>
@@ -1049,7 +957,7 @@
         </div>
       </div>
       <div class="hero-image">
-        <img id="heroImage" src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&h=400&fit=crop&crop=center" alt="Delicious Chocolate Cake" />
+        <img id="heroImage" src="<?= htmlspecialchars($imagesBase . 'cakes/cake1.png', ENT_QUOTES) ?>" alt="Chocolate Celebration Cake" />
       </div>
     </section>
 
@@ -1113,57 +1021,67 @@
       <div class="products-grid">
         <div class="product-card">
           <div class="product-image">
-            <img src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&h=300&fit=crop&crop=center" alt="Chocolate Cake" />
+            <a href="<?= htmlspecialchars($productBase . 'product.php?id=1', ENT_QUOTES) ?>">
+              <img src="<?= htmlspecialchars($imagesBase . 'cakes/cake1.png', ENT_QUOTES) ?>" alt="Choco Mousse Cake" />
+            </a>
             <div class="product-badge">Best Seller</div>
           </div>
           <div class="product-info">
-            <h4>Chocolate Fudge Cake</h4>
-            <p>Rich and decadent chocolate cake with smooth fudge frosting, perfect for any celebration.</p>
+            <h4>Choco Mousse Cake</h4>
+            <p>Layers of moist chocolate sponge with velvety mousse and a glossy fudge finish.</p>
             <div class="product-price">₱450</div>
           </div>
         </div>
         <div class="product-card">
           <div class="product-image">
-            <img src="https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=400&h=300&fit=crop&crop=center" alt="Artisan Bread" />
+            <a href="<?= htmlspecialchars($productBase . 'product.php?id=7', ENT_QUOTES) ?>">
+              <img src="<?= htmlspecialchars($imagesBase . 'cakes/cake2.png', ENT_QUOTES) ?>" alt="Creamy Choco Cake" />
+            </a>
             <div class="product-badge">Best Seller</div>
           </div>
           <div class="product-info">
-            <h4>Artisan Sourdough</h4>
-            <p>Traditional sourdough bread with a crispy crust and soft, tangy interior.</p>
-            <div class="product-price">₱120</div>
+            <h4>Creamy Choco Cake</h4>
+            <p>Chocolate sponge layered with whipped cream, chocolate shavings, and silky ganache.</p>
+            <div class="product-price">₱420</div>
           </div>
         </div>
         <div class="product-card">
           <div class="product-image">
-            <img src="https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&h=300&fit=crop&crop=center" alt="Croissant" />
+            <a href="<?= htmlspecialchars($productBase . 'product.php?id=3', ENT_QUOTES) ?>">
+              <img src="<?= htmlspecialchars($imagesBase . 'cakes/cake3.png', ENT_QUOTES) ?>" alt="Choco Cherry Cake" />
+            </a>
             <div class="product-badge">New</div>
           </div>
           <div class="product-info">
-            <h4>Butter Croissant</h4>
-            <p>Flaky, buttery croissants made with premium butter and traditional French techniques.</p>
-            <div class="product-price">₱65</div>
+            <h4>Choco Cherry Cake</h4>
+            <p>Dark chocolate cake with cherry compote layers topped with chocolate curls.</p>
+            <div class="product-price">₱430</div>
           </div>
         </div>
         <div class="product-card">
           <div class="product-image">
-            <img src="https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=400&h=300&fit=crop&crop=center" alt="Cheesecake" />
+            <a href="<?= htmlspecialchars($productBase . 'product.php?id=4', ENT_QUOTES) ?>">
+              <img src="<?= htmlspecialchars($imagesBase . 'cakes/cake4.png', ENT_QUOTES) ?>" alt="Pastel Delight Cake" />
+            </a>
             <div class="product-badge">Best Seller</div>
           </div>
           <div class="product-info">
-            <h4>New York Cheesecake</h4>
-            <p>Creamy cheesecake with a buttery graham cracker crust, topped with fresh berries.</p>
-            <div class="product-price">₱380</div>
+            <h4>Pastel Delight Cake</h4>
+            <p>Classic vanilla chiffon iced with pastel buttercream and candy sprinkles.</p>
+            <div class="product-price">₱410</div>
           </div>
         </div>
         <div class="product-card">
           <div class="product-image">
-            <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop&crop=center" alt="Donuts" />
+            <a href="<?= htmlspecialchars($productBase . 'product.php?id=5', ENT_QUOTES) ?>">
+              <img src="<?= htmlspecialchars($imagesBase . 'cakes/cake5.png', ENT_QUOTES) ?>" alt="Choco Caramel Cake" />
+            </a>
             <div class="product-badge">New</div>
           </div>
           <div class="product-info">
-            <h4>Glazed Donuts</h4>
-            <p>Soft and fluffy donuts with a perfect glaze, available in various flavors.</p>
-            <div class="product-price">₱35</div>
+            <h4>Choco Caramel Cake</h4>
+            <p>Chocolate sponge layered with caramel cream and finished with caramel drizzle.</p>
+            <div class="product-price">₱420</div>
           </div>
         </div>
       </div>
@@ -1264,7 +1182,7 @@
     </section>
 
     <!-- CTA -->
-    <section class="cta">
+    <section class="cta" id="app">
       <div class="cta-content">
         <h2>Experience Cindy's Anywhere, Anytime</h2>
         <p>
@@ -1272,12 +1190,14 @@
           our fresh baked goods through our mobile app. Skip the lines, customize your orders, 
           and have your favorites delivered straight to your door.
         </p>
-        <a href="download-app.html" class="download-btn">
+        <a href="#app" class="download-btn">
           <i class="fas fa-mobile-alt"></i>
           Download Our App
         </a>
       </div>
     </section>
+
+    </main>
 
     <!-- Footer -->
     <footer>
@@ -1292,10 +1212,10 @@
         </div>
         <div class="footer-section">
           <h3>Quick Links</h3>
-          <p><a href="#" id="footerMenuLink">Our Menu</a></p>
+          <p><a href="<?= htmlspecialchars($productBase . 'MENU.php', ENT_QUOTES) ?>" id="footerMenuLink">Our Menu</a></p>
           <p><a href="#about">Our Story</a></p>
           <p><a href="#visit">Visit Us</a></p>
-          <p><a href="download-app.html">Download App</a></p>
+          <p><a href="#app">Download App</a></p>
         </div>
         <div class="footer-section">
           <h3>Contact Info</h3>
@@ -1316,159 +1236,76 @@
     </footer>
 
     <script>
-      // Mobile menu toggle
-      function toggleMenu() {
-        const navMenu = document.getElementById('navMenu');
-        navMenu.classList.toggle('active');
-      }
-
-      // Header scroll effect
-      window.addEventListener('scroll', function() {
-        const header = document.getElementById('header');
-        if (window.scrollY > 100) {
-          header.classList.add('scrolled');
-        } else {
-          header.classList.remove('scrolled');
-        }
-      });
-
-      // Smooth scrolling for anchor links
-      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-          e.preventDefault();
-          const target = document.querySelector(this.getAttribute('href'));
-          if (target) {
-            target.scrollIntoView({
-              behavior: 'smooth',
-              block: 'start'
-            });
-            // Close mobile menu if open
-            document.getElementById('navMenu').classList.remove('active');
-          }
+      document.addEventListener('DOMContentLoaded', () => {
+        const smoothLinks = document.querySelectorAll('a[href^="#"]');
+        smoothLinks.forEach(link => {
+          link.addEventListener('click', (event) => {
+            const targetId = link.getAttribute('href');
+            if (targetId && targetId.length > 1) {
+              const target = document.querySelector(targetId);
+              if (target) {
+                event.preventDefault();
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }
+          });
         });
-      });
 
-      // Animate elements on scroll
-      const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-      };
+        const observer = new IntersectionObserver((entries, obs) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.style.opacity = '1';
+              entry.target.style.transform = 'translateY(0)';
+              obs.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
 
-      const observer = new IntersectionObserver(function(entries) {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
-          }
+        document.querySelectorAll('.category-card, .product-card, .info-card, .cta').forEach(element => {
+          element.style.opacity = '0';
+          element.style.transform = 'translateY(30px)';
+          element.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+          observer.observe(element);
         });
-      }, observerOptions);
 
-      // Observe elements for animation
-      document.querySelectorAll('.category-card, .product-card, .info-card').forEach(el => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(30px)';
-        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        observer.observe(el);
-      });
+        const heroImages = [
+          {
+            src: '<?= htmlspecialchars($imagesBase . 'cakes/cake1.png', ENT_QUOTES) ?>',
+            alt: 'Chocolate Celebration Cake'
+          },
+          {
+            src: '<?= htmlspecialchars($imagesBase . 'bread/bread10.png', ENT_QUOTES) ?>',
+            alt: 'Whole Wheat Loaf'
+          },
+          {
+            src: '<?= htmlspecialchars($imagesBase . 'pastry/pastry6.png', ENT_QUOTES) ?>',
+            alt: 'Brownie Bites'
+          },
+          {
+            src: '<?= htmlspecialchars($imagesBase . 'pastry/pastry10.png', ENT_QUOTES) ?>',
+            alt: "Snap'n Roll"
+          },
+          {
+            src: '<?= htmlspecialchars($imagesBase . 'cakes/cake15.png', ENT_QUOTES) ?>',
+            alt: 'Mocha Celebration Cake'
+          }
+        ];
 
-      // Hero image rotation
-      const heroImages = [
-        {
-          src: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&h=400&fit=crop&crop=center',
-          alt: 'Delicious Chocolate Cake'
-        },
-        {
-          src: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=500&h=400&fit=crop&crop=center',
-          alt: 'Fresh Artisan Bread'
-        },
-        {
-          src: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=500&h=400&fit=crop&crop=center',
-          alt: 'Gourmet Pastries'
-        },
-        {
-          src: 'https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=500&h=400&fit=crop&crop=center',
-          alt: 'Fresh Baked Donuts'
-        },
-        {
-          src: 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?w=500&h=400&fit=crop&crop=center',
-          alt: 'Beautiful Wedding Cake'
-        },
-        {
-          src: 'https://images.unsplash.com/photo-1517433670267-08bbd4be890f?w=500&h=400&fit=crop&crop=center',
-          alt: 'Fresh Croissants'
-        }
-      ];
-
-      let currentImageIndex = 0;
-      const heroImage = document.getElementById('heroImage');
-
-      function rotateHeroImage() {
-        currentImageIndex = (currentImageIndex + 1) % heroImages.length;
-        const nextImage = heroImages[currentImageIndex];
-        
-        // Add fade effect
-        heroImage.style.opacity = '0.7';
-        heroImage.style.transform = 'scale(0.95)';
-        
-        setTimeout(() => {
-          heroImage.src = nextImage.src;
-          heroImage.alt = nextImage.alt;
-          heroImage.style.opacity = '1';
-          heroImage.style.transform = 'scale(1)';
-        }, 300);
-      }
-
-      // Start image rotation every 5 seconds
-      setInterval(rotateHeroImage, 5000);
-
-      // Menu link authentication check
-      document.getElementById('menuLink').addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        // Check if user is logged in by looking for user data in localStorage
-        const userData = localStorage.getItem('userData');
-        const isLoggedIn = userData !== null;
-        
-        if (isLoggedIn) {
-          // User is logged in, go to Menu page
-          window.location.href = 'Menu.html';
-        } else {
-          // User is not logged in, go to login page
-          window.location.href = 'login.html';
-        }
-      });
-
-      // Explore Menu button authentication check
-      document.getElementById('exploreMenuBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        // Check if user is logged in by looking for user data in localStorage
-        const userData = localStorage.getItem('userData');
-        const isLoggedIn = userData !== null;
-        
-        if (isLoggedIn) {
-          // User is logged in, go to Menu page
-          window.location.href = 'Menu.html';
-        } else {
-          // User is not logged in, go to login page
-          window.location.href = 'login.html';
-        }
-      });
-
-      // Footer Menu link authentication check
-      document.getElementById('footerMenuLink').addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        // Check if user is logged in by looking for user data in localStorage
-        const userData = localStorage.getItem('userData');
-        const isLoggedIn = userData !== null;
-        
-        if (isLoggedIn) {
-          // User is logged in, go to Menu page
-          window.location.href = 'Menu.html';
-        } else {
-          // User is not logged in, go to login page
-          window.location.href = 'login.html';
+        const heroImage = document.getElementById('heroImage');
+        if (heroImage && heroImages.length > 1) {
+          let currentImageIndex = 0;
+          setInterval(() => {
+            currentImageIndex = (currentImageIndex + 1) % heroImages.length;
+            const nextImage = heroImages[currentImageIndex];
+            heroImage.style.opacity = '0.7';
+            heroImage.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+              heroImage.src = nextImage.src;
+              heroImage.alt = nextImage.alt;
+              heroImage.style.opacity = '1';
+              heroImage.style.transform = 'scale(1)';
+            }, 300);
+          }, 5000);
         }
       });
     </script>

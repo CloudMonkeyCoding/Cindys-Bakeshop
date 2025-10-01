@@ -23,8 +23,8 @@ $imagesBase = $rootPrefix . 'Images/';
 $navItems = [
     [
         'label' => 'Home',
-        'href' => $userPrefix . 'home.html',
-        'match' => ['home.html', 'index.php']
+        'href' => $userPrefix . 'home.php',
+        'match' => ['home.php', 'index.php']
     ],
     [
         'label' => 'Menu',
@@ -56,7 +56,7 @@ $activeResolver = function (array $needles) use ($currentScript): string {
   <div class="header-content">
     <div class="logo">
       <span class="logo-icon" aria-hidden="true">🥐</span>
-      <a href="<?= htmlspecialchars($userPrefix . 'home.html', ENT_QUOTES) ?>" class="logo-text">Cindy's Bakeshop</a>
+      <a href="<?= htmlspecialchars($userPrefix . 'home.php', ENT_QUOTES) ?>" class="logo-text">Cindy's Bakeshop</a>
     </div>
 
     <button type="button" class="menu-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
