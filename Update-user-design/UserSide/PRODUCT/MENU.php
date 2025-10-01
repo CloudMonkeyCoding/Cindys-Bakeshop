@@ -230,6 +230,90 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       gap: 1.6rem;
     }
 
+    .empty-state {
+      margin-top: 2rem;
+      padding: 2rem;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(231, 76, 60, 0.12), rgba(192, 57, 43, 0.08));
+      color: #8b4513;
+      font-weight: 600;
+      box-shadow: 0 18px 40px rgba(231, 76, 60, 0.12);
+    }
+
+    .pagination-controls {
+      margin-top: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      padding: 1rem 1.5rem;
+      background: #ffffff;
+      border-radius: 14px;
+      border: 1px solid rgba(139, 69, 19, 0.12);
+      box-shadow: 0 20px 44px rgba(139, 69, 19, 0.08);
+    }
+
+    .pagination-controls[hidden] {
+      display: none;
+    }
+
+    .pagination-details {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .pagination-status {
+      font-size: 0.95rem;
+      color: rgba(90, 45, 12, 0.75);
+      font-weight: 500;
+    }
+
+    .pagination-pages {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .pagination-ellipsis {
+      color: rgba(90, 45, 12, 0.65);
+      font-weight: 600;
+    }
+
+    .pagination-arrow,
+    .pagination-page {
+      border: none;
+      border-radius: 999px;
+      padding: 0.55rem 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: #f8f9fa;
+      color: #8b4513;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+    }
+
+    .pagination-arrow[disabled],
+    .pagination-page[disabled] {
+      cursor: not-allowed;
+      opacity: 0.55;
+      box-shadow: none;
+    }
+
+    .pagination-arrow:hover:not([disabled]),
+    .pagination-page:hover:not([disabled]) {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: #fff;
+      box-shadow: 0 14px 30px rgba(231, 76, 60, 0.32);
+    }
+
+    .pagination-page.active {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: #fff;
+      box-shadow: 0 16px 32px rgba(231, 76, 60, 0.35);
+    }
+
     .menu-item {
       position: relative;
       background: #ffffff;
@@ -578,6 +662,17 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
         height: 42px;
       }
 
+      .pagination-controls {
+        flex-direction: column;
+        gap: 0.9rem;
+        width: 100%;
+      }
+
+      .pagination-arrow,
+      .pagination-page {
+        width: 100%;
+      }
+
       footer {
         padding: 2.5rem 1rem;
         margin-top: 3rem;
@@ -642,6 +737,18 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       <p class="section-subtitle">Filter by category or search to find your next favorite bite.</p>
       <div class="menu-grid" id="menuGrid"></div>
       <div class="empty-state" id="menuEmpty" hidden>No treats match your filters yet. Try searching for another item!</div>
+      <div class="pagination-controls" id="paginationControls" hidden>
+        <button type="button" class="pagination-arrow" id="prevPage" aria-label="Previous page">
+          ‹
+        </button>
+        <div class="pagination-details">
+          <span class="pagination-status" id="paginationStatus"></span>
+          <nav class="pagination-pages" id="paginationList" aria-label="Menu pages"></nav>
+        </div>
+        <button type="button" class="pagination-arrow" id="nextPage" aria-label="Next page">
+          ›
+        </button>
+      </div>
     </section>
 
     <section class="preorder-section" aria-labelledby="preorder-title" id="preorderSection" hidden>
@@ -682,6 +789,11 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
 
     const menuGrid = document.getElementById('menuGrid');
     const menuEmpty = document.getElementById('menuEmpty');
+    const paginationControls = document.getElementById('paginationControls');
+    const paginationStatus = document.getElementById('paginationStatus');
+    const paginationList = document.getElementById('paginationList');
+    const prevPageButton = document.getElementById('prevPage');
+    const nextPageButton = document.getElementById('nextPage');
     const bestSellerList = document.getElementById('bestSellerList');
     const preorderSection = document.getElementById('preorderSection');
     const preorderList = document.getElementById('preorderList');
@@ -704,6 +816,11 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     let activeCategory = 'all';
     let currentProduct = null;
     let currentQuantity = 1;
+    let filteredProducts = Array.isArray(products) ? [...products] : [];
+    let currentPage = 1;
+
+    const ITEMS_PER_PAGE = 8;
+    const MAX_VISIBLE_PAGES = 6;
 
     const CATEGORY_LABELS = new Map([
       ['all', 'All'],
@@ -895,24 +1012,129 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       }
     }
 
-    function filterAndRender() {
+    function renderPagination(totalItems, totalPages) {
+      if (!paginationControls) return;
+
+      if (totalItems === 0 || totalPages <= 1) {
+        paginationControls.hidden = true;
+        if (paginationStatus) paginationStatus.textContent = '';
+        if (paginationList) paginationList.innerHTML = '';
+        if (prevPageButton) prevPageButton.disabled = true;
+        if (nextPageButton) nextPageButton.disabled = true;
+        return;
+      }
+
+      paginationControls.hidden = false;
+
+      const startItem = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+      const endItem = Math.min(totalItems, currentPage * ITEMS_PER_PAGE);
+
+      if (paginationStatus) {
+        paginationStatus.textContent = `Showing ${startItem}–${endItem} of ${totalItems}`;
+      }
+
+      if (prevPageButton) {
+        prevPageButton.disabled = currentPage <= 1;
+      }
+      if (nextPageButton) {
+        nextPageButton.disabled = currentPage >= totalPages;
+      }
+
+      if (!paginationList) return;
+
+      paginationList.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+
+      const appendButton = (pageNumber) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'pagination-page';
+        button.textContent = pageNumber.toString();
+        if (pageNumber === currentPage) {
+          button.classList.add('active');
+          button.setAttribute('aria-current', 'page');
+        }
+        button.addEventListener('click', () => {
+          if (pageNumber !== currentPage) {
+            currentPage = pageNumber;
+            refreshMenu();
+          }
+        });
+        fragment.appendChild(button);
+      };
+
+      const appendEllipsis = () => {
+        const ellipsis = document.createElement('span');
+        ellipsis.className = 'pagination-ellipsis';
+        ellipsis.textContent = '…';
+        fragment.appendChild(ellipsis);
+      };
+
+      if (totalPages <= MAX_VISIBLE_PAGES) {
+        for (let page = 1; page <= totalPages; page += 1) {
+          appendButton(page);
+        }
+      } else {
+        appendButton(1);
+
+        const startRange = Math.max(2, currentPage - 1);
+        const endRange = Math.min(totalPages - 1, currentPage + 1);
+
+        if (startRange > 2) {
+          appendEllipsis();
+        }
+
+        for (let page = startRange; page <= endRange; page += 1) {
+          appendButton(page);
+        }
+
+        if (endRange < totalPages - 1) {
+          appendEllipsis();
+        }
+
+        appendButton(totalPages);
+      }
+
+      paginationList.appendChild(fragment);
+    }
+
+    function refreshMenu({ resetPage = false } = {}) {
       if (!menuGrid) return;
       const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
-      const filtered = products.filter(product => {
+
+      filteredProducts = products.filter(product => {
         const matchesCategory = activeCategory === 'all' || product.category === activeCategory;
-        const matchesQuery = !query || product.name.toLowerCase().includes(query) || (product.description || '').toLowerCase().includes(query);
+        const description = (product.description || '').toLowerCase();
+        const matchesQuery = !query || product.name.toLowerCase().includes(query) || description.includes(query);
         return matchesCategory && matchesQuery;
       });
 
+      const totalItems = filteredProducts.length;
+      const totalPages = totalItems === 0 ? 1 : Math.ceil(totalItems / ITEMS_PER_PAGE);
+
+      if (resetPage) {
+        currentPage = 1;
+      }
+
+      currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+
       menuGrid.innerHTML = '';
-      filtered.forEach(product => {
+
+      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+      const pageItems = filteredProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+      pageItems.forEach(product => {
         const card = renderCard(product);
         menuGrid.appendChild(card);
       });
 
       if (menuEmpty) {
-        menuEmpty.hidden = filtered.length > 0;
+        menuEmpty.hidden = totalItems > 0;
       }
+
+      menuGrid.hidden = totalItems === 0;
+
+      renderPagination(totalItems, totalPages);
     }
 
     function buildCategoryFilters() {
@@ -932,7 +1154,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
           activeCategory = key;
           categoryPills.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
           button.classList.add('active');
-          filterAndRender();
+          refreshMenu({ resetPage: true });
         });
         fragment.appendChild(button);
       });
@@ -951,7 +1173,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
           list.forEach(item => {
             favorites.set(Number(item.Product_ID), item.Favorite_ID);
           });
-          filterAndRender();
+          refreshMenu();
           populateSection(bestSellerList, bestSellers);
           populateSection(preorderList, preorderItems);
         })
@@ -1002,7 +1224,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
             }
             if (!currentProduct.isPreorder && currentProduct.stock > 0) {
               currentProduct.stock = Math.max(0, currentProduct.stock - currentQuantity);
-              filterAndRender();
+              refreshMenu();
             }
             showToast('Added to cart!');
           })
@@ -1012,13 +1234,32 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     }
 
     if (searchInput) {
-      searchInput.addEventListener('input', filterAndRender);
+      searchInput.addEventListener('input', () => refreshMenu({ resetPage: true }));
     }
 
     buildCategoryFilters();
     populateSection(bestSellerList, bestSellers);
     populateSection(preorderList, preorderItems);
-    filterAndRender();
+    refreshMenu({ resetPage: true });
+
+    if (prevPageButton) {
+      prevPageButton.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage -= 1;
+          refreshMenu();
+        }
+      });
+    }
+
+    if (nextPageButton) {
+      nextPageButton.addEventListener('click', () => {
+        const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
+        if (currentPage < totalPages) {
+          currentPage += 1;
+          refreshMenu();
+        }
+      });
+    }
 
     onAuthStateChanged(auth, (user) => {
       userEmail = user ? user.email : null;
@@ -1026,7 +1267,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
         hydrateFavorites(userEmail);
       } else {
         favorites.clear();
-        filterAndRender();
+        refreshMenu();
         populateSection(bestSellerList, bestSellers);
         populateSection(preorderList, preorderItems);
       }
