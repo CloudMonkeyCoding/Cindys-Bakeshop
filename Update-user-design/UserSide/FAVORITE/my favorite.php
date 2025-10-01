@@ -25,7 +25,7 @@
     const auth = getAuth();
     onAuthStateChanged(auth, user => {
       if (user) {
-        fetch(`../../PHP/favorite_api.php?action=list&email=${encodeURIComponent(user.email)}`)
+        fetch(`../../../PHP/favorite_api.php?action=list&email=${encodeURIComponent(user.email)}`)
           .then(res => res.json())
           .then(favorites => {
             if (!favorites || favorites.length === 0) {
@@ -38,10 +38,10 @@
               div.className = 'favorite-item';
               div.innerHTML = `
                 <a href="../PRODUCT/product.php?id=${product.Product_ID}">
-                  <img src="${product.Image_Path ? '../../adminSide/products/uploads/' + product.Image_Path : ''}" alt="${product.Name}">
+                  <img src="${product.Image_Path ? '../../../adminSide/products/uploads/' + product.Image_Path : ''}" alt="${product.Name}">
                   <div class="product-name">${product.Name}</div>
                 </a>
-                <a href="../LOGIN_SIGNUP/user_login.html" class="order-now">Order Now</a>
+                <a href="../login.html" class="order-now">Order Now</a>
               `;
               grid.appendChild(div);
             });

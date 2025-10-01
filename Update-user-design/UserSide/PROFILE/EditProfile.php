@@ -15,7 +15,7 @@
     <h2>EDIT PROFILE</h2>
 
     <div class="profile-pic">
-      <img id="profilePic" src="../../Images/logo.png" alt="Profile Picture" />
+      <img id="profilePic" src="../../../Images/logo.png" alt="Profile Picture" />
     </div>
 
     <form id="editProfileForm">
@@ -40,7 +40,7 @@
     onAuthStateChanged(auth, user => {
       if (user) {
         document.getElementById('email').value = user.email;
-        fetch(`../../PHP/user_api.php?action=get_profile&email=${encodeURIComponent(user.email)}`)
+        fetch(`../../../PHP/user_api.php?action=get_profile&email=${encodeURIComponent(user.email)}`)
           .then(res => res.json())
           .then(data => {
             if (data.first_name) {
@@ -79,7 +79,7 @@
         formData.append('profile_picture', profilePicFile);
       }
 
-      fetch('../../PHP/user_api.php?action=update_profile', {
+      fetch('../../../PHP/user_api.php?action=update_profile', {
         method: 'POST',
         body: formData
       })

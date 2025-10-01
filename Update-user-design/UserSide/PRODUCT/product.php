@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../../PHP/db_connect.php';
-require_once __DIR__ . '/../../PHP/product_functions.php';
+require_once __DIR__ . '/../../../PHP/db_connect.php';
+require_once __DIR__ . '/../../../PHP/product_functions.php';
 
 $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 if ($id === null || $id === false) {
