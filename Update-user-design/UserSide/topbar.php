@@ -71,11 +71,15 @@ $activeResolver = function (array $needles) use ($currentScript): string {
     </nav>
 
     <div class="nav-right">
+      <div class="auth-links" id="authLinks">
+        <a class="auth-link" href="<?= htmlspecialchars($userPrefix . 'login.html', ENT_QUOTES) ?>">Log in</a>
+        <a class="auth-link auth-primary" href="<?= htmlspecialchars($userPrefix . 'signup.html', ENT_QUOTES) ?>">Sign up</a>
+      </div>
       <a class="cart-link" href="<?= htmlspecialchars($userPrefix . 'CART/cart_checkout_page.php', ENT_QUOTES) ?>">
         <span aria-hidden="true">🛒</span>
         <span>Cart</span>
       </a>
-      <div class="profile-dropdown">
+      <div class="profile-dropdown hidden">
         <button type="button" class="profile-trigger" id="profileToggle" aria-haspopup="true" aria-expanded="false">
           <img src="<?= htmlspecialchars($imagesBase . 'logo.png', ENT_QUOTES) ?>" alt="User avatar" class="profile-img" id="profileAvatar">
           <span class="profile-meta">

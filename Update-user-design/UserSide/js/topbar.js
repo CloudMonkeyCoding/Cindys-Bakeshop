@@ -8,6 +8,7 @@ if (header) {
   const navLinks = header.querySelectorAll('#mainNav a');
   const profileToggle = header.querySelector('#profileToggle');
   const profileDropdown = header.querySelector('.profile-dropdown');
+  const authLinks = header.querySelector('#authLinks');
   const profileAvatar = header.querySelector('#profileAvatar');
   const profileName = header.querySelector('#profileName');
   const profileEmail = header.querySelector('#profileEmail');
@@ -55,6 +56,30 @@ if (header) {
     }
   });
 
+  const updateAuthVisibility = (isAuthenticated) => {
+    if (authLinks) {
+      authLinks.classList.toggle('hidden', isAuthenticated);
+    }
+    if (profileDropdown) {
+      profileDropdown.classList.toggle('hidden', !isAuthenticated);
+      if (!isAuthenticated) {
+        profileDropdown.classList.remove('show');
+      }
+    }
+    if (profileToggle) {
+      profileToggle.disabled = !isAuthenticated;
+      profileToggle.setAttribute('aria-expanded', 'false');
+      profileToggle.setAttribute('tabindex', isAuthenticated ? '0' : '-1');
+      if (isAuthenticated) {
+        profileToggle.removeAttribute('aria-hidden');
+      } else {
+        profileToggle.setAttribute('aria-hidden', 'true');
+      }
+    }
+  };
+
+  updateAuthVisibility(false);
+
   const auth = getAuth();
   onAuthStateChanged(auth, async (user) => {
     if (!profileAvatar || !profileName || !profileEmail) {
@@ -62,6 +87,7 @@ if (header) {
     }
 
     if (user) {
+      updateAuthVisibility(true);
       const email = user.email || '';
       profileEmail.textContent = email;
       profileName.textContent = user.displayName || 'Customer';
@@ -96,6 +122,7 @@ if (header) {
         }
       }
     } else {
+      updateAuthVisibility(false);
       profileName.textContent = 'Guest';
       profileEmail.textContent = 'Sign in';
       if (defaultAvatar) {
