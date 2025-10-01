@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#8b4513" />
+  <title>My Profile - Cindy's Bakeshop</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: linear-gradient(135deg, #faf8f5 0%, #f5f3f0 100%);
+      min-height: 100vh;
+      color: #8b4513;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    /* Touch-friendly interactions */
+    button, a, input, select, textarea {
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    /* Prevent zoom on input focus for iOS */
+    input[type="text"], input[type="email"], input[type="tel"], input[type="password"], textarea, select {
+      font-size: 16px;
+    }
+
+    /* HEADER */
+    header {
+      background: linear-gradient(135deg, #f5f3f0 0%, #faf8f5 100%);
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      padding: 1.5rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid rgba(139, 69, 19, 0.1);
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 32px rgba(139, 69, 19, 0.1);
+    }
+
+    header.scrolled {
+      background: rgba(245, 243, 240, 0.98);
+      box-shadow: 0 4px 20px rgba(139, 69, 19, 0.1);
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+      margin-right: auto;
+    }
+
+    .logo-icon {
+      font-size: 2rem;
+      transition: transform 0.3s ease;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    }
+
+    .logo:hover .logo-icon {
+      transform: scale(1.1) rotate(5deg);
+    }
+
+    .logo-text {
+      font-size: 1.8rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #8b4513, #a0522d);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-decoration: none;
+      letter-spacing: -0.5px;
+    }
+
+    nav {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 2.5rem;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      position: relative;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-shrink: 0;
+      margin-left: auto;
+      margin-right: 0;
+    }
+
+    nav ul li a {
+      color: #8b4513;
+      text-decoration: none;
+      font-weight: 600;
+      position: relative;
+      transition: all 0.3s ease;
+      padding: 0.8rem 1.5rem;
+      border-radius: 25px;
+      font-size: 0.95rem;
+    }
+
+    nav ul li a:hover {
+      background: linear-gradient(135deg, #8b4513, #a0522d);
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(139, 69, 19, 0.3);
+    }
+
+    nav ul li a.active {
+      background: #e9ecef;
+      color: #333;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .cart-link {
+      color: #8b4513;
+      text-decoration: none;
+      font-weight: 600;
+      position: relative;
+      transition: all 0.3s ease;
+      padding: 0.8rem 1.5rem;
+      border-radius: 25px;
+      font-size: 0.95rem;
+    }
+
+    .cart-link:hover {
+      background: linear-gradient(135deg, #8b4513, #a0522d);
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(139, 69, 19, 0.3);
+    }
+
+    .menu-toggle {
+      display: none;
+      font-size: 1.8rem;
+      cursor: pointer;
+      color: #666666;
+    }
+
+    /* Ensure navigation is visible on desktop */
+    @media (min-width: 769px) {
+      nav {
+        display: flex !important;
+        position: static !important;
+        background: transparent !important;
+        backdrop-filter: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        width: auto !important;
+      }
+      
+      nav ul {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 2.5rem !important;
+        width: auto !important;
+      }
+    }
+
+    @media (max-width:768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .nav-right {
+        order: -1;
+        justify-content: center;
+        width: 100%;
+      }
+
+      nav {
+        position: fixed;
+        top: 70px;
+        left: 0;
+        right: 0;
+        background: rgba(245, 243, 240, 0.98);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        display: none;
+        flex-direction: column;
+        text-align: center;
+        border-bottom: 1px solid rgba(139, 69, 19, 0.1);
+        padding: 2rem 0;
+        box-shadow: 0 4px 20px rgba(139, 69, 19, 0.1);
+        width: 100%;
+      }
+
+      nav.active {
+        display: flex;
+      }
+
+      nav ul {
+        flex-direction: column;
+        gap: 0.5rem;
+        width: 100%;
+      }
+
+      nav ul li a {
+        display: block;
+        text-align: center;
+        padding: 1rem 2rem;
+        width: 100%;
+        border-radius: 15px;
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .menu-toggle {
+        display: block;
+      }
+
+      .profile-dropdown .profile-img { 
+        width: 35px; 
+        height: 35px; 
+        margin: 0 auto;
+      }
+      .profile-dropdown .dropdown-menu { position:static; box-shadow:none; border-radius:8px; background:#f5f5f5; margin-top:0.5rem; width:100%; }
+      .profile-dropdown .dropdown-menu li { padding:0.7rem 0.5rem; border-top:1px solid #ddd; }
+      .profile-dropdown .dropdown-menu li:first-child { border-top:none; }
+    }
+
+    .profile-dropdown { position:relative; }
+    .profile-dropdown .profile-img { 
+      cursor:pointer; 
+      width: 40px; 
+      height: 40px; 
+      border-radius: 50%; 
+      object-fit: cover; 
+      border: 2px solid #8b4513; 
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(139, 69, 19, 0.2);
+    }
+    .profile-dropdown .profile-img:hover { 
+      transform: scale(1.1); 
+      box-shadow: 0 4px 12px rgba(139, 69, 19, 0.3);
+      border-color: #a0522d;
+    }
+    .profile-dropdown .dropdown-menu { position:absolute; top:120%; right:0; background:#ffffff; color:#666666; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.1); display:none; flex-direction:column; min-width:180px; z-index:2000; border: 1px solid #ddd; list-style: none; }
+    .profile-dropdown .dropdown-menu li { padding:0.7rem 1rem; }
+    .profile-dropdown .dropdown-menu li a { text-decoration:none; color:#666666; display:block; transition:all 0.3s ease; }
+    .profile-dropdown .dropdown-menu li:hover { background:#f5f3f0; }
+    .profile-dropdown .dropdown-menu li a:hover { color:#8b4513; }
+    .profile-dropdown.show .dropdown-menu { display:flex; }
+
+    /* MAIN CONTENT */
+    .main {
+      padding: 8rem 2rem 2rem;
+      min-height: 100vh;
+    }
+
+    .profile-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: linear-gradient(135deg, #fff 0%, #faf8f5 100%);
+      padding: 3rem;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(139, 69, 19, 0.1);
+      border: 2px solid rgba(139, 69, 19, 0.2);
+      text-align: center;
+    }
+
+    .profile-container h2 {
+      color: #8b4513;
+      margin-bottom: 2rem;
+      font-size: 2.5rem;
+      font-weight: 700;
+    }
+
+    .profile-pic {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin: 0 auto 2rem;
+      border: 4px solid rgba(139, 69, 19, 0.3);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: block;
+      box-shadow: 0 8px 25px rgba(139, 69, 19, 0.2);
+    }
+
+    .profile-pic:hover {
+      transform: scale(1.05);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .profile-view p {
+      margin: 1rem 0;
+      font-size: 1.1rem;
+      text-align: left;
+      padding: 0.8rem 1.5rem;
+      background: rgba(139, 69, 19, 0.05);
+      border-radius: 12px;
+      border-left: 4px solid rgba(139, 69, 19, 0.3);
+    }
+
+    .profile-view span {
+      font-weight: 700;
+      color: #8b4513;
+      display: inline-block;
+      min-width: 120px;
+    }
+
+    .btn {
+      margin-top: 2rem;
+      background: linear-gradient(135deg, #8b4513, #a0522d);
+      color: #fff;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1.1rem;
+      width: 100%;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
+    }
+
+    .btn:hover {
+      background: linear-gradient(135deg, #a0522d, #8b4513);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(139, 69, 19, 0.4);
+    }
+
+    .profile-form {
+      display: none;
+      text-align: left;
+    }
+
+    .profile-form label {
+      display: block;
+      font-weight: 600;
+      margin-top: 1.5rem;
+      color: #333;
+      font-size: 1rem;
+    }
+
+    .profile-form input,
+    .profile-form textarea {
+      width: 100%;
+      padding: 1rem;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      margin-top: 0.5rem;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: #fff;
+    }
+
+    .profile-form input:focus,
+    .profile-form textarea:focus {
+      outline: none;
+      border-color: #8b4513;
+      box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
+    }
+
+    .profile-form textarea {
+      resize: none;
+      height: 100px;
+    }
+
+    /* Hide file input */
+    #picUpload {
+      display: none;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 2rem;
+      background: #2c2c2c;
+      color: #f5f5f5;
+      margin-top: 2rem;
+      font-size: 0.9rem;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .main {
+        padding: 6rem 1rem 2rem;
+      }
+
+      .profile-container {
+        padding: 2rem;
+        margin: 0 1rem;
+      }
+
+      .profile-container h2 {
+        font-size: 2rem;
+      }
+
+      .profile-pic {
+        width: 120px;
+        height: 120px;
+      }
+
+      .profile-view p {
+        font-size: 1rem;
+        padding: 0.6rem 1rem;
+      }
+
+      .profile-view span {
+        min-width: 100px;
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header id="header">
+    <div class="header-content">
+      <div class="logo">
+        <div class="logo-icon">🍞</div>
+        <a href="home.html" class="logo-text">Cindy's Bakeshop</a>
+      </div>
+
+      <div class="menu-toggle" id="menuToggle">
+        <i class="fas fa-bars"></i>
+      </div>
+
+      <nav id="navMenu">
+        <ul>
+          <li><a href="home.html">Home</a></li>
+          <li><a href="Menu.html">Menu</a></li>
+          <li><a href="home.html#about">About</a></li>
+          <li><a href="home.html#visit">Contact</a></li>
+          <li><a href="checkout.html" class="cart-link">Cart 🛒</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-right">
+        <div class="profile-dropdown">
+          <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face" alt="Profile" class="profile-img" id="profileToggle" />
+          <ul class="dropdown-menu" id="profileMenu">
+            <li><a href="profile.html">View Profile</a></li>
+            <li><a href="order-history.html">Order History</a></li>
+            <li><a href="logout.html">Logout</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="main">
+    <div class="profile-container">
+      <h2>My Profile</h2>
+
+      <!-- Profile view (default) -->
+      <div class="profile-view" id="profileView">
+        <img src="https://via.placeholder.com/150" alt="Profile Picture" id="profilePic" class="profile-pic"/>
+        <p><span>Full Name:</span> Juan Dela Cruz</p>
+        <p><span>Email:</span> juan@email.com</p>
+        <p><span>Phone:</span> 09123456789</p>
+        <p><span>Address:</span> 123 Street, Barangay, City</p>
+        <button class="btn" id="editBtn">Edit Profile</button>
+      </div>
+
+      <!-- Edit form (hidden by default) -->
+      <form class="profile-form" id="profileForm">
+        <!-- Hidden file input (triggered by picture click) -->
+        <input type="file" id="picUpload" accept="image/*" capture="environment"/>
+
+        <label for="name">Full Name</label>
+        <input type="text" id="name" value="Juan Dela Cruz" />
+
+        <label for="email">Email Address</label>
+        <input type="email" id="email" value="juan@email.com" />
+
+        <label for="phone">Phone Number</label>
+        <input type="text" id="phone" value="09123456789" />
+
+        <label for="address">Delivery Address</label>
+        <textarea id="address">123 Street, Barangay, City</textarea>
+
+        <label for="password">Change Password</label>
+        <input type="password" id="password" placeholder="••••••••" />
+
+        <button type="button" class="btn" id="saveBtn">Save Changes</button>
+      </form>
+    </div>
+  </div>
+
+  <footer>© 2025 Cindy's Bakeshop • Freshness Guaranteed</footer>
+
+  <script>
+    const profileView = document.getElementById("profileView");
+    const profileForm = document.getElementById("profileForm");
+    const editBtn = document.getElementById("editBtn");
+    const saveBtn = document.getElementById("saveBtn");
+    const profilePic = document.getElementById("profilePic");
+    const picUpload = document.getElementById("picUpload");
+
+    let uploadedImage = profilePic.src; // default image
+
+    // Click profile pic → open file selector (always works)
+    profilePic.addEventListener("click", () => {
+      picUpload.click();
+    });
+
+    // Preview uploaded picture immediately
+    picUpload.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if(file){
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          uploadedImage = e.target.result;
+          profilePic.src = uploadedImage; // update instantly
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Switch to edit mode
+    editBtn.addEventListener("click", () => {
+      profileView.style.display = "none";
+      profileForm.style.display = "block";
+    });
+
+    // Save changes
+    saveBtn.addEventListener("click", () => {
+      alert("✅ Your profile has been updated!");
+      profileForm.style.display = "none";
+      profileView.style.display = "block";
+
+      // Update profile view with new values
+      profileView.innerHTML = `
+        <img src="${uploadedImage}" alt="Profile Picture" id="profilePic" class="profile-pic"/>
+        <p><span>Full Name:</span> ${document.getElementById("name").value}</p>
+        <p><span>Email:</span> ${document.getElementById("email").value}</p>
+        <p><span>Phone:</span> ${document.getElementById("phone").value}</p>
+        <p><span>Address:</span> ${document.getElementById("address").value}</p>
+        <button class="btn" id="editBtn">Edit Profile</button>
+      `;
+
+      // Reattach event listeners
+      document.getElementById("editBtn").addEventListener("click", () => {
+        profileView.style.display = "none";
+        profileForm.style.display = "block";
+      });
+      document.getElementById("profilePic").addEventListener("click", () => {
+        picUpload.click();
+      });
+    });
+
+    // Navigation functionality
+    const menuToggle = document.getElementById("menuToggle");
+    const navMenu = document.getElementById("navMenu");
+
+    function toggleMenu() { 
+      navMenu.classList.toggle("active");
+    }
+
+    menuToggle.addEventListener('click', toggleMenu);
+
+    // Close menu when clicking outside
+    document.addEventListener('click', function(event) {
+      if (!navMenu.contains(event.target) && !menuToggle.contains(event.target)) {
+        navMenu.classList.remove('active');
+      }
+    });
+
+    // Close menu when clicking on a link
+    document.querySelectorAll('nav ul li a').forEach(link => {
+      link.addEventListener('click', () => {
+        navMenu.classList.remove('active');
+      });
+    });
+
+    // Profile dropdown
+    const profileToggle = document.getElementById("profileToggle"),
+          profileMenu = document.getElementById("profileMenu");
+    profileToggle.addEventListener("click", () => profileMenu.parentElement.classList.toggle("show"));
+    window.addEventListener("click", (e) => {
+      if (!e.target.closest(".profile-dropdown")) profileMenu.parentElement.classList.remove("show");
+    });
+
+    // Header scroll effect
+    window.addEventListener('scroll', function() {
+      const header = document.getElementById('header');
+      if (window.scrollY > 100) {
+        header.classList.add('scrolled');
+      } else {
+        header.classList.remove('scrolled');
+      }
+    });
+  </script>
+</body>
+</html>
