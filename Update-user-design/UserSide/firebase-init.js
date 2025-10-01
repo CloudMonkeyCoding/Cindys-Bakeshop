@@ -12,7 +12,7 @@ function resetInactivityTimer(auth) {
     } catch (err) {
       console.error('Auto logout failed:', err);
     } finally {
-      window.location.href = '../LOGIN_SIGNUP/user_login.html';
+      window.location.href = '../login.html';
     }
   }, INACTIVITY_LIMIT);
 }
@@ -26,7 +26,7 @@ function startInactivityTimer(auth) {
 
 try {
   if (!getApps().length) {
-    const configUrl = new URL('../PHP/firebase_config.php', import.meta.url);
+    const configUrl = new URL('../../../PHP/firebase_config.php', import.meta.url);
     const response = await fetch(configUrl, { credentials: 'same-origin' });
     if (!response.ok) {
       throw new Error(`Unable to load Firebase configuration: ${response.status}`);

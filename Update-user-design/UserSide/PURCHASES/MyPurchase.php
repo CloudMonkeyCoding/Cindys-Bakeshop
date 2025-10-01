@@ -68,7 +68,7 @@
     function loadCartItems() {
       if (!userEmail) return;
       const container = document.getElementById('cart-items-container');
-      fetch(`../../PHP/order_api.php?action=list&email=${encodeURIComponent(userEmail)}`)
+      fetch(`../../../PHP/order_api.php?action=list&email=${encodeURIComponent(userEmail)}`)
         .then(res => res.json())
         .then(orders => {
           if (!orders || orders.length === 0) {
@@ -79,7 +79,7 @@
           orders.forEach(order => {
             const div = document.createElement('div');
             div.classList.add('order-card');
-            const imgSrc = order.Image_Path ? '../../adminSide/products/uploads/' + order.Image_Path : '../../Images/logo.png';
+            const imgSrc = order.Image_Path ? '../../../adminSide/products/uploads/' + order.Image_Path : '../../../Images/logo.png';
             div.innerHTML = `
               <div class="order-info">
                 <img src="${imgSrc}" class="order-img" alt="Product">

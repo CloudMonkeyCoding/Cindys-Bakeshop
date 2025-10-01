@@ -40,7 +40,7 @@
   const params = new URLSearchParams(window.location.search);
   const orderId = params.get('order_id');
   if (orderId) {
-    fetch('../../PHP/order_api.php?action=view&order_id=' + orderId)
+    fetch('../../../PHP/order_api.php?action=view&order_id=' + orderId)
       .then(res => res.json())
       .then(data => {
         if (!data.order) {
