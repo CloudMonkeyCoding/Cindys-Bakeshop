@@ -1,200 +1,1036 @@
+<?php
+require_once __DIR__ . '/../../../PHP/db_connect.php';
+require_once __DIR__ . '/../../../PHP/product_functions.php';
+
+$products = [];
+if ($pdo) {
+    try {
+        $products = getAllProducts($pdo);
+    } catch (Throwable $e) {
+        $products = [];
+    }
+}
+
+function buildProductPayload(array $product): array
+{
+    $category = strtolower(trim((string)($product['Category'] ?? '')));
+    $stock = (int)($product['Stock_Quantity'] ?? 0);
+    return [
+        'id' => (int)($product['Product_ID'] ?? 0),
+        'name' => (string)($product['Name'] ?? 'Untitled Product'),
+        'description' => (string)($product['Description'] ?? ''),
+        'price' => (float)($product['Price'] ?? 0),
+        'stock' => $stock,
+        'category' => $category !== '' ? $category : 'other',
+        'image' => getProductImageUrl($product, '../../'),
+        'isPreorder' => $stock <= 0,
+    ];
+}
+
+$payloadProducts = array_map('buildProductPayload', $products);
+$categoryBuckets = [];
+foreach ($payloadProducts as $product) {
+    $categoryBuckets[$product['category']][] = $product;
+}
+
+$bestSellers = $payloadProducts;
+usort($bestSellers, static function ($a, $b) {
+    return $b['price'] <=> $a['price'];
+});
+$bestSellers = array_slice($bestSellers, 0, 6);
+
+$preorderItems = array_values(array_filter($payloadProducts, static function ($product) {
+    return $product['isPreorder'];
+}));
+
+$pageData = [
+    'all' => $payloadProducts,
+    'bestSellers' => $bestSellers,
+    'categories' => $categoryBuckets,
+    'preorder' => $preorderItems,
+];
+
+$dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Cindy's Menu</title>
-  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cindy's Bakeshop — Menu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-1f/QN3zbZp8C3Auvt9bF6+BgqsSVqS+8CA0nVddOZXS6jttuPAHyBs+K6TfGsZpbbHK1Nn7A8jC2xOQkX8xYkg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="../styles.css" />
+  <style>
+    body.menu-view {
+      display: flex;
+      flex-direction: column;
+    }
+
+    main {
+      width: min(1200px, 100% - 3rem);
+      margin: 140px auto 80px;
+    }
+
+    .page-header {
+      background: linear-gradient(135deg, #8b4513, #a0522d);
+      text-align: center;
+      color: #fff;
+      padding: 4rem 1.5rem;
+      border-radius: 32px;
+      box-shadow: 0 32px 60px rgba(139, 69, 19, 0.28);
+      margin-bottom: 3rem;
+    }
+
+    .page-header h1 {
+      font-size: clamp(2.4rem, 4vw, 3.1rem);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .page-header p {
+      font-size: 1.15rem;
+      margin-top: 1rem;
+      opacity: 0.9;
+    }
+
+    .controls {
+      max-width: 1200px;
+      margin: 0 auto 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 1.75rem 2rem;
+      box-shadow: 0 20px 40px rgba(139, 69, 19, 0.12);
+      border: 1px solid rgba(139, 69, 19, 0.12);
+    }
+
+    .categories {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .categories button {
+      padding: 0.75rem 1.6rem;
+      border-radius: 999px;
+      border: none;
+      background: #f8f9fa;
+      color: #666666;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s ease;
+    }
+
+    .categories button.active,
+    .categories button:hover {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: #fff;
+      box-shadow: 0 16px 32px rgba(231, 76, 60, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .search-bar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex: 1 1 240px;
+    }
+
+    .search-bar input {
+      width: min(320px, 100%);
+      padding: 0.85rem 1.5rem;
+      border: 2px solid #ddd;
+      border-radius: 999px;
+      outline: none;
+      background: #ffffff;
+      color: #2c2c2c;
+      transition: all 0.3s ease;
+    }
+
+    .search-bar input:focus {
+      border-color: #e74c3c;
+      box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.18);
+    }
+
+    .best-sellers,
+    .preorder-section {
+      max-width: 1200px;
+      margin: 2rem auto;
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 1.75rem;
+      box-shadow: 0 20px 44px rgba(139, 69, 19, 0.1);
+      border: 1px solid rgba(139, 69, 19, 0.12);
+    }
+
+    .best-sellers h2,
+    .preorder-section h2 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #8b4513;
+      margin-bottom: 1.2rem;
+    }
+
+    .preorder-note {
+      font-size: 0.95rem;
+      color: #d63031;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    .best-seller-list,
+    .preorder-list {
+      display: flex;
+      gap: 1.2rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+
+    .best-seller-list::-webkit-scrollbar,
+    .preorder-list::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .best-seller-list::-webkit-scrollbar-thumb,
+    .preorder-list::-webkit-scrollbar-thumb {
+      background: #8b4513;
+      border-radius: 8px;
+    }
+
+    .menu-section {
+      max-width: 1200px;
+      margin: 2.5rem auto;
+      text-align: center;
+    }
+
+    .menu-section h2 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: #8b4513;
+    }
+
+    .section-subtitle {
+      color: rgba(102, 102, 102, 0.85);
+      margin: 0.7rem auto 2rem;
+      max-width: 540px;
+      font-size: 0.98rem;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.6rem;
+    }
+
+    .menu-item {
+      position: relative;
+      background: #ffffff;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      border: none;
+      display: flex;
+      flex-direction: column;
+      min-height: 360px;
+    }
+
+    .menu-item:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 22px 48px rgba(0, 0, 0, 0.16);
+    }
+
+    .menu-item img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
+
+    .favorite-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.92);
+      font-size: 1.3rem;
+      color: #999999;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+      cursor: pointer;
+      border: none;
+      transition: all 0.3s ease;
+    }
+
+    .favorite-btn:hover {
+      background: rgba(231, 76, 60, 0.15);
+      color: #e74c3c;
+      transform: scale(1.08);
+    }
+
+    .favorite-btn.active {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: #fff;
+      box-shadow: 0 16px 32px rgba(231, 76, 60, 0.35);
+    }
+
+    .menu-content {
+      padding: 1.6rem;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    }
+
+    .menu-content h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.6rem;
+      color: #2c2c2c;
+    }
+
+    .menu-content p {
+      font-size: 0.94rem;
+      color: rgba(90, 45, 12, 0.65);
+      min-height: 48px;
+    }
+
+    .details-link {
+      margin-top: 0.75rem;
+      font-weight: 600;
+      color: #8b4513;
+      text-decoration: none;
+      align-self: flex-start;
+    }
+
+    .details-link:hover {
+      color: #a0522d;
+      text-decoration: underline;
+    }
+
+    .menu-footer {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e9ecef;
+    }
+
+    .price-section {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.35rem;
+    }
+
+    .price-section .stock {
+      font-size: 0.85rem;
+      color: rgba(102, 102, 102, 0.85);
+    }
+
+    .price-section .price {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #e74c3c;
+    }
+
+    .add-btn {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 0.75rem 1.6rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 12px 28px rgba(231, 76, 60, 0.35);
+    }
+
+    .add-btn:hover {
+      background: linear-gradient(135deg, #c0392b, #a93226);
+      transform: translateY(-2px);
+    }
+
+    .menu-item.out-of-stock {
+      pointer-events: none;
+      opacity: 0.45;
+    }
+
+    .menu-item.out-of-stock::after {
+      content: 'Out of Stock';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.95);
+      padding: 0.6rem 1.2rem;
+      border-radius: 12px;
+      font-weight: 700;
+      color: #e74c3c;
+      border: 2px solid #e74c3c;
+      box-shadow: 0 12px 30px rgba(231, 76, 60, 0.3);
+    }
+
+    .preorder-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: #2c2c2c;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.35rem 1rem;
+      border-radius: 999px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    .best-seller-list .menu-item,
+    .preorder-list .menu-item {
+      min-width: 260px;
+      flex: 0 0 260px;
+    }
+
+    .best-seller-list .menu-item img,
+    .preorder-list .menu-item img {
+      height: 160px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 3rem 1rem;
+      background: #2c2c2c;
+      color: #f5f5f5;
+      font-size: 0.9rem;
+      margin-top: 4rem;
+    }
+
+    .modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
+      padding: 2.5rem;
+      width: min(420px, 90%);
+      z-index: 3200;
+      display: none;
+      border: 1px solid rgba(139, 69, 19, 0.12);
+    }
+
+    .modal.show {
+      display: block;
+    }
+
+    .modal h2 {
+      font-size: 1.6rem;
+      color: #8b4513;
+      margin-bottom: 0.75rem;
+      font-weight: 700;
+    }
+
+    .modal p {
+      color: rgba(90, 45, 12, 0.75);
+      font-size: 0.95rem;
+    }
+
+    .quantity-control {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1.5rem;
+      margin: 2rem 0 1.5rem;
+    }
+
+    .quantity-control button {
+      width: 48px;
+      height: 48px;
+      border: none;
+      background: #f8f9fa;
+      color: #e74c3c;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 1.4rem;
+      font-weight: 700;
+      transition: all 0.3s ease;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+    }
+
+    .quantity-control button:hover {
+      background: #e74c3c;
+      color: #fff;
+      transform: scale(1.05);
+    }
+
+    .quantity-control span {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #2c2c2c;
+      min-width: 40px;
+      text-align: center;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .modal-actions button {
+      flex: 1;
+      padding: 0.85rem 1.4rem;
+      border-radius: 12px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .modal-actions #confirmAdd {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: #fff;
+      box-shadow: 0 12px 28px rgba(231, 76, 60, 0.35);
+    }
+
+    .modal-actions #confirmAdd:hover {
+      background: linear-gradient(135deg, #c0392b, #a93226);
+      transform: translateY(-2px);
+    }
+
+    .modal-actions #cancelAdd {
+      background: #f8f9fa;
+      color: #666666;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .modal-actions #cancelAdd:hover {
+      background: #e9ecef;
+      color: #2c2c2c;
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 1024px) {
+      main {
+        width: min(100% - 2rem, 960px);
+      }
+
+      .menu-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      }
+    }
+
+    @media (max-width: 768px) {
+      main {
+        width: min(100% - 1.5rem, 720px);
+        margin: 120px auto 60px;
+      }
+
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .categories {
+        justify-content: center;
+      }
+
+      .menu-grid {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      }
+
+      .menu-item {
+        min-height: 320px;
+      }
+
+      .menu-item img {
+        height: 170px;
+      }
+
+      .best-sellers,
+      .preorder-section {
+        margin: 1.2rem auto;
+        padding: 1.25rem;
+      }
+
+      .modal {
+        width: min(95%, 420px);
+        padding: 2rem 1.5rem;
+      }
+
+      .quantity-control {
+        gap: 1rem;
+      }
+
+      .quantity-control button {
+        width: 42px;
+        height: 42px;
+      }
+
+      footer {
+        padding: 2.5rem 1rem;
+        margin-top: 3rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .menu-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .categories {
+        gap: 0.6rem;
+      }
+
+      .categories button {
+        padding: 0.6rem 1.1rem;
+        font-size: 0.9rem;
+      }
+
+      .search-bar input {
+        width: 100%;
+      }
+
+      .page-header {
+        padding: 3rem 1rem;
+      }
+
+      .page-header h1 {
+        font-size: 2.2rem;
+      }
+
+      .page-header p {
+        font-size: 1rem;
+      }
+    }
+  </style>
 </head>
-<body class="menu-page">
+<body class="menu-view">
   <?php include __DIR__ . '/../topbar.php'; ?>
- <section class="top">
-</section>
 
-  <!-- HERO -->
-  <section class="hero">
-    <h2>Find all your<br>Favourite Bread and Cakes</h2>
-    <p>Savor great moments</p>
-  </section>
+  <main>
+    <section class="page-header">
+      <h1>Freshly Baked with Love</h1>
+      <p>Delicious breads, cakes, and pastries made daily.</p>
+    </section>
 
-   <section class="center">
-  <!-- BREAD CATEGORY -->
-  <section class="category">
-    <div class="category-title">
-      <a href="bread.php">Bread</a>
+    <div class="controls">
+      <div class="categories" id="categoryPills"></div>
+      <div class="search-bar">
+        <input id="searchInput" type="search" placeholder="Search for items..." autocomplete="off" />
+      </div>
     </div>
-   <div class="items">
-  <div class="item">
-  <a href="product.php?id=2">
-    <img src="../../../Images/bread/bread2.png" alt="Ubeng Ube Loaf">
-    <div class="product-name">UBENG UBE LOAF</div>
-  </a>
-  <a href="" class="order-now">Order Now</a>
-</div>
 
-<div class="item">
-  <a href="product.php?id=11">
-    <img src="../../../Images/bread/bread11.png" alt="Pinoy Pandesal">
-    <div class="product-name">PINOY PANDESAL</div>
-  </a>
-  <a href="../login.html" class="order-now">Order Now</a>
-</div>
+    <section class="best-sellers" aria-labelledby="best-sellers-title">
+      <h2 id="best-sellers-title">⭐ Best Sellers</h2>
+      <div class="best-seller-list" id="bestSellerList"></div>
+    </section>
 
-<div class="item">
-  <a href="product.php?id=3">
-    <img src="../../../Images/bread/bread3.png" alt="Pandecoconut">
-    <div class="product-name">PANDECOCONUT</div>
-  </a>
-  <a href="../login.html" class="order-now">Order Now</a>
-</div>
+    <section class="menu-section" aria-labelledby="menu-grid-title">
+      <h2 id="menu-grid-title">All Baked Goodies</h2>
+      <p class="section-subtitle">Filter by category or search to find your next favorite bite.</p>
+      <div class="menu-grid" id="menuGrid"></div>
+      <div class="empty-state" id="menuEmpty" hidden>No treats match your filters yet. Try searching for another item!</div>
+    </section>
 
-<div class="item">
-  <a href="product.php?id=4">
-    <img src="../../../Images/bread/bread4.png" alt="Pande Espana">
-    <div class="product-name">PANDE ESPANA</div>
-  </a>
-  <a href="../login.html" class="order-now">Order Now</a>
-</div>
+    <section class="preorder-section" aria-labelledby="preorder-title" id="preorderSection" hidden>
+      <h2 id="preorder-title">📅 Pre-order Specialties</h2>
+      <p class="preorder-note">Order these special items 2+ days in advance!</p>
+      <div class="preorder-list" id="preorderList"></div>
+    </section>
+  </main>
 
-<div class="item">
-  <a href="product.php?id=5">
-    <img src="../../../Images/bread/bread5.png" alt="Ube Cheese Pandesal">
-    <div class="product-name">UBE PANDESAL</div>
-  </a>
-  <a href="../login.html" class="order-now">Order Now</a>
-</div>
+  <footer>© <?= date('Y') ?> Cindy's Bakeshop • Freshness Guaranteed</footer>
 
-</div>
-
-</
-
+  <div class="modal" id="quantityModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
+    <h2 id="modalTitle">Add to Cart</h2>
+    <p id="modalSubtitle"></p>
+    <div class="quantity-control">
+      <button type="button" id="decreaseQty" aria-label="Reduce quantity">−</button>
+      <span id="currentQty">1</span>
+      <button type="button" id="increaseQty" aria-label="Increase quantity">+</button>
     </div>
-  </section>
-
-  <!-- CAKES CATEGORY -->
-  <section class="category">
-    <div class="category-title">
-      <a href="cakes.php">Cakes</a>
+    <div class="modal-actions">
+      <button type="button" id="cancelAdd">Cancel</button>
+      <button type="button" id="confirmAdd">Add to Cart</button>
     </div>
-    <div class="items">
-       <div class="item">
-  <a href="product.php?id=1">
-   <img src="../../../Images/cakes/cake1.png" alt="Ubeng Ube Loaf">
-   <div class="product-name">UBENG UBE LOAF</div>
-    </a>
-    <a href="../login.html" class="order-now">Order Now</a>
   </div>
 
-  <div class="item">
-    <a href="product.php?id=16">
-    <img src="../../../Images/cakes/cake16.png" alt="CHOCO CELEBRATION ON CAKE RECTANGLE">
-    <div class="product-name">CHOCO CAKE RECTANGLE</div>
-    </a>
-    <a href="../login.html" class="order-now">Order Now</a>
-  </div>
+  <div class="toast" id="menuToast" role="status" aria-live="polite"></div>
 
-  <div class="item">
-    <a href="product.php?id=3">
-    <img src="../../../Images/cakes/cake3.png" alt="CHOCO CHERRY CAKE">
-    <div class="product-name">CHOCO CHERRY CAKE</div>
-    </a>
-    <a href="../login.html" class="order-now">Order Now</a>
-  </div>
+  <script id="menuData" type="application/json"><?= $dataJson ?: '{}' ?></script>
+  <script type="module">
+    import '../firebase-init.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
-  <div class="item">
-    <a href="product.php?id=4">
-    <img src="../../../Images/cakes/cake4.png" alt="PASTEL DELIGHT ROUND CAKE">
-    <div class="product-name">PASTEL ROUND CAKE</div>
-    </a>
-    <a href="../login.html" class="order-now">Order Now</a>
-  </div>
+    const dataElement = document.getElementById('menuData');
+    const rawData = dataElement ? JSON.parse(dataElement.textContent || '{}') : {};
+    const products = Array.isArray(rawData.all) ? rawData.all : [];
+    const bestSellers = Array.isArray(rawData.bestSellers) ? rawData.bestSellers : [];
+    const preorderItems = Array.isArray(rawData.preorder) ? rawData.preorder : [];
 
-  <div class="item">
-    <a href="product.php?id=5">
-    <img src="../../../Images/cakes/cake5.png" alt="CHOCO CARAMEL CAKE">
-    <div class="product-name">CHOCO CARAMEL CAKE</div>
-    </a>
-    <a href="../login.html" class="order-now">Order Now</a>
-  </div>
-    </div>
-  </section>
-</section>
+    const menuGrid = document.getElementById('menuGrid');
+    const menuEmpty = document.getElementById('menuEmpty');
+    const bestSellerList = document.getElementById('bestSellerList');
+    const preorderSection = document.getElementById('preorderSection');
+    const preorderList = document.getElementById('preorderList');
+    const categoryPills = document.getElementById('categoryPills');
+    const searchInput = document.getElementById('searchInput');
+    const toast = document.getElementById('menuToast');
 
-<section class="buttom">
+    const modal = document.getElementById('quantityModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalSubtitle = document.getElementById('modalSubtitle');
+    const decreaseQty = document.getElementById('decreaseQty');
+    const increaseQty = document.getElementById('increaseQty');
+    const currentQty = document.getElementById('currentQty');
+    const confirmAdd = document.getElementById('confirmAdd');
+    const cancelAdd = document.getElementById('cancelAdd');
 
-  <!-- PASTRY CATEGORY -->
-  <section class="category">
-    <div class="category-title">
-      <a href="pastry.php">Pastry</a>
-    </div>
-    <div class="items">
-       <div class="item">
-        <a href="product.php?id=4">
-    <img src="../../../Images/pastry/pastry3.png" alt="Custard Surprise">
-    <div class="product-name">CUSTARD SURPRISE PIE</div>
-    </a>
-    <a href="../login.html" class="order-now">Order Now</a>
-  </div>
+    const auth = getAuth();
+    let userEmail = null;
+    let favorites = new Map();
+    let activeCategory = 'all';
+    let currentProduct = null;
+    let currentQuantity = 1;
 
-  <div class="item">
-    <a href="product.php?id=9">
-    <img src="../../../Images/pastry/pastry8.png" alt="Cheesy Ensaymada">
-    <div class="product-name">CHESSY ENSAYMADA</div>
-    </a>
-    <a href="../login.html" class="order-now">Order Now</a>
-  </div>
+    const CATEGORY_LABELS = new Map([
+      ['all', 'All'],
+      ['bread', 'Breads'],
+      ['breads', 'Breads'],
+      ['cake', 'Cakes'],
+      ['cakes', 'Cakes'],
+      ['pastry', 'Pastries'],
+      ['pastries', 'Pastries'],
+    ]);
 
-  <div class="item">
-    <a href="product.php?id=6">
-    <img src="../../../Images/pastry/pastry5.png" alt="Egg Pie Leche Plan">
-    <div class="product-name">EGG PIE LECHE PLAN</div>
-    </a>
-    <a href="../login.html" class="order-now">Order Now</a>
-  </div>
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount || 0);
+    }
 
-  <div class="item">
-    <a href="product.php?id=7">
-    <img src="../../../Images/pastry/pastry6.png" alt="Brownie Bites">
-    <div class="product-name">SPECIAL BROWNIE BITES</div>
-    </a>
-    <a href="../login.html" class="order-now">Order Now</a>
-  </div>
+    function showToast(message, tone = 'success') {
+      if (!toast) return;
+      toast.textContent = message;
+      toast.dataset.tone = tone;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2600);
+    }
 
-  <div class="item">
-    <a href="product.php?id=8">
-    <img src="../../../Images/pastry/pastry7.png" alt="Cluster Ensaymada ">
-    <div class="product-name">CLUSTER ENSAYMADA</div>
-    </a>
-    <a href="../login.html" class="order-now">Order Now</a>
-  </div>
-    </div>
-  </section>
+    function escapeHtml(value) {
+      return (value || '').replace(/[&<>'"]/g, (char) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;',
+      })[char] || char);
+    }
 
-  <!-- FOOTER -->
-  <footer>
-    <div>
-      <b>Get to Know Us</b>
-      <a href="#">About Us</a>
-      <a href="#">Our Services</a>
-      <a href="#">Contact Us</a>
-    </div>
-    <div>
-      <b>Let Us Help You</b>
-      <a href="#">📘 Facebook</a>
-      <a href="#">📸 Instagram</a>
-      <a href="#">🐦 Twitter</a>
-    </div>
-    <div>
-      <b>About Our Company</b>
-      <a href="#">About Us</a>
-      <a href="#">Head office</a>
-      <a href="#">Telephone: 99838737363828</a>
-      <a href="#">Email: chadhbasjkb@com</a>
-    </div>
-  </footer>
-  </section>
+    function openModal(product) {
+      currentProduct = product;
+      currentQuantity = 1;
+      if (modalTitle) {
+        modalTitle.textContent = `Add ${product.name}`;
+      }
+      if (modalSubtitle) {
+        modalSubtitle.textContent = product.isPreorder ? 'Select how many you would like to pre-order.' : `Maximum available: ${product.stock > 0 ? product.stock : 1}`;
+      }
+      if (currentQty) {
+        currentQty.textContent = currentQuantity;
+      }
+      if (modal) {
+        modal.classList.add('show');
+        modal.setAttribute('aria-hidden', 'false');
+      }
+      if (decreaseQty) {
+        decreaseQty.disabled = true;
+      }
+      if (increaseQty) {
+        increaseQty.disabled = product.isPreorder ? false : product.stock <= 1;
+      }
+    }
 
-  <script type="module" src="../firebase-init.js"></script>
+    function closeModal() {
+      if (modal) {
+        modal.classList.remove('show');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+      currentProduct = null;
+    }
 
+    function updateQuantity(delta) {
+      if (!currentProduct) return;
+      const max = currentProduct.isPreorder ? 10 : Math.max(1, currentProduct.stock);
+      currentQuantity = Math.min(Math.max(1, currentQuantity + delta), max);
+      if (currentQty) {
+        currentQty.textContent = currentQuantity;
+      }
+      if (decreaseQty) {
+        decreaseQty.disabled = currentQuantity <= 1;
+      }
+      if (increaseQty) {
+        increaseQty.disabled = !currentProduct.isPreorder && currentQuantity >= max;
+      }
+    }
+
+    function toggleFavorite(button, product) {
+      if (!userEmail) {
+        showToast('Please sign in to manage favorites.', 'warn');
+        return;
+      }
+
+      const favoriteId = favorites.get(product.id);
+      const endpoint = favoriteId ? '../../../PHP/favorite_api.php?action=remove' : '../../../PHP/favorite_api.php?action=add';
+      const payload = favoriteId
+        ? new URLSearchParams({ favorite_id: favoriteId })
+        : new URLSearchParams({ product_id: product.id, email: userEmail });
+
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: payload,
+      })
+        .then(res => res.json())
+        .then(result => {
+          if (result.error) {
+            throw new Error(result.error);
+          }
+          if (favoriteId) {
+            favorites.delete(product.id);
+            button.classList.remove('active');
+            button.textContent = '♡';
+            showToast('Removed from favorites.');
+          } else if (result.favorite_id) {
+            favorites.set(product.id, result.favorite_id);
+            button.classList.add('active');
+            button.textContent = '♥';
+            showToast('Added to favorites!');
+          }
+        })
+        .catch(() => {
+          showToast('Could not update favorites.', 'error');
+        });
+    }
+
+    function renderCard(product) {
+      const card = document.createElement('article');
+      card.className = 'menu-item';
+      card.dataset.productId = product.id;
+      card.dataset.category = product.category;
+      if (product.isPreorder) {
+        card.classList.add('preorder');
+      }
+
+      const safeName = escapeHtml(product.name);
+      const safeDescription = escapeHtml(product.description || "Freshly baked goodness from Cindy's kitchen.");
+      const stockLabel = product.isPreorder ? 'Available for pre-order' : (product.stock > 0 ? `Stock: ${product.stock}` : 'Out of stock');
+
+      card.innerHTML = `
+        ${product.isPreorder ? '<span class="preorder-badge">Pre-order</span>' : ''}
+        <button type="button" class="favorite-btn" aria-label="Toggle favorite">♡</button>
+        <img src="${product.image}" alt="${safeName}" loading="lazy">
+        <div class="menu-content">
+          <h3>${safeName}</h3>
+          <p>${safeDescription}</p>
+          <a class="details-link" href="product.php?id=${product.id}">View details →</a>
+          <div class="menu-footer">
+            <div class="price-section">
+              <span class="stock">${stockLabel}</span>
+              <span class="price">${formatCurrency(product.price)}</span>
+            </div>
+            <button type="button" class="add-btn">${product.isPreorder ? 'Pre-order' : 'Add to Cart'}</button>
+          </div>
+        </div>
+      `;
+
+      if (!product.isPreorder && product.stock <= 0) {
+        card.classList.add('out-of-stock');
+      }
+
+      const favBtn = card.querySelector('.favorite-btn');
+      const addBtn = card.querySelector('.add-btn');
+
+      if (favorites.has(product.id)) {
+        favBtn.classList.add('active');
+        favBtn.textContent = '♥';
+      }
+
+      favBtn.addEventListener('click', () => toggleFavorite(favBtn, product));
+
+      addBtn.addEventListener('click', () => {
+        if (!userEmail) {
+          showToast('Please sign in to add items to your cart.', 'warn');
+          return;
+        }
+        if (!product.isPreorder && product.stock <= 0) {
+          showToast('This item is currently unavailable.', 'warn');
+          return;
+        }
+        openModal(product);
+      });
+
+      return card;
+    }
+
+    function populateSection(container, list) {
+      if (!container) return;
+      container.innerHTML = '';
+      list.forEach(product => {
+        const card = renderCard(product);
+        container.appendChild(card);
+      });
+      if (container === preorderList && preorderSection) {
+        preorderSection.hidden = list.length === 0;
+      }
+    }
+
+    function filterAndRender() {
+      if (!menuGrid) return;
+      const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+      const filtered = products.filter(product => {
+        const matchesCategory = activeCategory === 'all' || product.category === activeCategory;
+        const matchesQuery = !query || product.name.toLowerCase().includes(query) || (product.description || '').toLowerCase().includes(query);
+        return matchesCategory && matchesQuery;
+      });
+
+      menuGrid.innerHTML = '';
+      filtered.forEach(product => {
+        const card = renderCard(product);
+        menuGrid.appendChild(card);
+      });
+
+      if (menuEmpty) {
+        menuEmpty.hidden = filtered.length > 0;
+      }
+    }
+
+    function buildCategoryFilters() {
+      if (!categoryPills) return;
+      const fragment = document.createDocumentFragment();
+      const uniqueKeys = new Set(['all']);
+      products.forEach(item => uniqueKeys.add(item.category));
+
+      uniqueKeys.forEach(key => {
+        const label = CATEGORY_LABELS.get(key) || key.charAt(0).toUpperCase() + key.slice(1);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.category = key;
+        button.textContent = label;
+        if (key === activeCategory) button.classList.add('active');
+        button.addEventListener('click', () => {
+          activeCategory = key;
+          categoryPills.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+          button.classList.add('active');
+          filterAndRender();
+        });
+        fragment.appendChild(button);
+      });
+
+      categoryPills.innerHTML = '';
+      categoryPills.appendChild(fragment);
+    }
+
+    function hydrateFavorites(email) {
+      if (!email) return;
+      fetch(`../../../PHP/favorite_api.php?action=list&email=${encodeURIComponent(email)}`)
+        .then(res => res.json())
+        .then(list => {
+          if (!Array.isArray(list)) return;
+          favorites.clear();
+          list.forEach(item => {
+            favorites.set(Number(item.Product_ID), item.Favorite_ID);
+          });
+          filterAndRender();
+          populateSection(bestSellerList, bestSellers);
+          populateSection(preorderList, preorderItems);
+        })
+        .catch(() => {
+          favorites.clear();
+        });
+    }
+
+    if (decreaseQty) {
+      decreaseQty.addEventListener('click', () => updateQuantity(-1));
+    }
+    if (increaseQty) {
+      increaseQty.addEventListener('click', () => updateQuantity(1));
+    }
+
+    if (cancelAdd) {
+      cancelAdd.addEventListener('click', closeModal);
+    }
+
+    if (modal) {
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+          closeModal();
+        }
+      });
+    }
+
+    if (confirmAdd) {
+      confirmAdd.addEventListener('click', () => {
+        if (!currentProduct || !userEmail) {
+          closeModal();
+          return;
+        }
+        const body = new URLSearchParams({
+          product_id: currentProduct.id,
+          quantity: currentQuantity,
+          email: userEmail,
+        });
+        fetch('../../../PHP/cart_api.php?action=add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body,
+        })
+          .then(res => res.json())
+          .then(result => {
+            if (result.error) {
+              throw new Error(result.error);
+            }
+            if (!currentProduct.isPreorder && currentProduct.stock > 0) {
+              currentProduct.stock = Math.max(0, currentProduct.stock - currentQuantity);
+              filterAndRender();
+            }
+            showToast('Added to cart!');
+          })
+          .catch(() => showToast('Unable to add to cart.', 'error'))
+          .finally(() => closeModal());
+      });
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener('input', filterAndRender);
+    }
+
+    buildCategoryFilters();
+    populateSection(bestSellerList, bestSellers);
+    populateSection(preorderList, preorderItems);
+    filterAndRender();
+
+    onAuthStateChanged(auth, (user) => {
+      userEmail = user ? user.email : null;
+      if (userEmail) {
+        hydrateFavorites(userEmail);
+      } else {
+        favorites.clear();
+        filterAndRender();
+        populateSection(bestSellerList, bestSellers);
+        populateSection(preorderList, preorderItems);
+      }
+    });
+  </script>
 </body>
 </html>

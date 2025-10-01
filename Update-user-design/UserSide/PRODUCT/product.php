@@ -29,77 +29,177 @@ try {
 }
 
 $category = $product['Category'] ?? '';
-$categoryLower = strtolower($category);
-$bodyClass = 'product-detail-page ' . $categoryLower;
-
 $price = isset($product['Price']) ? number_format((float)$product['Price'], 2) : '0.00';
 $imageUrl = getProductImageUrl($product, '../../');
+$stock = (int)($product['Stock_Quantity'] ?? 0);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title><?= htmlspecialchars($product['Name']) ?></title>
-
+  <title><?= htmlspecialchars($product['Name']) ?> - Cindy's Bakeshop</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css" />
+  <style>
+    body.product-detail {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-wrapper {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2.5rem;
+      align-items: center;
+      margin-top: 3rem;
+    }
+
+    .product-visual {
+      position: relative;
+      background: linear-gradient(135deg, rgba(255, 216, 180, 0.8), rgba(255, 255, 255, 0.9));
+      border-radius: 40px;
+      padding: 2.5rem;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 35px 60px rgba(139, 69, 19, 0.18);
+    }
+
+    .product-visual img {
+      width: 100%;
+      height: 100%;
+      max-height: 360px;
+      object-fit: contain;
+    }
+
+    .product-info {
+      display: grid;
+      gap: 1.4rem;
+    }
+
+    .product-info h1 {
+      font-size: clamp(2rem, 3.2vw, 2.8rem);
+      font-weight: 700;
+      color: var(--primary-brown);
+    }
+
+    .product-info p {
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .price-tag {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary-brown);
+    }
+
+    .tag-pill {
+      margin-right: auto;
+    }
+
+    .quantity-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .quantity-row button {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(139, 69, 19, 0.12);
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--primary-brown);
+      border: none;
+      cursor: pointer;
+    }
+
+    .quantity-row input {
+      width: 64px;
+      text-align: center;
+      border-radius: 16px;
+      border: 1px solid rgba(139, 69, 19, 0.15);
+      padding: 0.6rem 0.5rem;
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .action-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .action-buttons button {
+      padding: 0.85rem 1.8rem;
+      border-radius: var(--radius-pill);
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+    }
+
+    .primary-btn {
+      background: linear-gradient(135deg, var(--primary-brown), var(--primary-brown-dark));
+      color: #fff;
+      box-shadow: 0 18px 36px rgba(139, 69, 19, 0.2);
+    }
+
+    .secondary-btn {
+      background: rgba(139, 69, 19, 0.12);
+      color: var(--primary-brown);
+    }
+
+    .status-text {
+      font-weight: 600;
+      color: <?= $stock > 0 ? "'#2d8659'" : "'#c8283c'" ?>;
+    }
+  </style>
 </head>
-<body class="<?= htmlspecialchars($bodyClass) ?>">
-  <div class="background-blur"></div>
+<body class="product-detail">
   <?php include __DIR__ . '/../topbar.php'; ?>
-  <div class="wrapper">
-    <div class="container">
-      <button class="back-btn" onclick="history.back()">&larr; Back</button>
-      <div class="image-section">
-        <div class="circle-bg"></div>
-        <img src="<?= htmlspecialchars($imageUrl) ?>" alt="<?= htmlspecialchars($product['Name']) ?>" />
+
+  <main class="page-container">
+    <a href="MENU.php" class="tag-pill">← Back to menu</a>
+    <div class="detail-wrapper">
+      <div class="product-visual">
+        <img src="<?= htmlspecialchars($imageUrl) ?>" alt="<?= htmlspecialchars($product['Name']) ?>">
       </div>
-
-      <div class="details-section">
-        <div class="breadcrumb">
-          Categories > <strong><?= htmlspecialchars($category) ?></strong>
-        </div>
-        <div class="price-row">
-          <div class="price">Php <?= htmlspecialchars($price) ?></div>
-          <span class="favorite-icon" onclick="toggleFavorite(this)">❤️</span>
-        </div>
-        <div class="stock" id="stockDisplay">Stock: <?= htmlspecialchars($product['Stock_Quantity'] ?? '') ?></div>
-        <h2><?= htmlspecialchars($product['Name']) ?></h2>
-        <p><?= htmlspecialchars($product['Description'] ?? '') ?></p>
-
-        <div class="quantity-controls">
-          <span>Qty:</span>
-          <button onclick="changeQty(-1)">−</button>
+      <div class="product-info">
+        <span class="tag-pill">Category: <?= htmlspecialchars($category ?: '—') ?></span>
+        <h1><?= htmlspecialchars($product['Name']) ?></h1>
+        <div class="price-tag">₱<?= htmlspecialchars($price) ?></div>
+        <p><?= htmlspecialchars($product['Description'] ?? 'Freshly baked and ready to delight.') ?></p>
+        <div class="status-text" id="stockDisplay">Stock: <?= $stock ?></div>
+        <div class="quantity-row">
+          <span>Quantity</span>
+          <button type="button" onclick="changeQty(-1)">−</button>
           <input type="text" id="qty" value="1" readonly>
-          <button onclick="changeQty(1)">+</button>
+          <button type="button" onclick="changeQty(1)">+</button>
         </div>
-
-        <div class="buttons">
-          <button class="add-to-cart" onclick="addToCart()">Add to Cart</button>
-          <button class="buy-now" onclick="buyNow()">Buy Now</button>
-          <button class="share-now" onclick="shareNow()">🔗 Share</button>
+        <div class="action-buttons">
+          <button class="primary-btn" onclick="addToCart()">Add to cart</button>
+          <button class="secondary-btn" onclick="buyNow()">Buy now</button>
+          <button class="secondary-btn" onclick="shareNow()">Share</button>
         </div>
       </div>
     </div>
-  </div>
+  </main>
 
   <script type="module" src="../firebase-init.js"></script>
   <script src="js/cart.js"></script>
   <script>
-    let maxStock = <?= (int)($product['Stock_Quantity'] ?? 0); ?>;
+    let maxStock = <?= $stock ?>;
     window.maxStock = maxStock;
 
     async function updateMaxStockFromCart() {
       const productId = <?= (int)$id ?>;
       try {
-        let email = null;
-        try {
-          const auth = window.getAuth ? window.getAuth() : null;
-          email = auth && auth.currentUser ? auth.currentUser.email : null;
-        } catch (e) {
-          console.error("Auth unavailable", e);
-        }
-
+        const auth = window.getAuth ? window.getAuth() : null;
+        const email = auth && auth.currentUser ? auth.currentUser.email : null;
         const listUrl = email
           ? `/PHP/cart_api.php?action=list&email=${encodeURIComponent(email)}`
           : `/PHP/cart_api.php?action=list`;
@@ -107,20 +207,11 @@ $imageUrl = getProductImageUrl($product, '../../');
         const contentType = resp.headers.get('Content-Type') || '';
         const text = await resp.text();
         if (!resp.ok || !contentType.includes('application/json')) {
-          console.error('Invalid cart list response', text.slice(0, 200));
           return;
         }
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch (e) {
-          console.error('Invalid cart list response', text.slice(0, 200));
-          return;
-        }
+        const data = JSON.parse(text);
         if (data.items) {
-          const existing = data.items.find(
-            (item) => String(item.Product_ID) === String(productId)
-          );
+          const existing = data.items.find(item => String(item.Product_ID) === String(productId));
           if (existing) {
             const existingQty = parseInt(existing.Quantity, 10) || 0;
             maxStock = Math.max(0, maxStock - existingQty);
@@ -128,7 +219,7 @@ $imageUrl = getProductImageUrl($product, '../../');
           }
         }
       } catch (err) {
-        console.error("Failed to fetch cart", err);
+        console.error('Failed to fetch cart', err);
       }
 
       const stockEl = document.getElementById('stockDisplay');
@@ -141,8 +232,8 @@ $imageUrl = getProductImageUrl($product, '../../');
       }
 
       if (maxStock === 0) {
-        document.querySelector('.add-to-cart').disabled = true;
-        document.querySelector('.buy-now').disabled = true;
+        document.querySelector('.primary-btn').disabled = true;
+        document.querySelector('.secondary-btn').disabled = true;
       }
     }
 
@@ -151,7 +242,7 @@ $imageUrl = getProductImageUrl($product, '../../');
     function changeQty(delta) {
       const qty = document.getElementById('qty');
       let current = parseInt(qty.value);
-      current = isNaN(current) ? 1 : current;
+      current = Number.isNaN(current) ? 1 : current;
       current += delta;
       if (current < 1) current = 1;
       if (current > maxStock) {
@@ -161,9 +252,9 @@ $imageUrl = getProductImageUrl($product, '../../');
       qty.value = current;
     }
 
-    function toggleFavorite(el) {
-      el.textContent = el.textContent === '❤️' ? '💖' : '❤️';
-      alert(el.textContent === '💖' ? 'Added to favorites!' : 'Removed from favorites.');
+    function toggleFavorite(button) {
+      button.textContent = button.textContent === '❤️' ? '💖' : '❤️';
+      alert(button.textContent === '💖' ? 'Added to favorites!' : 'Removed from favorites.');
     }
 
     function shareNow() {
@@ -178,4 +269,3 @@ $imageUrl = getProductImageUrl($product, '../../');
   </script>
 </body>
 </html>
-
