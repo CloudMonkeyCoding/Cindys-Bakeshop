@@ -22,7 +22,7 @@ function buildProductPayload(array $product): array
         'price' => (float)($product['Price'] ?? 0),
         'stock' => $stock,
         'category' => $category !== '' ? $category : 'other',
-        'image' => getProductImageUrl($product, '../../'),
+        'image' => getProductImageUrl($product, '../../../'),
         'isPreorder' => $stock <= 0,
     ];
 }

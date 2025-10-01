@@ -111,7 +111,7 @@ if ($pdo) {
     <?php else: ?>
       <div class="category-grid">
         <?php foreach ($products as $product): ?>
-          <?php $imageUrl = getProductImageUrl($product, '../../'); ?>
+          <?php $imageUrl = getProductImageUrl($product, '../../../'); ?>
           <article class="category-card" onclick="goToProduct(<?= (int)$product['Product_ID'] ?>)">
             <img src="<?= htmlspecialchars($imageUrl) ?>" alt="<?= htmlspecialchars($product['Name']) ?>">
             <h3><?= htmlspecialchars($product['Name']) ?></h3>

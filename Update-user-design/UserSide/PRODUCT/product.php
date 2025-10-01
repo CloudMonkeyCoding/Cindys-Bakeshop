@@ -30,7 +30,7 @@ try {
 
 $category = $product['Category'] ?? '';
 $price = isset($product['Price']) ? number_format((float)$product['Price'], 2) : '0.00';
-$imageUrl = getProductImageUrl($product, '../../');
+$imageUrl = getProductImageUrl($product, '../../../');
 $stock = (int)($product['Stock_Quantity'] ?? 0);
 ?>
 <!DOCTYPE html>
