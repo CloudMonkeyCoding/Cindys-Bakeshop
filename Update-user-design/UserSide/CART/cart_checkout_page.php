@@ -136,7 +136,7 @@
 
     async function loadProfile() {
       if (!userEmail) return;
-      const res = await fetch(`../../PHP/user_api.php?action=get_profile&email=${encodeURIComponent(userEmail)}`);
+      const res = await fetch(`../../../PHP/user_api.php?action=get_profile&email=${encodeURIComponent(userEmail)}`);
       const data = await res.json();
       nameField.value = data.name || '';
       addressField.value = data.address || '';
@@ -144,7 +144,7 @@
 
     async function loadCart() {
       if (!userEmail) return;
-      const res = await fetch(`../../PHP/cart_api.php?action=list&email=${encodeURIComponent(userEmail)}`);
+      const res = await fetch(`../../../PHP/cart_api.php?action=list&email=${encodeURIComponent(userEmail)}`);
       const data = await res.json();
       cartId = data.cart_id;
       const cart = data.items;
@@ -167,7 +167,7 @@
         div.innerHTML = `
           <div class="cart-item-left">
             <input type="checkbox" class="item-check" checked>
-            <img src="${item.Image_Path ? '../../adminSide/products/uploads/' + item.Image_Path : 'default.png'}" alt="Product">
+            <img src="${item.Image_Path ? '../../../adminSide/products/uploads/' + item.Image_Path : 'default.png'}" alt="Product">
             <div class="item-details">
               <b>${item.Name}</b><br>
               Price: ₱${parseFloat(item.Price).toFixed(2)}
@@ -201,7 +201,7 @@
 
     function saveProfile() {
       if (!userEmail) return;
-      fetch('../../PHP/user_api.php?action=set_profile', {
+      fetch('../../../PHP/user_api.php?action=set_profile', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: `email=${encodeURIComponent(userEmail)}&name=${encodeURIComponent(nameField.value)}&address=${encodeURIComponent(addressField.value)}`
@@ -246,7 +246,7 @@
     function saveQty(button, newQty) {
       const item = button.closest('.cart-item');
       const id = item.getAttribute('data-id');
-      fetch('../../PHP/cart_api.php?action=update', {
+      fetch('../../../PHP/cart_api.php?action=update', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: `cart_item_id=${id}&quantity=${newQty}`
@@ -273,7 +273,7 @@
     function removeItem(button) {
       const item = button.closest('.cart-item');
       const id = item.getAttribute('data-id');
-      fetch('../../PHP/cart_api.php?action=remove', {
+      fetch('../../../PHP/cart_api.php?action=remove', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: `cart_item_id=${id}`
@@ -349,7 +349,7 @@
       const mop = document.getElementById("mop").value;
 
       try {
-        const res = await fetch(`../../PHP/cart_api.php?action=list&email=${encodeURIComponent(userEmail)}`);
+        const res = await fetch(`../../../PHP/cart_api.php?action=list&email=${encodeURIComponent(userEmail)}`);
         const cartType = res.headers.get('Content-Type') || '';
         const cartText = await res.text();
         if (!res.ok || !cartType.includes('application/json')) {
@@ -370,7 +370,7 @@
         });
 
         if (shortages.length) {
-          await Promise.all(shortages.map(s => fetch('../../PHP/cart_api.php?action=update', {
+          await Promise.all(shortages.map(s => fetch('../../../PHP/cart_api.php?action=update', {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
             body: `cart_item_id=${s.id}&quantity=${s.stock}`
@@ -382,7 +382,7 @@
           return;
         }
 
-        const orderRes = await fetch('../../PHP/order_api.php?action=create', {
+        const orderRes = await fetch('../../../PHP/order_api.php?action=create', {
           method: 'POST',
           headers: {'Content-Type': 'application/x-www-form-urlencoded'},
           body: `email=${encodeURIComponent(userEmail)}&items=${encodeURIComponent(JSON.stringify(checkoutData))}&order_type=${encodeURIComponent(orderType)}&mop=${encodeURIComponent(mop)}`
