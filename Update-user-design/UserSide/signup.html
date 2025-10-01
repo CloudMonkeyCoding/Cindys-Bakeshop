@@ -225,6 +225,27 @@ nav ul li a:hover {
   opacity: 0.8;
 }
 
+.form-feedback {
+  margin-bottom: 1.5rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  font-weight: 600;
+  text-align: center;
+  display: none;
+}
+
+.form-feedback.success {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: #fff;
+  display: block;
+}
+
+.form-feedback.error {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: #fff;
+  display: block;
+}
+
 .form-group {
   margin-bottom: 1.5rem;
   position: relative;
@@ -262,6 +283,73 @@ nav ul li a:hover {
 .form-group input::placeholder {
   color: rgba(139, 69, 19, 0.6);
   font-style: italic;
+}
+
+.optional {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #a0522d;
+}
+
+.helper-text {
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  color: rgba(139, 69, 19, 0.75);
+}
+
+.face-capture-wrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.face-capture-wrapper video,
+.face-capture-wrapper img {
+  width: 100%;
+  min-height: 160px;
+  border-radius: 16px;
+  border: 2px dashed rgba(139, 69, 19, 0.25);
+  background: rgba(139, 69, 19, 0.05);
+  object-fit: cover;
+}
+
+.face-capture-wrapper img {
+  display: none;
+  background: #fff;
+}
+
+.capture-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.capture-btn {
+  flex: 1;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, #8b4513, #a0522d);
+  color: #fff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.capture-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(139, 69, 19, 0.2);
+}
+
+.capture-btn.secondary {
+  background: rgba(139, 69, 19, 0.15);
+  color: #8b4513;
+}
+
+.face-capture-group .error-message {
+  margin-top: 0.75rem;
 }
 
 .password-strength {
@@ -610,7 +698,7 @@ nav ul li a:hover {
   <header id="header">
     <div class="logo">
       <div class="logo-icon">🍞</div>
-      <a href="home.html" class="logo-text">Cindy's Bakeshop</a>
+      <a href="home.php" class="logo-text">Cindy's Bakeshop</a>
     </div>
 
     <div class="hamburger" onclick="toggleMenu()">
@@ -619,10 +707,10 @@ nav ul li a:hover {
 
     <nav id="navMenu">
       <ul>
-        <li><a href="home.html">Home</a></li>
+        <li><a href="home.php">Home</a></li>
         <li><a href="#" id="menuLink">Menu</a></li>
-        <li><a href="home.html#about">About</a></li>
-        <li><a href="home.html#visit">Contact</a></li>
+        <li><a href="home.php#about">About</a></li>
+        <li><a href="home.php#visit">Contact</a></li>
         <li><a href="login.html">Login</a></li>
         <li><a href="signup.html" class="active">Signup</a></li>
         <li>
@@ -639,7 +727,9 @@ nav ul li a:hover {
   <div class="signup-box">
     <h2>Create Account</h2>
     <p class="subtitle">Join Cindy's Bakeshop and start your sweet journey!</p>
-    
+
+    <div id="formFeedback" class="form-feedback" role="alert"></div>
+
     <form id="signupForm">
       <div class="form-group">
         <label for="fullName">Full Name</label>
@@ -654,33 +744,10 @@ nav ul li a:hover {
       </div>
       
       <div class="form-group">
-        <label for="phone">Phone Number</label>
-        <div class="phone-verification-container">
-          <input type="tel" id="phone" name="phone" placeholder="Enter your phone number" required>
-          <button type="button" id="sendCodeBtn" class="verify-btn" disabled>Send Code</button>
-        </div>
+        <label for="phone">Phone Number <span class="optional">(optional)</span></label>
+        <input type="tel" id="phone" name="phone" placeholder="Enter your phone number">
+        <div class="helper-text">We use your phone number for delivery coordination when needed.</div>
         <div class="error-message" id="phoneError"></div>
-      </div>
-      
-      <div class="form-group verification-code-group" id="verificationCodeGroup" style="display: none;">
-        <label for="verificationCode">Verification Code</label>
-        <div class="verification-container">
-          <input type="text" id="verificationCode" name="verificationCode" placeholder="Enter 6-digit code" maxlength="6">
-          <button type="button" id="resendCodeBtn" class="resend-btn">Resend</button>
-        </div>
-        <div class="error-message" id="verificationError"></div>
-        <div class="success-message" id="verificationSuccess"></div>
-        
-        <!-- Verified State -->
-        <div class="verified-state" id="verifiedState" style="display: none;">
-          <div class="verified-content">
-            <div class="verified-icon">✓</div>
-            <div class="verified-text">
-              <span class="verified-title">Phone Number Verified</span>
-              <span class="verified-phone" id="verifiedPhoneDisplay"></span>
-            </div>
-          </div>
-        </div>
       </div>
       
       <div class="form-group">
@@ -696,6 +763,21 @@ nav ul li a:hover {
         <div class="error-message" id="confirmPasswordError"></div>
       </div>
       
+      <div class="form-group face-capture-group">
+        <label for="video">Face Capture</label>
+        <div class="face-capture-wrapper">
+          <video id="video" playsinline autoplay muted></video>
+          <img id="capturedImage" alt="Captured preview" />
+        </div>
+        <div class="capture-actions">
+          <button type="button" id="captureBtn" class="capture-btn">Capture Face</button>
+          <button type="button" id="retakeBtn" class="capture-btn secondary" style="display: none;">Retake</button>
+        </div>
+        <div class="helper-text">Allow camera access and capture a clear photo of your face to help us verify your orders.</div>
+        <div class="error-message" id="faceError"></div>
+        <input type="hidden" id="faceImage" name="faceImage">
+      </div>
+
       <div class="checkbox-group">
         <input type="checkbox" id="terms" name="terms" required>
         <label for="terms">I agree to the <a href="#" onclick="alert('Terms and Conditions would be displayed here')">Terms and Conditions</a> and <a href="#" onclick="alert('Privacy Policy would be displayed here')">Privacy Policy</a></label>
@@ -712,16 +794,62 @@ nav ul li a:hover {
   </div>
 </div>
 
-<script>
-// Mobile menu toggle
-function toggleMenu() {
-  const navMenu = document.getElementById('navMenu');
-  navMenu.classList.toggle('active');
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const navMenu = document.getElementById('navMenu');
+const hamburger = document.querySelector('.hamburger');
+const header = document.getElementById('header');
+const signupForm = document.getElementById('signupForm');
+const signupButton = document.getElementById('signupBtn');
+const formFeedback = document.getElementById('formFeedback');
+const fullNameInput = document.getElementById('fullName');
+const emailInput = document.getElementById('email');
+const phoneInput = document.getElementById('phone');
+const passwordInput = document.getElementById('password');
+const confirmPasswordInput = document.getElementById('confirmPassword');
+const termsCheckbox = document.getElementById('terms');
+const passwordStrength = document.getElementById('passwordStrength');
+const faceImageInput = document.getElementById('faceImage');
+const faceError = document.getElementById('faceError');
+const video = document.getElementById('video');
+const capturedImage = document.getElementById('capturedImage');
+const captureBtn = document.getElementById('captureBtn');
+const retakeBtn = document.getElementById('retakeBtn');
+
+const errors = {
+  name: document.getElementById('nameError'),
+  email: document.getElementById('emailError'),
+  phone: document.getElementById('phoneError'),
+  password: document.getElementById('passwordError'),
+  confirmPassword: document.getElementById('confirmPasswordError'),
+};
+
+let mediaStream = null;
+
+window.toggleMenu = function toggleMenu() {
+  if (navMenu) {
+    navMenu.classList.toggle('active');
+  }
+};
+
+document.addEventListener('click', (event) => {
+  if (navMenu && hamburger && !navMenu.contains(event.target) && !hamburger.contains(event.target)) {
+    navMenu.classList.remove('active');
+  }
+});
+
+if (navMenu) {
+  navMenu.addEventListener('click', (event) => {
+    if (event.target instanceof HTMLElement && event.target.tagName === 'A') {
+      navMenu.classList.remove('active');
+    }
+  });
 }
 
-// Header scroll effect
-window.addEventListener('scroll', function() {
-  const header = document.getElementById('header');
+window.addEventListener('scroll', () => {
+  if (!header) return;
   if (window.scrollY > 100) {
     header.classList.add('scrolled');
   } else {
@@ -729,357 +857,284 @@ window.addEventListener('scroll', function() {
   }
 });
 
-// Menu link authentication check
-document.getElementById('menuLink').addEventListener('click', function(e) {
-  e.preventDefault();
-  
-  // Check if user is logged in by looking for user data in localStorage
-  const userData = localStorage.getItem('userData');
-  const isLoggedIn = userData !== null;
-  
-  if (isLoggedIn) {
-    // User is logged in, go to Menu page
-    window.location.href = 'Menu.html';
-  } else {
-    // User is not logged in, go to login page
-    window.location.href = 'login.html';
-  }
-});
+function updatePasswordStrength(value) {
+  if (!passwordStrength) return;
+  let score = 0;
+  if (value.length >= 8) score++;
+  if (/[A-Z]/.test(value)) score++;
+  if (/[a-z]/.test(value)) score++;
+  if (/\d/.test(value)) score++;
+  if (/[^A-Za-z0-9]/.test(value)) score++;
 
-// Close mobile menu when clicking outside
-document.addEventListener('click', function(event) {
-  const navMenu = document.getElementById('navMenu');
-  const hamburger = document.querySelector('.hamburger');
-  
-  if (!navMenu.contains(event.target) && !hamburger.contains(event.target)) {
-    navMenu.classList.remove('active');
-  }
-});
-
-// Close mobile menu when clicking on a link
-document.getElementById('navMenu').addEventListener('click', function(event) {
-  if (event.target.tagName === 'A') {
-    this.classList.remove('active');
-  }
-});
-
-// Phone verification functionality
-let verificationCode = '';
-let verificationAttempts = 0;
-const maxAttempts = 3;
-
-// Phone input validation and enable/disable send code button
-document.getElementById('phone').addEventListener('input', function() {
-  const phoneInput = this.value.trim();
-  const sendCodeBtn = document.getElementById('sendCodeBtn');
-  const phoneError = document.getElementById('phoneError');
-  
-  // Basic phone validation
-  const phoneRegex = /^[0-9+\-\s()]+$/;
-  if (phoneInput.length >= 10 && phoneRegex.test(phoneInput)) {
-    sendCodeBtn.disabled = false;
-    phoneError.style.display = 'none';
-  } else {
-    sendCodeBtn.disabled = true;
-  }
-});
-
-// Send verification code
-document.getElementById('sendCodeBtn').addEventListener('click', function() {
-  const phoneInput = document.getElementById('phone').value.trim();
-  const sendCodeBtn = this;
-  const verificationCodeGroup = document.getElementById('verificationCodeGroup');
-  const phoneError = document.getElementById('phoneError');
-  
-  // Validate phone number format
-  const phoneRegex = /^[0-9+\-\s()]+$/;
-  if (!phoneInput || phoneInput.length < 10 || !phoneRegex.test(phoneInput)) {
-    showError('phoneError', 'Please enter a valid phone number');
+  if (!value.length) {
+    passwordStrength.textContent = '';
+    passwordStrength.className = 'password-strength';
     return;
   }
-  
-  // Generate 6-digit verification code
-  verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-  
-  // Disable button and show loading state
-  sendCodeBtn.disabled = true;
-  sendCodeBtn.textContent = 'Sending...';
-  
-  // Simulate sending SMS (in real app, this would call an SMS API)
-  setTimeout(() => {
-    // Show verification code group
-    verificationCodeGroup.style.display = 'block';
-    verificationCodeGroup.scrollIntoView({ behavior: 'smooth' });
-    
-    // Reset button
-    sendCodeBtn.disabled = false;
-    sendCodeBtn.textContent = 'Code Sent';
-    
-    // Clear any phone errors
-    phoneError.style.display = 'none';
-    
-    // For demo purposes, show the code in console and alert
-    console.log('Verification code sent to', phoneInput + ':', verificationCode);
-    alert(`Demo: Verification code sent to ${phoneInput}: ${verificationCode}`);
-    
-    // Reset button text after 3 seconds
-    setTimeout(() => {
-      sendCodeBtn.textContent = 'Resend Code';
-    }, 3000);
-  }, 2000);
-});
 
-// Resend verification code
-document.getElementById('resendCodeBtn').addEventListener('click', function() {
-  const phoneInput = document.getElementById('phone').value.trim();
-  const resendBtn = this;
-  
-  if (!phoneInput) {
-    showError('phoneError', 'Please enter your phone number first');
-    return;
-  }
-  
-  // Generate new verification code
-  verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-  
-  // Disable button and show loading state
-  resendBtn.disabled = true;
-  resendBtn.textContent = 'Sending...';
-  
-  // Simulate sending SMS
-  setTimeout(() => {
-    // Reset button
-    resendBtn.disabled = false;
-    resendBtn.textContent = 'Resend';
-    
-    // For demo purposes, show the code
-    console.log('New verification code sent to', phoneInput + ':', verificationCode);
-    alert(`Demo: New verification code sent to ${phoneInput}: ${verificationCode}`);
-    
-    // Clear verification input
-    document.getElementById('verificationCode').value = '';
-  }, 2000);
-});
-
-// Verify code input
-document.getElementById('verificationCode').addEventListener('input', function() {
-  const inputCode = this.value.trim();
-  const verificationError = document.getElementById('verificationError');
-  const verificationSuccess = document.getElementById('verificationSuccess');
-  const verificationContainer = document.querySelector('.verification-container');
-  const verifiedState = document.getElementById('verifiedState');
-  const verifiedPhoneDisplay = document.getElementById('verifiedPhoneDisplay');
-  
-  // Clear previous messages
-  verificationError.style.display = 'none';
-  verificationSuccess.style.display = 'none';
-  
-  // Check if code is complete (6 digits)
-  if (inputCode.length === 6) {
-    if (inputCode === verificationCode) {
-      // Correct code - show verified state
-      verificationAttempts = 0;
-      
-      // Store verification status
-      localStorage.setItem('phoneVerified', 'true');
-      localStorage.setItem('verifiedPhone', document.getElementById('phone').value.trim());
-      
-      // Hide verification container and show verified state
-      verificationContainer.style.display = 'none';
-      verifiedState.style.display = 'block';
-      verifiedPhoneDisplay.textContent = document.getElementById('phone').value.trim();
-      
-      // Disable phone input to prevent changes
-      document.getElementById('phone').disabled = true;
-      document.getElementById('sendCodeBtn').disabled = true;
-      document.getElementById('sendCodeBtn').textContent = 'Verified';
-      document.getElementById('sendCodeBtn').classList.add('verified');
-      
-    } else {
-      // Incorrect code
-      verificationAttempts++;
-      if (verificationAttempts >= maxAttempts) {
-        showError('verificationError', `Maximum attempts reached. Please request a new code.`);
-        document.getElementById('resendCodeBtn').click(); // Trigger resend
-        verificationAttempts = 0;
-      } else {
-        showError('verificationError', `Invalid code. ${maxAttempts - verificationAttempts} attempts remaining.`);
-        this.value = ''; // Clear input
-      }
-    }
-  }
-});
-
-// Form validation and submission
-document.getElementById('signupForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  
-  // Clear previous errors
-  clearErrors();
-  
-  // Get form data
-  const formData = {
-    fullName: document.getElementById('fullName').value.trim(),
-    email: document.getElementById('email').value.trim(),
-    phone: document.getElementById('phone').value.trim(),
-    password: document.getElementById('password').value,
-    confirmPassword: document.getElementById('confirmPassword').value,
-    terms: document.getElementById('terms').checked
-  };
-  
-  // Validate form
-  let isValid = true;
-  
-  // Name validation
-  if (!formData.fullName) {
-    showError('nameError', 'Full name is required');
-    isValid = false;
-  } else if (formData.fullName.length < 2) {
-    showError('nameError', 'Name must be at least 2 characters');
-    isValid = false;
-  }
-  
-  // Email validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!formData.email) {
-    showError('emailError', 'Email is required');
-    isValid = false;
-  } else if (!emailRegex.test(formData.email)) {
-    showError('emailError', 'Please enter a valid email address');
-    isValid = false;
-  }
-  
-  // Phone validation
-  const phoneRegex = /^[0-9+\-\s()]+$/;
-  if (!formData.phone) {
-    showError('phoneError', 'Phone number is required');
-    isValid = false;
-  } else if (!phoneRegex.test(formData.phone) || formData.phone.length < 10) {
-    showError('phoneError', 'Please enter a valid phone number');
-    isValid = false;
-  } else if (localStorage.getItem('phoneVerified') !== 'true') {
-    showError('phoneError', 'Please verify your phone number first');
-    isValid = false;
-  } else if (localStorage.getItem('verifiedPhone') !== formData.phone) {
-    showError('phoneError', 'Phone number must match the verified number');
-    isValid = false;
-  }
-  
-  // Password validation
-  if (!formData.password) {
-    showError('passwordError', 'Password is required');
-    isValid = false;
-  } else if (formData.password.length < 8) {
-    showError('passwordError', 'Password must be at least 8 characters');
-    isValid = false;
-  }
-  
-  // Confirm password validation
-  if (!formData.confirmPassword) {
-    showError('confirmPasswordError', 'Please confirm your password');
-    isValid = false;
-  } else if (formData.password !== formData.confirmPassword) {
-    showError('confirmPasswordError', 'Passwords do not match');
-    isValid = false;
-  }
-  
-  // Terms validation
-  if (!formData.terms) {
-    alert('Please accept the Terms and Conditions');
-    isValid = false;
-  }
-  
-  if (isValid) {
-    // Store user data in localStorage
-    const userData = {
-      fullName: formData.fullName,
-      email: formData.email,
-      phone: formData.phone,
-      password: formData.password, // In real app, this would be hashed
-      signupDate: new Date().toISOString()
-    };
-    
-    localStorage.setItem('userData', JSON.stringify(userData));
-    
-    // Show success message
-    alert('Account created successfully! Redirecting to login...');
-    
-    // Redirect to login page with email pre-filled
-    setTimeout(() => {
-      window.location.href = `login.html?email=${encodeURIComponent(formData.email)}&welcome=true`;
-    }, 1000);
-  }
-});
-
-// Password strength checker
-document.getElementById('password').addEventListener('input', function() {
-  const password = this.value;
-  const strengthDiv = document.getElementById('passwordStrength');
-  
-  if (password.length === 0) {
-    strengthDiv.textContent = '';
-    return;
-  }
-  
-  let strength = 0;
-  let strengthText = '';
-  
-  if (password.length >= 8) strength++;
-  if (/[a-z]/.test(password)) strength++;
-  if (/[A-Z]/.test(password)) strength++;
-  if (/[0-9]/.test(password)) strength++;
-  if (/[^A-Za-z0-9]/.test(password)) strength++;
-  
-  if (strength < 3) {
-    strengthText = 'Weak password';
-    strengthDiv.className = 'password-strength strength-weak';
-  } else if (strength < 5) {
-    strengthText = 'Medium strength';
-    strengthDiv.className = 'password-strength strength-medium';
+  if (score >= 4) {
+    passwordStrength.textContent = 'Strong password';
+    passwordStrength.className = 'password-strength strength-strong';
+  } else if (score >= 3) {
+    passwordStrength.textContent = 'Good password';
+    passwordStrength.className = 'password-strength strength-medium';
   } else {
-    strengthText = 'Strong password';
-    strengthDiv.className = 'password-strength strength-strong';
+    passwordStrength.textContent = 'Weak password';
+    passwordStrength.className = 'password-strength strength-weak';
   }
-  
-  strengthDiv.textContent = strengthText;
-});
-
-// Helper functions
-function showError(elementId, message) {
-  const errorElement = document.getElementById(elementId);
-  errorElement.textContent = message;
-  errorElement.style.display = 'block';
 }
 
-function showSuccess(elementId, message) {
-  const successElement = document.getElementById(elementId);
-  successElement.textContent = message;
-  successElement.style.display = 'block';
+if (passwordInput) {
+  passwordInput.addEventListener('input', () => updatePasswordStrength(passwordInput.value));
+  updatePasswordStrength(passwordInput.value);
+}
+
+function setFormFeedback(message, type) {
+  if (!formFeedback) return;
+  if (!message) {
+    formFeedback.textContent = '';
+    formFeedback.className = 'form-feedback';
+    formFeedback.style.display = 'none';
+    return;
+  }
+  formFeedback.textContent = message;
+  formFeedback.className = `form-feedback ${type}`;
+  formFeedback.style.display = 'block';
 }
 
 function clearErrors() {
-  const errorElements = document.querySelectorAll('.error-message');
-  errorElements.forEach(element => {
-    element.textContent = '';
-    element.style.display = 'none';
+  Object.values(errors).forEach((el) => {
+    if (el) el.textContent = '';
   });
-  
-  const successElements = document.querySelectorAll('.success-message');
-  successElements.forEach(element => {
-    element.textContent = '';
-    element.style.display = 'none';
+  if (faceError) faceError.textContent = '';
+  setFormFeedback('', '');
+}
+
+function validateEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validatePhone(phone) {
+  return /^$|^[0-9+\-\s()]{7,}$/.test(phone);
+}
+
+function validatePassword(password) {
+  return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(password);
+}
+
+function setButtonLoading(button, isLoading, loadingText) {
+  if (!button) return;
+  if (isLoading) {
+    button.dataset.originalText = button.textContent;
+    if (loadingText) {
+      button.textContent = loadingText;
+    }
+    button.disabled = true;
+  } else {
+    button.textContent = button.dataset.originalText || button.textContent;
+    button.disabled = false;
+  }
+}
+
+async function getAuthInstance() {
+  if (!getApps().length) {
+    const configUrl = new URL('../../PHP/firebase_config.php', import.meta.url);
+    const response = await fetch(configUrl, { credentials: 'same-origin' });
+    if (!response.ok) {
+      throw new Error(`Unable to load Firebase configuration: ${response.status}`);
+    }
+    initializeApp(await response.json());
+  }
+  return getAuth();
+}
+
+async function startCamera() {
+  if (!video) return;
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+    video.srcObject = mediaStream;
+    video.play();
+    video.style.display = 'block';
+    if (capturedImage) {
+      capturedImage.style.display = 'none';
+    }
+    if (retakeBtn) {
+      retakeBtn.style.display = 'none';
+    }
+  } catch (error) {
+    console.error('Camera access denied:', error);
+    if (faceError) {
+      faceError.textContent = 'Unable to access camera. Please allow camera permissions or try a different device.';
+    }
+  }
+}
+
+function stopCamera() {
+  if (mediaStream) {
+    mediaStream.getTracks().forEach((track) => track.stop());
+    mediaStream = null;
+  }
+}
+
+function captureFace() {
+  if (!video || !faceImageInput || !capturedImage) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const dataUrl = canvas.toDataURL('image/png');
+  faceImageInput.value = dataUrl;
+  capturedImage.src = dataUrl;
+  capturedImage.style.display = 'block';
+  video.style.display = 'none';
+  if (captureBtn) {
+    captureBtn.textContent = 'Face Captured';
+    captureBtn.disabled = true;
+  }
+  if (retakeBtn) {
+    retakeBtn.style.display = 'block';
+  }
+  if (faceError) faceError.textContent = '';
+}
+
+function resetCapture() {
+  if (faceImageInput) faceImageInput.value = '';
+  if (capturedImage) {
+    capturedImage.src = '';
+    capturedImage.style.display = 'none';
+  }
+  if (video) {
+    video.style.display = 'block';
+  }
+  if (captureBtn) {
+    captureBtn.textContent = 'Capture Face';
+    captureBtn.disabled = false;
+  }
+  if (retakeBtn) {
+    retakeBtn.style.display = 'none';
+  }
+}
+
+if (captureBtn) {
+  captureBtn.addEventListener('click', () => {
+    if (!mediaStream) {
+      startCamera().then(() => {
+        setTimeout(captureFace, 300);
+      });
+    } else {
+      captureFace();
+    }
   });
 }
 
-// Check if user is coming from login page with pre-filled data
-window.addEventListener('load', function() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const email = urlParams.get('email');
-  
-  if (email) {
-    document.getElementById('email').value = email;
-  }
-});
+if (retakeBtn) {
+  retakeBtn.addEventListener('click', () => {
+    resetCapture();
+    startCamera();
+  });
+}
+
+if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  startCamera();
+} else if (faceError) {
+  faceError.textContent = 'Camera access is not supported in this browser.';
+}
+
+window.addEventListener('beforeunload', stopCamera);
+
+if (signupForm) {
+  signupForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    clearErrors();
+
+    const fullName = fullNameInput ? fullNameInput.value.trim() : '';
+    const email = emailInput ? emailInput.value.trim() : '';
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+    const password = passwordInput ? passwordInput.value : '';
+    const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
+    const faceImage = faceImageInput ? faceImageInput.value : '';
+
+    let valid = true;
+
+    if (!fullName) {
+      valid = false;
+      if (errors.name) errors.name.textContent = 'Please enter your full name.';
+    }
+
+    if (!email || !validateEmail(email)) {
+      valid = false;
+      if (errors.email) errors.email.textContent = 'Please provide a valid email address.';
+    }
+
+    if (phone && !validatePhone(phone)) {
+      valid = false;
+      if (errors.phone) errors.phone.textContent = 'Please enter a valid phone number.';
+    }
+
+    if (!password) {
+      valid = false;
+      if (errors.password) errors.password.textContent = 'Please create a password.';
+    } else if (!validatePassword(password)) {
+      valid = false;
+      if (errors.password) errors.password.textContent = 'Use at least 8 characters with uppercase, lowercase, number, and symbol.';
+    }
+
+    if (!confirmPassword || confirmPassword !== password) {
+      valid = false;
+      if (errors.confirmPassword) errors.confirmPassword.textContent = 'Passwords do not match.';
+    }
+
+    if (!termsCheckbox || !termsCheckbox.checked) {
+      valid = false;
+      setFormFeedback('Please agree to the terms and privacy policy to continue.', 'error');
+    }
+
+    if (!faceImage) {
+      valid = false;
+      if (faceError) faceError.textContent = 'Please capture your face before creating an account.';
+    }
+
+    if (!valid) {
+      return;
+    }
+
+    setButtonLoading(signupButton, true, 'Creating account...');
+
+    try {
+      const auth = await getAuthInstance();
+      await createUserWithEmailAndPassword(auth, email, password);
+
+      const response = await fetch('../../PHP/register_user.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName, email, password, faceImage })
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Unable to complete registration.');
+      }
+
+      const firstName = fullName.split(' ')[0] || fullName;
+      localStorage.setItem('userData', JSON.stringify({ firstName, email }));
+      setFormFeedback('Account created successfully! Redirecting you to login...', 'success');
+      setTimeout(() => {
+        window.location.href = 'login.html?signup=success';
+      }, 1800);
+    } catch (error) {
+      console.error('Signup failed:', error);
+      let message = error && error.code === 'auth/email-already-in-use'
+        ? 'This email is already registered. Try logging in instead.'
+        : error && error.code === 'auth/weak-password'
+          ? 'Password is too weak. Please use a stronger password.'
+          : (error.message || 'Unable to create account. Please try again.');
+      setFormFeedback(message, 'error');
+    } finally {
+      setButtonLoading(signupButton, false);
+    }
+  });
+}
 </script>
 
 </body>
