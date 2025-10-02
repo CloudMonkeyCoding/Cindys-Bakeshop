@@ -1,0 +1,1951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Checkout - Cindy's Bakeshop</title>
+  <meta name="description" content="Complete your order at Cindy's Bakeshop - Fresh baked goods delivered to your door">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+   <script src="https://cdn.tailwindcss.com"></script>
+   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dOWWgGjIq2b2k4&callback=initGoogleMaps&libraries=places"></script>
+   <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'inter': ['Inter', 'sans-serif'],
+            'poppins': ['Poppins', 'sans-serif'],
+          },
+          colors: {
+            'brown': {
+              50: '#faf8f5',
+              100: '#f5f3f0',
+              200: '#e6ddd4', 
+              300: '#d4c4b0',
+              400: '#c2ab8c',
+              500: '#b08b68',
+              600: '#8b4513',
+              700: '#a0522d',
+              800: '#6b3410',
+              900: '#4a240c',
+            },
+            'success': {
+              50: '#f0fdf4',
+              500: '#22c55e',
+              600: '#16a34a',
+            },
+            'error': {
+              50: '#fef2f2',
+              500: '#ef4444',
+              600: '#dc2626',
+            }
+          },
+          animation: {
+            'fadeIn': 'fadeIn 0.6s ease-out',
+            'slideInUp': 'slideInUp 0.6s ease-out',
+            'slideInRight': 'slideInRight 0.4s ease-out',
+            'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'bounce-subtle': 'bounceSubtle 0.6s ease-out',
+          },
+          keyframes: {
+            fadeIn: {
+              'from': { opacity: '0' },
+              'to': { opacity: '1' }
+            },
+            slideInUp: {
+              'from': { opacity: '0', transform: 'translateY(30px)' },
+              'to': { opacity: '1', transform: 'translateY(0)' }
+            },
+            slideInRight: {
+              'from': { opacity: '0', transform: 'translateX(30px)' },
+              'to': { opacity: '1', transform: 'translateX(0)' }
+            },
+            bounceSubtle: {
+              '0%, 20%, 53%, 80%, 100%': { transform: 'translate3d(0,0,0)' },
+              '40%, 43%': { transform: 'translate3d(0,-8px,0)' },
+              '70%': { transform: 'translate3d(0,-4px,0)' },
+              '90%': { transform: 'translate3d(0,-2px,0)' }
+            }
+          },
+          screens: {
+            'xs': '475px',
+            '3xl': '1600px',
+          },
+          spacing: {
+            '18': '4.5rem',
+            '88': '22rem',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #f5f3f0;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #d4c4b0;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #b08b68;
+    }
+    
+    /* Focus styles */
+    .focus-ring:focus {
+      outline: 2px solid #8b4513;
+      outline-offset: 2px;
+    }
+    
+    /* Loading animation */
+    .loading-dots::after {
+      content: '';
+      animation: loading-dots 1.5s infinite;
+    }
+    
+    @keyframes loading-dots {
+      0%, 20% { content: ''; }
+      40% { content: '.'; }
+      60% { content: '..'; }
+      80%, 100% { content: '...'; }
+    }
+    
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+      .mobile-padding {
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+    }
+  </style>
+</head>
+<body class="font-inter bg-gradient-to-br from-brown-50 to-brown-100 text-brown-700 min-h-screen antialiased">
+  <!-- HEADER -->
+  <header id="header" class="bg-white/95 backdrop-blur-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex items-center justify-between border-b border-brown-200/50 fixed top-0 left-0 right-0 z-50 transition-all duration-300 shadow-lg shadow-brown-600/5">
+    <div class="flex items-center justify-between w-full max-w-7xl mx-auto">
+      <!-- Logo -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <img src="https://via.placeholder.com/40x40/8b4513/ffffff?text=CB" alt="Cindy's Bakeshop Logo" class="w-8 h-8 sm:w-10 sm:h-10 transition-transform duration-300 drop-shadow-md hover:scale-110 hover:rotate-12 rounded-lg">
+        <a href="home-tailwind.html" class="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-brown-600 to-brown-700 bg-clip-text text-transparent no-underline tracking-tight focus-ring rounded-md">Cindy's Bakeshop</a>
+      </div>
+
+      <!-- Desktop Navigation -->
+      <nav class="hidden lg:flex flex-1 justify-center">
+        <ul class="list-none flex gap-6 xl:gap-8 items-center justify-center">
+          <li><a href="home-tailwind.html" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm hover:bg-brown-50 hover:text-brown-700 focus-ring">Home</a></li>
+          <li><a href="Menu-tailwind.html" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm hover:bg-brown-50 hover:text-brown-700 focus-ring">Menu</a></li>
+          <li><a href="home-tailwind.html#about" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm hover:bg-brown-50 hover:text-brown-700 focus-ring">About</a></li>
+          <li><a href="home-tailwind.html#visit" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm hover:bg-brown-50 hover:text-brown-700 focus-ring">Contact</a></li>
+        </ul>
+      </nav>
+
+      <!-- Right Side Actions -->
+      <div class="flex items-center gap-3 sm:gap-4 lg:gap-6">
+        <!-- Cart -->
+        <a href="checkout-tailwind.html" class="text-brown-600 no-underline flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 hover:bg-brown-50 hover:scale-105 focus-ring">
+          <i class="fas fa-shopping-cart text-lg sm:text-xl"></i>
+          <span class="font-medium hidden sm:inline">Cart</span>
+          <span class="bg-brown-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">2</span>
+        </a>
+        
+        <!-- Profile Dropdown -->
+        <div class="relative">
+          <button onclick="toggleProfile()" class="flex items-center gap-2 text-brown-600 hover:text-brown-700 transition-colors duration-300 focus-ring rounded-lg p-1">
+            <img src="https://via.placeholder.com/32x32/8b4513/ffffff?text=👤" alt="Profile" class="w-8 h-8 border-2 border-brown-600 rounded-full object-cover">
+            <span class="hidden sm:inline font-medium" id="userNameDisplay">Profile</span>
+            <i class="fas fa-chevron-down text-xs hidden sm:block"></i>
+          </button>
+          
+          <div id="profileDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-brown-200/50 hidden z-50">
+            <!-- Authenticated User Options -->
+            <div id="authenticatedOptions" class="hidden">
+              <a href="profile-tailwind.html" class="block px-4 py-3 text-brown-600 hover:bg-brown-50 transition-colors duration-200 rounded-t-xl">
+                <i class="fas fa-user mr-2"></i>View Profile
+              </a>
+              <a href="order-history-tailwind.html" class="block px-4 py-3 text-brown-600 hover:bg-brown-50 transition-colors duration-200">
+                <i class="fas fa-history mr-2"></i>Order History
+              </a>
+              <button onclick="logout()" class="block w-full text-left px-4 py-3 text-brown-600 hover:bg-brown-50 transition-colors duration-200 rounded-b-xl">
+                <i class="fas fa-sign-out-alt mr-2"></i>Logout
+              </button>
+            </div>
+            
+            <!-- Unauthenticated User Options -->
+            <div id="unauthenticatedOptions" class="hidden">
+              <a href="login-tailwind.html" class="block px-4 py-3 text-brown-600 hover:bg-brown-50 transition-colors duration-200 rounded-t-xl">
+                <i class="fas fa-sign-in-alt mr-2"></i>Login
+              </a>
+              <a href="signup-tailwind.html" class="block px-4 py-3 text-brown-600 hover:bg-brown-50 transition-colors duration-200 rounded-b-xl">
+                <i class="fas fa-user-plus mr-2"></i>Sign Up
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Mobile Menu Button -->
+        <button id="mobileMenuBtn" class="lg:hidden p-2 text-brown-600 hover:bg-brown-50 rounded-lg transition-colors duration-300 focus-ring">
+          <i class="fas fa-bars text-lg"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Menu -->
+    <div id="mobileMenu" class="lg:hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-xl border-b border-brown-200/50 shadow-lg hidden">
+      <nav class="px-4 py-4">
+        <ul class="space-y-2">
+          <li><a href="home-tailwind.html" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Home</a></li>
+          <li><a href="Menu-tailwind.html" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Menu</a></li>
+          <li><a href="home-tailwind.html#about" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">About</a></li>
+          <li><a href="home-tailwind.html#visit" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Contact</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="pt-20 sm:pt-24 px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+    <div class="max-w-7xl mx-auto">
+      <!-- Progress Indicator -->
+      <div class="mb-8 sm:mb-12">
+        <div class="flex items-center justify-center space-x-4 sm:space-x-8">
+          <div class="flex items-center">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 bg-brown-600 text-white rounded-full flex items-center justify-center text-sm sm:text-base font-semibold">
+              <i class="fas fa-check"></i>
+            </div>
+            <span class="ml-2 sm:ml-3 text-sm sm:text-base font-medium text-brown-600">Cart</span>
+          </div>
+          <div class="w-8 sm:w-12 h-0.5 bg-brown-600"></div>
+          <div class="flex items-center">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 bg-brown-600 text-white rounded-full flex items-center justify-center text-sm sm:text-base font-semibold">
+              2
+            </div>
+            <span class="ml-2 sm:ml-3 text-sm sm:text-base font-medium text-brown-600">Checkout</span>
+          </div>
+          <div class="w-8 sm:w-12 h-0.5 bg-brown-200"></div>
+          <div class="flex items-center">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 bg-brown-200 text-brown-400 rounded-full flex items-center justify-center text-sm sm:text-base font-semibold">
+              3
+            </div>
+            <span class="ml-2 sm:ml-3 text-sm sm:text-base font-medium text-brown-400">Confirmation</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Page Header -->
+      <div class="text-center mb-8 sm:mb-12">
+        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-brown-700 mb-3 sm:mb-4">Complete Your Order</h1>
+        <p class="text-lg sm:text-xl text-brown-600 max-w-2xl mx-auto">Review your items and provide delivery information to enjoy our delicious baked goods</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        <!-- Order Summary -->
+        <div class="lg:col-span-1 order-2 lg:order-1">
+          <div class="bg-white/90 backdrop-blur-xl rounded-2xl lg:rounded-3xl shadow-xl shadow-brown-600/10 p-4 sm:p-6 border border-brown-200/50 sticky top-24 lg:top-32">
+            <h2 class="text-xl sm:text-2xl font-bold text-brown-700 mb-4 sm:mb-6 flex items-center">
+              <i class="fas fa-shopping-bag mr-2 text-brown-600"></i>
+              Order Summary
+            </h2>
+            
+            <div class="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
+              <div class="flex items-center gap-3 sm:gap-4 p-3 bg-brown-50/50 rounded-xl" data-item="chocolate-cake">
+                <img src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=80&h=80&fit=crop&crop=center" alt="Chocolate Fudge Cake" class="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover shadow-sm">
+                <div class="flex-1 min-w-0">
+                  <h3 class="font-semibold text-brown-700 text-sm sm:text-base truncate">Chocolate Fudge Cake</h3>
+                  <div class="flex items-center justify-between mt-1">
+                    <p class="font-bold text-brown-700 text-sm sm:text-base item-price">₱450</p>
+                    <div class="flex items-center gap-2">
+                      <button onclick="decreaseQuantity('chocolate-cake')" class="w-6 h-6 bg-brown-600 text-white rounded-full flex items-center justify-center text-xs hover:bg-brown-700 transition-colors">
+                        -
+                      </button>
+                      <span class="quantity text-xs sm:text-sm text-brown-600 font-medium min-w-[20px] text-center">1</span>
+                      <button onclick="increaseQuantity('chocolate-cake')" class="w-6 h-6 bg-brown-600 text-white rounded-full flex items-center justify-center text-xs hover:bg-brown-700 transition-colors">
+                        +
+                      </button>
+                </div>
+                  </div>
+                </div>
+                <button onclick="removeItem('chocolate-cake')" class="text-red-500 hover:text-red-700 transition-colors p-1">
+                  <i class="fas fa-trash text-sm"></i>
+                </button>
+              </div>
+              
+              <div class="flex items-center gap-3 sm:gap-4 p-3 bg-brown-50/50 rounded-xl" data-item="artisan-sourdough">
+                <img src="https://images.unsplash.com/photo-1509440159596-0249088772ff?w=80&h=80&fit=crop&crop=center" alt="Artisan Sourdough" class="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover shadow-sm">
+                <div class="flex-1 min-w-0">
+                  <h3 class="font-semibold text-brown-700 text-sm sm:text-base truncate">Artisan Sourdough</h3>
+                  <div class="flex items-center justify-between mt-1">
+                    <p class="font-bold text-brown-700 text-sm sm:text-base item-price">₱360</p>
+                    <div class="flex items-center gap-2">
+                      <button onclick="decreaseQuantity('artisan-sourdough')" class="w-6 h-6 bg-brown-600 text-white rounded-full flex items-center justify-center text-xs hover:bg-brown-700 transition-colors">
+                        -
+                      </button>
+                      <span class="quantity text-xs sm:text-sm text-brown-600 font-medium min-w-[20px] text-center">2</span>
+                      <button onclick="increaseQuantity('artisan-sourdough')" class="w-6 h-6 bg-brown-600 text-white rounded-full flex items-center justify-center text-xs hover:bg-brown-700 transition-colors">
+                        +
+                      </button>
+                </div>
+                  </div>
+                </div>
+                <button onclick="removeItem('artisan-sourdough')" class="text-red-500 hover:text-red-700 transition-colors p-1">
+                  <i class="fas fa-trash text-sm"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="border-t border-brown-200 pt-4 space-y-2 sm:space-y-3">
+              <div class="flex justify-between text-sm sm:text-base">
+                <span class="text-brown-600">Subtotal</span>
+                <span class="font-medium text-brown-700 subtotal-amount">₱810</span>
+              </div>
+              <div class="flex justify-between text-sm sm:text-base">
+                <span class="text-brown-600">Delivery Fee</span>
+                <span class="font-medium text-brown-700">₱50</span>
+              </div>
+              <div class="flex justify-between font-bold text-lg sm:text-xl pt-2 border-t border-brown-200">
+                <span class="text-brown-700">Total</span>
+                <span class="text-brown-800 total-amount">₱860</span>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+
+        <!-- Checkout Form -->
+        <div class="lg:col-span-2 order-1 lg:order-2">
+          <div class="bg-white/90 backdrop-blur-xl rounded-2xl lg:rounded-3xl shadow-xl shadow-brown-600/10 p-4 sm:p-6 lg:p-8 border border-brown-200/50">
+            <form id="checkoutForm" class="space-y-6 sm:space-y-8" novalidate>
+              <!-- Delivery Information -->
+              <div>
+                <h2 class="text-xl sm:text-2xl font-bold text-brown-700 mb-4 sm:mb-6 flex items-center">
+                  <i class="fas fa-map-marker-alt mr-2 text-brown-600"></i>
+                  Delivery Information
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                  <div class="form-group">
+                    <label for="firstName" class="block text-sm font-semibold text-brown-700 mb-2">First Name *</label>
+                    <input 
+                      type="text" 
+                      id="firstName"
+                      name="firstName"
+                      required 
+                      class="w-full px-4 py-3 bg-white border-2 border-brown-200 rounded-xl focus:border-brown-600 focus:outline-none transition-all duration-300 text-brown-700 placeholder-brown-400 focus-ring"
+                      placeholder="Enter your first name"
+                      aria-describedby="firstName-error"
+                    >
+                    <div id="firstName-error" class="error-message text-xs text-red-600 mt-1 hidden"></div>
+                  </div>
+                  <div class="form-group">
+                    <label for="lastName" class="block text-sm font-semibold text-brown-700 mb-2">Last Name *</label>
+                    <input 
+                      type="text" 
+                      id="lastName"
+                      name="lastName"
+                      required 
+                      class="w-full px-4 py-3 bg-white border-2 border-brown-200 rounded-xl focus:border-brown-600 focus:outline-none transition-all duration-300 text-brown-700 placeholder-brown-400 focus-ring"
+                      placeholder="Enter your last name"
+                      aria-describedby="lastName-error"
+                    >
+                    <div id="lastName-error" class="error-message text-xs text-red-600 mt-1 hidden"></div>
+                  </div>
+                </div>
+                <div class="mt-4 sm:mt-6">
+                  <label for="phoneNumber" class="block text-sm font-semibold text-brown-700 mb-2">Phone Number *</label>
+                  <input 
+                    type="tel" 
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    required 
+                    class="w-full px-4 py-3 bg-white border-2 border-brown-200 rounded-xl focus:border-brown-600 focus:outline-none transition-all duration-300 text-brown-700 placeholder-brown-400 focus-ring"
+                    placeholder="+63 912 345 6789"
+                    pattern="[0-9+\s\-\(\)]+"
+                    aria-describedby="phoneNumber-error"
+                  >
+                  <div id="phoneNumber-error" class="error-message text-xs text-red-600 mt-1 hidden"></div>
+                </div>
+                <div class="mt-4 sm:mt-6">
+                  <!-- Compact Address Display -->
+                  <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-3 flex-1">
+                        <div class="w-5 h-5 text-red-500">
+                          <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="flex-1">
+                          <div class="flex items-center gap-2 mb-1">
+                            <span class="text-red-500 font-semibold text-sm">Delivery Address</span>
+                          </div>
+                           <div class="text-sm">
+                             <div class="font-semibold text-gray-900 mb-1">
+                               <span id="selectedAddressName">John Doe</span>
+                             </div>
+                             <div class="text-gray-600 mb-1">
+                               <i class="fas fa-phone text-xs mr-1"></i>
+                               <span id="selectedAddressPhone">+63 912 345 6789</span>
+                             </div>
+                             <div class="text-gray-600">
+                               <i class="fas fa-map-marker-alt text-xs mr-1"></i>
+                               <span id="selectedAddressText">Sipat - Location pinned on map</span>
+                             </div>
+                           </div>
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-3">
+                        <span class="bg-orange-100 text-orange-600 px-2 py-1 rounded text-xs font-medium border border-orange-200">Default</span>
+                        <button type="button" onclick="showAddressModal()" class="text-blue-600 text-sm font-medium hover:text-blue-700">Change</button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Hidden textarea for form submission -->
+                  <textarea 
+                    id="deliveryAddress"
+                    name="deliveryAddress"
+                    rows="1" 
+                    required 
+                    class="hidden"
+                    aria-describedby="deliveryAddress-error"
+                  ></textarea>
+                  <div id="deliveryAddress-error" class="error-message text-xs text-red-600 mt-1 hidden"></div>
+                </div>
+              </div>
+
+              <!-- Pre-order Date & Time (conditional) -->
+              <div id="preorderDateTimeSection" class="hidden">
+                <h2 class="text-xl sm:text-2xl font-bold text-brown-700 mb-4 sm:mb-6 flex items-center">
+                  <i class="fas fa-calendar-alt mr-2 text-brown-600"></i>
+                  Pre-order Pickup Date & Time
+                </h2>
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                  <div class="flex items-center text-blue-700">
+                    <i class="fas fa-info-circle mr-2 text-sm"></i>
+                    <span class="text-sm font-medium">Your cart contains pre-order items. Please select your preferred pickup date and time.</span>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                  <div class="form-group">
+                    <label for="pickupDate" class="block text-sm font-semibold text-brown-700 mb-2">Pickup Date *</label>
+                    <input 
+                      type="date" 
+                      id="pickupDate"
+                      name="pickupDate"
+                      required 
+                      class="w-full px-4 py-3 bg-white border-2 border-brown-200 rounded-xl focus:border-brown-600 focus:outline-none transition-all duration-300 text-brown-700 focus-ring"
+                      aria-describedby="pickupDate-error"
+                    >
+                    <div id="pickupDate-error" class="error-message text-xs text-red-600 mt-1 hidden"></div>
+                  </div>
+                  <div class="form-group">
+                    <label for="pickupTime" class="block text-sm font-semibold text-brown-700 mb-2">Pickup Time *</label>
+                    <select 
+                      id="pickupTime"
+                      name="pickupTime"
+                      required 
+                      class="w-full px-4 py-3 bg-white border-2 border-brown-200 rounded-xl focus:border-brown-600 focus:outline-none transition-all duration-300 text-brown-700 focus-ring"
+                      aria-describedby="pickupTime-error"
+                    >
+                      <option value="">Select pickup time</option>
+                      <option value="08:00">8:00 AM</option>
+                      <option value="09:00">9:00 AM</option>
+                      <option value="10:00">10:00 AM</option>
+                      <option value="11:00">11:00 AM</option>
+                      <option value="12:00">12:00 PM</option>
+                      <option value="13:00">1:00 PM</option>
+                      <option value="14:00">2:00 PM</option>
+                      <option value="15:00">3:00 PM</option>
+                      <option value="16:00">4:00 PM</option>
+                      <option value="17:00">5:00 PM</option>
+                      <option value="18:00">6:00 PM</option>
+                      <option value="19:00">7:00 PM</option>
+                      <option value="20:00">8:00 PM</option>
+                    </select>
+                    <div id="pickupTime-error" class="error-message text-xs text-red-600 mt-1 hidden"></div>
+                  </div>
+                </div>
+                <div class="mt-4">
+                  <p class="text-sm text-gray-600">
+                    <i class="fas fa-clock mr-1"></i>
+                    Pre-orders require at least 24 hours advance notice. Our bakery is open from 8:00 AM to 8:00 PM.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Payment Method -->
+              <div>
+                <h2 class="text-xl sm:text-2xl font-bold text-brown-700 mb-4 sm:mb-6 flex items-center">
+                  <i class="fas fa-credit-card mr-2 text-brown-600"></i>
+                  Payment Method
+                </h2>
+                <div class="space-y-3 sm:space-y-4">
+                  <label class="flex items-center p-4 bg-white border-2 border-brown-200 rounded-xl cursor-pointer transition-all duration-300 hover:border-brown-600 hover:shadow-md focus-ring">
+                    <input type="radio" name="payment" value="cash" class="w-4 h-4 text-brown-600 border-brown-300 focus:ring-brown-600 focus:ring-2" checked>
+                    <div class="ml-4 flex-1">
+                      <div class="font-semibold text-brown-700 text-sm sm:text-base">Cash on Delivery</div>
+                      <div class="text-xs sm:text-sm text-brown-600">Pay when your order arrives</div>
+                    </div>
+                    <i class="fas fa-money-bill-wave text-brown-600"></i>
+                  </label>
+                  <label class="flex items-center p-4 bg-white border-2 border-brown-200 rounded-xl cursor-pointer transition-all duration-300 hover:border-brown-600 hover:shadow-md focus-ring">
+                    <input type="radio" name="payment" value="gcash" class="w-4 h-4 text-brown-600 border-brown-300 focus:ring-brown-600 focus:ring-2">
+                    <div class="ml-4 flex-1">
+                      <div class="font-semibold text-brown-700 text-sm sm:text-base">GCash</div>
+                      <div class="text-xs sm:text-sm text-brown-600">Pay via GCash wallet</div>
+                    </div>
+                    <i class="fas fa-mobile-alt text-brown-600"></i>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Special Instructions -->
+              <div>
+                <h2 class="text-xl sm:text-2xl font-bold text-brown-700 mb-4 sm:mb-6 flex items-center">
+                  <i class="fas fa-sticky-note mr-2 text-brown-600"></i>
+                  Special Instructions
+                </h2>
+                <textarea 
+                  id="specialInstructions"
+                  name="specialInstructions"
+                  rows="3" 
+                  class="w-full px-4 py-3 bg-white border-2 border-brown-200 rounded-xl focus:border-brown-600 focus:outline-none transition-all duration-300 text-brown-700 placeholder-brown-400 resize-none focus-ring"
+                  placeholder="Any special instructions for your order? (e.g., dietary restrictions, delivery preferences)"
+                ></textarea>
+              </div>
+
+              <!-- Place Order Button -->
+              <div class="pt-4 sm:pt-6">
+                <button 
+                  type="submit" 
+                  id="submitBtn"
+                  class="w-full bg-gradient-to-r from-brown-600 to-brown-700 text-white py-4 rounded-xl font-bold text-lg transition-all duration-300 hover:from-brown-700 hover:to-brown-600 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-brown-600/30 focus-ring disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none"
+                >
+                  <span class="submit-text">Place Order - ₱860</span>
+                  <span class="loading-text hidden">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>
+                    Processing Order<span class="loading-dots"></span>
+                  </span>
+                </button>
+                
+                <!-- Security Notice -->
+                <div class="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-200">
+                  <div class="flex items-center text-blue-700">
+                    <i class="fas fa-shield-alt mr-2 text-sm"></i>
+                    <span class="text-xs sm:text-sm font-medium">Your payment information is secure and encrypted</span>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Success Modal -->
+  <div id="successModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
+    <div class="bg-white rounded-2xl lg:rounded-3xl p-6 sm:p-8 max-w-md mx-auto shadow-2xl animate-slideInUp w-full">
+      <div class="text-center">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 bg-success-50 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 animate-bounce-subtle">
+          <i class="fas fa-check text-2xl sm:text-3xl text-success-600"></i>
+        </div>
+        <h3 class="text-xl sm:text-2xl font-bold text-brown-700 mb-2 sm:mb-3">Order Confirmed!</h3>
+        <p class="text-brown-600 mb-4 sm:mb-6 text-sm sm:text-base">Your order has been placed successfully and will be delivered soon.</p>
+        
+        <!-- Order Details -->
+        <div class="bg-brown-50 rounded-xl p-4 mb-4 sm:mb-6 text-left">
+          <h4 class="font-semibold text-brown-700 mb-2 text-sm sm:text-base">Order Details:</h4>
+          <div class="space-y-1 text-xs sm:text-sm text-brown-600">
+            <div class="flex justify-between">
+              <span>Order #:</span>
+              <span class="font-medium">#CB-2024-001</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Total:</span>
+              <span class="font-medium">₱860</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Delivery:</span>
+              <span class="font-medium">Processing</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button onclick="closeSuccessModal()" class="flex-1 bg-gradient-to-r from-brown-600 to-brown-700 text-white px-4 py-3 rounded-xl font-semibold transition-all duration-300 hover:from-brown-700 hover:to-brown-600 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brown-600/30 text-sm sm:text-base">
+          Continue Shopping
+        </button>
+          <button onclick="viewOrderHistory()" class="flex-1 bg-white border-2 border-brown-600 text-brown-600 px-4 py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-brown-50 text-sm sm:text-base">
+            View Orders
+        </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Address Selection Modal -->
+  <div id="addressModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4">
+    <div class="bg-white rounded-lg max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+      <div class="p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">My Address</h2>
+        
+        <!-- Address List -->
+        <div id="addressList" class="space-y-3 mb-4">
+          <!-- Addresses will be populated here -->
+        </div>
+        
+        <!-- Add New Address Button -->
+        <button type="button" onclick="showNewAddressModal()" class="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-all duration-300 flex items-center justify-center gap-2 mb-6">
+          <i class="fas fa-plus"></i>
+          <span>Add New Address</span>
+        </button>
+        
+        <!-- Action Buttons -->
+        <div class="flex gap-3">
+          <button type="button" onclick="closeAddressModal()" class="flex-1 bg-white text-gray-700 px-4 py-3 rounded-lg font-medium border border-gray-300 hover:bg-gray-50 transition-all duration-300">
+            Cancel
+          </button>
+          <button type="button" onclick="confirmAddressSelection()" class="flex-1 bg-orange-500 text-white px-4 py-3 rounded-lg font-medium hover:bg-orange-600 transition-all duration-300">
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Address Modal -->
+  <div id="newAddressModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4">
+    <div class="bg-white rounded-lg max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-6">New Address</h2>
+        
+        <form id="newAddressForm">
+           <!-- Name Fields -->
+           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+             <div>
+               <label for="addressFirstName" class="block text-sm font-semibold text-gray-700 mb-2">First Name *</label>
+               <input 
+                 type="text" 
+                 id="addressFirstName" 
+                 name="addressFirstName" 
+                 required 
+                 class="w-full px-3 py-3 bg-white border border-gray-300 rounded-lg focus:border-orange-500 focus:outline-none transition-all duration-300 text-gray-700 placeholder-gray-400"
+                 placeholder="Enter first name"
+               >
+             </div>
+             <div>
+               <label for="addressLastName" class="block text-sm font-semibold text-gray-700 mb-2">Last Name *</label>
+               <input 
+                 type="text" 
+                 id="addressLastName" 
+                 name="addressLastName" 
+                 required 
+                 class="w-full px-3 py-3 bg-white border border-gray-300 rounded-lg focus:border-orange-500 focus:outline-none transition-all duration-300 text-gray-700 placeholder-gray-400"
+                 placeholder="Enter last name"
+               >
+             </div>
+           </div>
+           
+           <!-- Phone Number -->
+           <div class="mb-6">
+             <label for="addressPhone" class="block text-sm font-semibold text-gray-700 mb-2">Phone Number *</label>
+             <input 
+               type="tel" 
+               id="addressPhone" 
+               name="addressPhone" 
+               required 
+               class="w-full px-3 py-3 bg-white border border-gray-300 rounded-lg focus:border-orange-500 focus:outline-none transition-all duration-300 text-gray-700 placeholder-gray-400"
+               placeholder="+63 912 345 6789"
+               pattern="[0-9+\s\-\(\)]+"
+             >
+           </div>
+           
+           <!-- Address/Barangay -->
+           <div class="mb-6">
+             <label for="barangay" class="block text-sm font-semibold text-gray-700 mb-2">Address/Barangay *</label>
+             <div class="relative">
+               <input 
+                 type="text" 
+                 id="barangay" 
+                 name="barangay" 
+                 required 
+                 class="w-full px-3 py-3 bg-white border border-gray-300 rounded-lg focus:border-orange-500 focus:outline-none transition-all duration-300 text-gray-700 placeholder-gray-400 pr-10"
+                 placeholder="Enter address or barangay"
+               >
+               <i class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+             </div>
+           </div>
+          
+           <!-- Map Section -->
+           <div class="mb-6">
+             <div class="flex items-center gap-2 mb-2">
+               <label class="text-sm font-semibold text-gray-700">Map Location *</label>
+               <span id="mapStatus" class="text-xs text-red-500 font-medium">Required</span>
+             </div>
+             <div class="border-2 border-red-200 rounded-lg h-48 overflow-hidden relative" id="mapContainerWrapper">
+               <div id="mapContainer" class="w-full h-full bg-gray-100 flex items-center justify-center">
+                 <div class="text-center">
+                   <i class="fas fa-map-marker-alt text-gray-400 text-2xl mb-2"></i>
+                   <p class="text-gray-500 text-sm mb-3">Click to add location <span class="text-red-500">*</span></p>
+                   <button type="button" onclick="initMap()" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all duration-300 flex items-center gap-2 mx-auto">
+                     <i class="fas fa-map"></i>
+                     <span>Load Map</span>
+                   </button>
+                 </div>
+               </div>
+               <div id="map" class="w-full h-full hidden"></div>
+               <div id="mapPin" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-red-500 text-2xl hidden pointer-events-none">
+                 <i class="fas fa-map-pin"></i>
+               </div>
+             </div>
+             <div class="mt-2">
+               <p class="text-xs text-gray-500">Click on the map to pin your exact location <span class="text-red-500 font-medium">*Required</span></p>
+             </div>
+           </div>
+          
+          <!-- Label As Section -->
+          <div class="mb-6">
+            <div class="flex items-center gap-3">
+              <span class="text-gray-700 font-medium">Label As:</span>
+              <div class="flex gap-2">
+                <button type="button" onclick="setAddressLabel('home')" class="address-label-btn bg-gray-100 text-gray-700 px-3 py-2 rounded-lg font-medium hover:bg-gray-200 transition-all duration-300">
+                  Home
+                </button>
+                <button type="button" onclick="setAddressLabel('work')" class="address-label-btn bg-white text-gray-700 px-3 py-2 rounded-lg font-medium border border-gray-300 hover:bg-gray-50 transition-all duration-300">
+                  Work
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="flex gap-3">
+            <button type="button" onclick="closeNewAddressModal()" class="flex-1 bg-white text-gray-700 px-4 py-3 rounded-lg font-medium hover:bg-gray-50 transition-all duration-300">
+              Cancel
+            </button>
+            <button type="submit" class="flex-1 bg-orange-500 text-white px-4 py-3 rounded-lg font-medium hover:bg-orange-600 transition-all duration-300">
+              Submit
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global state
+    let isSubmitting = false;
+
+    // DOM elements
+    const elements = {
+      profileDropdown: document.getElementById('profileDropdown'),
+      mobileMenu: document.getElementById('mobileMenu'),
+      mobileMenuBtn: document.getElementById('mobileMenuBtn'),
+      checkoutForm: document.getElementById('checkoutForm'),
+      submitBtn: document.getElementById('submitBtn'),
+      successModal: document.getElementById('successModal')
+    };
+
+    // Handle authentication state for profile dropdown
+    function handleAuthenticationState() {
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      const userNameDisplay = document.getElementById('userNameDisplay');
+      const authenticatedOptions = document.getElementById('authenticatedOptions');
+      const unauthenticatedOptions = document.getElementById('unauthenticatedOptions');
+      
+      if (userData && userData.firstName) {
+        // User is authenticated
+        if (userNameDisplay) {
+          userNameDisplay.textContent = userData.firstName;
+        }
+        if (authenticatedOptions) {
+          authenticatedOptions.classList.remove('hidden');
+        }
+        if (unauthenticatedOptions) {
+          unauthenticatedOptions.classList.add('hidden');
+        }
+      } else {
+        // User is not authenticated
+        if (userNameDisplay) {
+          userNameDisplay.textContent = 'Profile';
+        }
+        if (authenticatedOptions) {
+          authenticatedOptions.classList.add('hidden');
+        }
+        if (unauthenticatedOptions) {
+          unauthenticatedOptions.classList.remove('hidden');
+        }
+      }
+    }
+
+    // Initialize app
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeEventListeners();
+      initializeFormValidation();
+      initializeAccessibility();
+      loadCartData();
+      updateCartCount();
+      handleAuthenticationState();
+      initializeSampleAddresses();
+      checkForPreorderItems();
+      loadUserDataToForm();
+      // Addresses are now loaded only when user clicks "Show Saved"
+    });
+    
+    // Initialize sample addresses for demonstration
+    function initializeSampleAddresses() {
+      const savedAddresses = JSON.parse(localStorage.getItem('savedAddresses')) || [];
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      
+      // Only add sample addresses if none exist
+      if (savedAddresses.length === 0) {
+         const sampleAddresses = [
+           {
+             firstName: userData?.firstName || "John",
+             lastName: userData?.lastName || "Doe",
+             phone: userData?.phone || "+63 912 345 6789",
+             barangay: "Sipat",
+             coordinates: { lat: 14.5995, lng: 120.9842 },
+             label: "Default",
+             createdAt: new Date().toISOString()
+           },
+           {
+             firstName: userData?.firstName || "Jane",
+             lastName: userData?.lastName || "Smith",
+             phone: userData?.phone || "+63 987 654 3210",
+             barangay: "San Jose",
+             coordinates: { lat: 14.5995, lng: 120.9842 },
+             label: "Home",
+             createdAt: new Date().toISOString()
+           }
+         ];
+        
+        localStorage.setItem('savedAddresses', JSON.stringify(sampleAddresses));
+      }
+    }
+    
+    // Update cart count when page becomes visible (user returns from another tab)
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden) {
+        updateCartCount();
+      }
+    });
+    
+    // Update cart count in header
+    function updateCartCount() {
+      const cart = JSON.parse(localStorage.getItem("cartData")) || [];
+      const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+      const cartCountElement = document.querySelector('.bg-brown-600.text-white.text-xs.rounded-full');
+      if (cartCountElement) {
+        cartCountElement.textContent = totalItems;
+        // Show/hide badge based on count
+        if (totalItems > 0) {
+          cartCountElement.style.display = 'flex';
+        } else {
+          cartCountElement.style.display = 'none';
+        }
+      }
+    }
+    
+    // Load user data and auto-fill form
+    function loadUserDataToForm() {
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      
+      if (userData) {
+        // Auto-fill delivery information fields
+        const firstNameField = document.getElementById('firstName');
+        const lastNameField = document.getElementById('lastName');
+        const phoneNumberField = document.getElementById('phoneNumber');
+        
+        if (firstNameField && userData.firstName) {
+          firstNameField.value = userData.firstName;
+        }
+        
+        if (lastNameField && userData.lastName) {
+          lastNameField.value = userData.lastName;
+        }
+        
+        if (phoneNumberField && userData.phone) {
+          phoneNumberField.value = userData.phone;
+        }
+        
+        // Update the default address display with user info
+        const selectedAddressName = document.getElementById('selectedAddressName');
+        const selectedAddressPhone = document.getElementById('selectedAddressPhone');
+        
+        if (selectedAddressName && userData.firstName && userData.lastName) {
+          selectedAddressName.textContent = `${userData.firstName} ${userData.lastName}`;
+        }
+        
+        if (selectedAddressPhone && userData.phone) {
+          selectedAddressPhone.textContent = userData.phone;
+        }
+        
+        // Update the hidden delivery address field for form submission
+        const deliveryAddressField = document.getElementById('deliveryAddress');
+        if (deliveryAddressField && userData.firstName && userData.lastName && userData.phone) {
+          const currentAddressText = document.getElementById('selectedAddressText').textContent;
+          deliveryAddressField.value = `${userData.firstName} ${userData.lastName}, ${userData.phone}, ${currentAddressText}`;
+        }
+        
+        // Update profile name display and authentication state
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        const authenticatedOptions = document.getElementById('authenticatedOptions');
+        const unauthenticatedOptions = document.getElementById('unauthenticatedOptions');
+        
+        if (userNameDisplay && userData.firstName) {
+          userNameDisplay.textContent = userData.firstName;
+        }
+        
+        // Show authenticated options
+        if (authenticatedOptions) {
+          authenticatedOptions.classList.remove('hidden');
+        }
+        if (unauthenticatedOptions) {
+          unauthenticatedOptions.classList.add('hidden');
+        }
+      }
+    }
+
+    // Check for pre-order items in cart
+    function checkForPreorderItems() {
+      const cartData = JSON.parse(localStorage.getItem('cartData')) || [];
+      const hasPreorderItems = cartData.some(item => item.preorder === true);
+      
+      const preorderSection = document.getElementById('preorderDateTimeSection');
+      const pickupDateInput = document.getElementById('pickupDate');
+      const pickupTimeInput = document.getElementById('pickupTime');
+      
+      if (hasPreorderItems) {
+        preorderSection.classList.remove('hidden');
+        // Set minimum date to tomorrow (24 hours advance notice)
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const minDate = tomorrow.toISOString().split('T')[0];
+        pickupDateInput.setAttribute('min', minDate);
+        
+        // Make fields required
+        pickupDateInput.setAttribute('required', 'true');
+        pickupTimeInput.setAttribute('required', 'true');
+      } else {
+        preorderSection.classList.add('hidden');
+        // Remove required attribute for regular orders
+        pickupDateInput.removeAttribute('required');
+        pickupTimeInput.removeAttribute('required');
+      }
+    }
+
+    // Load cart data from localStorage
+    function loadCartData() {
+      const cartData = JSON.parse(localStorage.getItem('cartData')) || [];
+      
+      if (cartData.length === 0) {
+        // Show empty cart message
+        showEmptyCartMessage();
+        return;
+      }
+      
+      // Update cart items with data from localStorage
+      updateCartItems(cartData);
+    }
+    
+    // Update cart items with loaded data
+    function updateCartItems(cartData) {
+      const cartContainer = document.querySelector('.space-y-3');
+      if (!cartContainer) return;
+      
+      cartContainer.innerHTML = '';
+      
+      cartData.forEach((item, index) => {
+        const itemElement = createCartItemElement(item, index);
+        cartContainer.appendChild(itemElement);
+      });
+      
+      // Update totals
+      updateOrderTotals();
+      
+      // Check for pre-order items after loading
+      checkForPreorderItems();
+    }
+    
+    // Create cart item element
+    function createCartItemElement(item, index) {
+      const div = document.createElement('div');
+      div.className = 'flex items-center gap-3 sm:gap-4 p-3 bg-brown-50/50 rounded-xl';
+      div.setAttribute('data-item', `item-${index}`);
+      
+      div.innerHTML = `
+        <img src="${getItemImage(item.name)}" alt="${item.name}" class="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover shadow-sm">
+        <div class="flex-1 min-w-0">
+          <h3 class="font-semibold text-brown-700 text-sm sm:text-base truncate">${item.name}</h3>
+          <div class="flex items-center justify-between mt-1">
+            <p class="font-bold text-brown-700 text-sm sm:text-base item-price">₱${item.price * item.qty}</p>
+            <div class="flex items-center gap-2">
+              <button onclick="decreaseQuantity('item-${index}')" class="w-6 h-6 bg-brown-600 text-white rounded-full flex items-center justify-center text-xs hover:bg-brown-700 transition-colors">
+                -
+              </button>
+              <span class="quantity text-xs sm:text-sm text-brown-600 font-medium min-w-[20px] text-center">${item.qty}</span>
+              <button onclick="increaseQuantity('item-${index}')" class="w-6 h-6 bg-brown-600 text-white rounded-full flex items-center justify-center text-xs hover:bg-brown-700 transition-colors">
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+        <button onclick="removeItem('item-${index}')" class="text-red-500 hover:text-red-700 transition-colors p-1">
+          <i class="fas fa-trash text-sm"></i>
+        </button>
+      `;
+      
+      return div;
+    }
+    
+    // Get item image based on name
+    function getItemImage(itemName) {
+      const images = {
+        'Chocolate Fudge Cake': 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=80&h=80&fit=crop&crop=center',
+        'Artisan Sourdough': 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=80&h=80&fit=crop&crop=center',
+        'Butter Croissant': 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=80&h=80&fit=crop&crop=center',
+        'Red Velvet Cupcake': 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=80&h=80&fit=crop&crop=center',
+        'Cinnamon Roll': 'https://images.unsplash.com/photo-1517433670267-08bbd4be890f?w=80&h=80&fit=crop&crop=center',
+        'Whole Wheat Bread': 'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=80&h=80&fit=crop&crop=center',
+        'New York Cheesecake': 'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=80&h=80&fit=crop&crop=center',
+        'Ensaymada': 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=80&h=80&fit=crop&crop=center',
+        'Glazed Donuts': 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=80&h=80&fit=crop&crop=center',
+        'Fruit Danish': 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=80&h=80&fit=crop&crop=center'
+      };
+      
+      return images[itemName] || 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=80&h=80&fit=crop&crop=center';
+    }
+
+    // Event listeners
+    function initializeEventListeners() {
+    // Profile dropdown toggle
+      document.addEventListener('click', function(event) {
+        const profileDropdown = elements.profileDropdown;
+        const profileButton = event.target.closest('button[onclick="toggleProfile()"]');
+        
+        if (!profileButton && !profileDropdown.contains(event.target)) {
+          profileDropdown.classList.add('hidden');
+        }
+      });
+
+      // Mobile menu toggle
+      elements.mobileMenuBtn.addEventListener('click', function() {
+        elements.mobileMenu.classList.toggle('hidden');
+        const icon = this.querySelector('i');
+        icon.classList.toggle('fa-bars');
+        icon.classList.toggle('fa-times');
+      });
+
+      // Close mobile menu when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!elements.mobileMenu.contains(event.target) && !elements.mobileMenuBtn.contains(event.target)) {
+          elements.mobileMenu.classList.add('hidden');
+          const icon = elements.mobileMenuBtn.querySelector('i');
+          icon.classList.add('fa-bars');
+          icon.classList.remove('fa-times');
+      }
+    });
+
+
+      // Form submission
+      elements.checkoutForm.addEventListener('submit', handleFormSubmission);
+
+      // Real-time validation
+      const inputs = elements.checkoutForm.querySelectorAll('input[required], textarea[required]');
+      inputs.forEach(input => {
+        input.addEventListener('blur', () => validateField(input));
+        input.addEventListener('input', () => clearFieldError(input));
+      });
+
+      // Header scroll effect
+      window.addEventListener('scroll', handleScroll);
+    }
+
+    // Form validation
+    function initializeFormValidation() {
+      const form = elements.checkoutForm;
+      form.setAttribute('novalidate', 'true');
+    }
+
+    function validateField(field) {
+      const value = field.value.trim();
+      const fieldName = field.name;
+      const errorElement = document.getElementById(`${fieldName}-error`);
+      
+      let isValid = true;
+      let errorMessage = '';
+
+      // Required field validation
+      if (!value) {
+        isValid = false;
+        errorMessage = `${getFieldLabel(fieldName)} is required`;
+      } else {
+        // Specific validations
+        switch (fieldName) {
+          case 'firstName':
+          case 'lastName':
+            if (value.length < 2) {
+              isValid = false;
+              errorMessage = 'Name must be at least 2 characters';
+            }
+            break;
+          case 'phoneNumber':
+            const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
+            if (!phoneRegex.test(value)) {
+              isValid = false;
+              errorMessage = 'Please enter a valid phone number';
+            }
+            break;
+          case 'deliveryAddress':
+            if (value.length < 10) {
+              isValid = false;
+              errorMessage = 'Please provide a complete address';
+            }
+            break;
+          case 'pickupDate':
+            const selectedDate = new Date(value);
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(0, 0, 0, 0);
+            
+            if (selectedDate < tomorrow) {
+              isValid = false;
+              errorMessage = 'Pickup date must be at least 24 hours in advance';
+            }
+            break;
+          case 'pickupTime':
+            if (!value) {
+              isValid = false;
+              errorMessage = 'Please select a pickup time';
+            }
+            break;
+        }
+      }
+
+      // Update UI
+      if (isValid) {
+        field.classList.remove('border-red-500');
+        field.classList.add('border-green-500');
+        if (errorElement) errorElement.classList.add('hidden');
+      } else {
+        field.classList.remove('border-green-500');
+        field.classList.add('border-red-500');
+        if (errorElement) {
+          errorElement.textContent = errorMessage;
+          errorElement.classList.remove('hidden');
+        }
+      }
+
+      return isValid;
+    }
+
+    function clearFieldError(field) {
+      field.classList.remove('border-red-500', 'border-green-500');
+      const errorElement = document.getElementById(`${field.name}-error`);
+      if (errorElement) errorElement.classList.add('hidden');
+    }
+
+    function getFieldLabel(fieldName) {
+      const labels = {
+        firstName: 'First Name',
+        lastName: 'Last Name',
+        phoneNumber: 'Phone Number',
+        deliveryAddress: 'Delivery Address',
+        pickupDate: 'Pickup Date',
+        pickupTime: 'Pickup Time'
+      };
+      return labels[fieldName] || fieldName;
+    }
+
+    function validateForm() {
+      const requiredFields = elements.checkoutForm.querySelectorAll('input[required], textarea[required]');
+      let isFormValid = true;
+
+      requiredFields.forEach(field => {
+        if (!validateField(field)) {
+          isFormValid = false;
+        }
+      });
+
+      return isFormValid;
+    }
+
+
+    // Form submission
+    async function handleFormSubmission(e) {
+      e.preventDefault();
+      
+      if (isSubmitting) return;
+
+      // Validate form
+      if (!validateForm()) {
+        showNotification('Please fix the errors in the form', 'error');
+        return;
+      }
+
+      // Show loading state
+      setLoadingState(true);
+
+      try {
+        // Simulate API call
+        await simulateOrderSubmission();
+        
+        // Show success modal
+        showSuccessModal();
+        
+        // Reset form
+        elements.checkoutForm.reset();
+        
+      } catch (error) {
+        showNotification('Failed to place order. Please try again.', 'error');
+      } finally {
+        setLoadingState(false);
+      }
+    }
+
+    function setLoadingState(loading) {
+      isSubmitting = loading;
+      const submitText = document.querySelector('.submit-text');
+      const loadingText = document.querySelector('.loading-text');
+      
+      if (loading) {
+        submitText.classList.add('hidden');
+        loadingText.classList.remove('hidden');
+        elements.submitBtn.disabled = true;
+      } else {
+        submitText.classList.remove('hidden');
+        loadingText.classList.add('hidden');
+        elements.submitBtn.disabled = false;
+      }
+    }
+
+    async function simulateOrderSubmission() {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          // Simulate random success/failure
+          if (Math.random() > 0.1) {
+            resolve();
+          } else {
+            reject(new Error('Simulated error'));
+          }
+        }, 2000);
+      });
+    }
+
+    // Modal functions
+    function showSuccessModal() {
+      elements.successModal.classList.remove('hidden');
+      elements.successModal.setAttribute('aria-hidden', 'false');
+      
+      // Focus management
+      const firstButton = elements.successModal.querySelector('button');
+      if (firstButton) firstButton.focus();
+    }
+
+    function closeSuccessModal() {
+      elements.successModal.classList.add('hidden');
+      elements.successModal.setAttribute('aria-hidden', 'true');
+      window.location.href = 'home-tailwind.html';
+    }
+
+    function viewOrderHistory() {
+      window.location.href = 'order-history-tailwind.html';
+    }
+
+    // Address Section Toggle functionality
+    function toggleAddressSection() {
+      const section = document.getElementById('addressSection');
+      const icon = document.getElementById('addressToggleIcon');
+      const text = document.getElementById('addressToggleText');
+      
+      if (section.classList.contains('hidden')) {
+        // Show entire address section
+        section.classList.remove('hidden');
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+        text.textContent = 'Hide Address Options';
+        
+        // Load addresses when showing
+        loadAddressList();
+      } else {
+        // Hide entire address section
+        section.classList.add('hidden');
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+        text.textContent = 'Show Address Options';
+      }
+    }
+
+    function toggleSavedAddresses() {
+      // This function can be used for other address management features
+      // For now, just refresh the addresses list if section is visible
+      const section = document.getElementById('addressSection');
+      if (!section.classList.contains('hidden')) {
+        loadAddressList();
+      }
+    }
+
+     // Address management functions
+     let selectedAddressIndex = 0;
+     
+     function getLabelColor(label) {
+       switch(label) {
+         case 'Home': return 'bg-blue-100 text-blue-600';
+         case 'Work': return 'bg-green-100 text-green-600';
+         case 'Default': return 'bg-red-100 text-red-600';
+         default: return 'bg-gray-100 text-gray-600';
+       }
+     }
+    
+    function loadAddressList() {
+      const savedAddresses = JSON.parse(localStorage.getItem('savedAddresses')) || [];
+      const container = document.getElementById('addressList');
+      
+      if (savedAddresses.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-4 text-gray-500">
+            <p class="text-sm">No saved addresses</p>
+          </div>
+        `;
+        return;
+      }
+      
+       container.innerHTML = savedAddresses.map((address, index) => `
+         <div class="border border-gray-200 rounded-lg p-4 cursor-pointer hover:border-gray-300 transition-all duration-300" onclick="selectAddress(${index})">
+           <div class="flex items-start gap-3">
+             <div class="flex items-center mt-1">
+               <input type="radio" name="address" value="${index}" ${index === selectedAddressIndex ? 'checked' : ''} class="text-red-500 focus:ring-red-500">
+             </div>
+             <div class="flex-1">
+               <div class="flex items-center gap-2 mb-2">
+                 <span class="font-semibold text-gray-900">${address.firstName || 'Unknown'} ${address.lastName || 'User'}</span>
+                 <span class="text-xs px-2 py-1 rounded-full ${getLabelColor(address.label)}">${address.label || 'Default'}</span>
+               </div>
+               <div class="flex items-center gap-2 mb-1">
+                 <i class="fas fa-phone text-gray-400 text-xs"></i>
+                 <span class="text-sm text-gray-600">${address.phone || 'No phone number'}</span>
+               </div>
+               <div class="flex items-center gap-2 mb-2">
+                 <i class="fas fa-map-marker-alt text-gray-400 text-xs"></i>
+                 <span class="text-sm text-gray-600">${address.barangay} - Location pinned on map</span>
+               </div>
+               <div class="flex items-center gap-2">
+                 <button onclick="event.stopPropagation(); editAddress(${index})" class="text-blue-600 text-sm hover:text-blue-700">Edit</button>
+               </div>
+             </div>
+           </div>
+         </div>
+       `).join('');
+    }
+
+    function selectAddress(index) {
+      selectedAddressIndex = index;
+      loadAddressList();
+    }
+
+     function confirmAddressSelection() {
+       const savedAddresses = JSON.parse(localStorage.getItem('savedAddresses')) || [];
+       const address = savedAddresses[selectedAddressIndex];
+       
+       if (address) {
+         // Update the display
+         document.getElementById('selectedAddressName').textContent = `${address.firstName || 'Unknown'} ${address.lastName || 'User'}`;
+         document.getElementById('selectedAddressPhone').textContent = address.phone || 'No phone number';
+         document.getElementById('selectedAddressText').textContent = `${address.barangay} - Location pinned on map`;
+         
+         // Update the hidden textarea for form submission
+         document.getElementById('deliveryAddress').value = `${address.firstName} ${address.lastName}, ${address.phone}, ${address.barangay} - Location pinned on map`;
+         
+         // Close modal
+         closeAddressModal();
+         
+         // Show success message
+         showToast('Address selected successfully!', 'success');
+       }
+     }
+
+    function showAddressModal() {
+      loadAddressList();
+      document.getElementById('addressModal').classList.remove('hidden');
+    }
+
+    function closeAddressModal() {
+      document.getElementById('addressModal').classList.add('hidden');
+    }
+
+    function showNewAddressModal() {
+      document.getElementById('addressModal').classList.add('hidden');
+      document.getElementById('newAddressModal').classList.remove('hidden');
+      
+      // Auto-fill with user data
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      if (userData) {
+        const addressFirstNameField = document.getElementById('addressFirstName');
+        const addressLastNameField = document.getElementById('addressLastName');
+        const addressPhoneField = document.getElementById('addressPhone');
+        
+        if (addressFirstNameField && userData.firstName) {
+          addressFirstNameField.value = userData.firstName;
+        }
+        
+        if (addressLastNameField && userData.lastName) {
+          addressLastNameField.value = userData.lastName;
+        }
+        
+        if (addressPhoneField && userData.phone) {
+          addressPhoneField.value = userData.phone;
+        }
+      }
+    }
+
+     function closeNewAddressModal() {
+       document.getElementById('newAddressModal').classList.add('hidden');
+       document.getElementById('newAddressForm').reset();
+       
+       // Reset label buttons
+       document.querySelectorAll('.address-label-btn').forEach(btn => {
+         btn.classList.remove('bg-gray-100');
+         btn.classList.add('bg-white', 'border', 'border-gray-300');
+       });
+       
+       // Reset map status
+       updateMapStatus(false);
+       window.selectedMapCoordinates = null;
+       
+       // Hide all map elements and show placeholder
+       document.getElementById('mapContainer').classList.remove('hidden');
+       document.getElementById('map').classList.add('hidden');
+       document.getElementById('mapPin').classList.add('hidden');
+     }
+
+    function setAddressLabel(label) {
+      // Reset all buttons
+      document.querySelectorAll('.address-label-btn').forEach(btn => {
+        btn.classList.remove('bg-gray-100');
+        btn.classList.add('bg-white', 'border', 'border-gray-300');
+      });
+      
+      // Set selected button
+      const selectedBtn = event.target.closest('.address-label-btn');
+      selectedBtn.classList.remove('bg-white', 'border', 'border-gray-300');
+      selectedBtn.classList.add('bg-gray-100');
+      
+      // Store selected label
+      selectedBtn.dataset.label = label;
+    }
+
+    function editAddress(index) {
+      // For now, just show the new address modal
+      // In a real app, you'd populate the form with existing data
+      showNewAddressModal();
+    }
+
+     // Map functionality
+     let map = null;
+     let marker = null;
+     let isMapInitialized = false;
+     window.selectedMapCoordinates = null;
+
+     function initGoogleMaps() {
+       // Google Maps API is loaded
+       console.log('Google Maps API loaded');
+       isMapInitialized = true;
+     }
+
+     function initMap() {
+       // Check if Google Maps API is loaded
+       if (typeof google === 'undefined' || !google.maps) {
+         console.error('Google Maps API not loaded');
+         showToast('Map service is not available. Please try again later.', 'error');
+         return;
+       }
+
+       const mapContainer = document.getElementById('mapContainer');
+       const mapElement = document.getElementById('map');
+       
+       if (!mapContainer || !mapElement) {
+         console.error('Map elements not found');
+         return;
+       }
+       
+       try {
+         // Hide placeholder and show map
+         mapContainer.classList.add('hidden');
+         mapElement.classList.remove('hidden');
+         
+         // Initialize map centered on Philippines
+         map = new google.maps.Map(mapElement, {
+           zoom: 15,
+           center: { lat: 14.5995, lng: 120.9842 }, // Manila coordinates
+           mapTypeId: 'roadmap',
+           disableDefaultUI: false,
+           zoomControl: true,
+           mapTypeControl: true,
+           scaleControl: true,
+           streetViewControl: true,
+           rotateControl: true,
+           fullscreenControl: true
+         });
+         
+         // Add click listener to map
+         map.addListener('click', function(event) {
+           const lat = event.latLng.lat();
+           const lng = event.latLng.lng();
+           
+           // Store coordinates
+           window.selectedMapCoordinates = { lat: lat, lng: lng };
+           
+           // Remove existing marker
+           if (marker) {
+             marker.setMap(null);
+           }
+           
+           // Add new marker
+           marker = new google.maps.Marker({
+             position: { lat: lat, lng: lng },
+             map: map,
+             title: 'Selected Location',
+             animation: google.maps.Animation.DROP
+           });
+           
+           // Show success message
+           showToast('Location pinned successfully!', 'success');
+           
+           // Update map status
+           updateMapStatus(true);
+           
+           // Get address from coordinates (reverse geocoding)
+           const geocoder = new google.maps.Geocoder();
+           geocoder.geocode({ location: { lat: lat, lng: lng } }, function(results, status) {
+             if (status === 'OK' && results[0]) {
+               console.log('Selected location:', results[0].formatted_address);
+             } else {
+               console.log('Geocoding failed:', status);
+             }
+           });
+         });
+         
+         // Try to get user's current location
+         if (navigator.geolocation) {
+           navigator.geolocation.getCurrentPosition(function(position) {
+             const userLocation = {
+               lat: position.coords.latitude,
+               lng: position.coords.longitude
+             };
+             
+             map.setCenter(userLocation);
+             
+             // Add marker for current location
+             marker = new google.maps.Marker({
+               position: userLocation,
+               map: map,
+               title: 'Your Current Location',
+               icon: {
+                 url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+               }
+             });
+             
+             showToast('Your current location has been detected', 'success');
+           }, function(error) {
+             console.log('Geolocation failed:', error.message);
+             showToast('Could not detect your location. You can still pin a location manually.', 'info');
+           });
+         } else {
+           showToast('Geolocation not supported. You can still pin a location manually.', 'info');
+         }
+         
+       } catch (error) {
+         console.error('Error initializing map:', error);
+         showToast('Error loading map. Please try again.', 'error');
+         
+         // Show placeholder again
+         mapContainer.classList.remove('hidden');
+         mapElement.classList.add('hidden');
+       }
+     }
+
+     function updateMapStatus(isPinned) {
+       const mapStatus = document.getElementById('mapStatus');
+       const mapContainerWrapper = document.getElementById('mapContainerWrapper');
+       
+       if (isPinned) {
+         // Update status to show pinned
+         mapStatus.textContent = 'Pinned ✓';
+         mapStatus.className = 'text-xs text-green-600 font-medium';
+         
+         // Change border to green
+         mapContainerWrapper.classList.remove('border-red-200');
+         mapContainerWrapper.classList.add('border-green-200');
+       } else {
+         // Update status to show required
+         mapStatus.textContent = 'Required';
+         mapStatus.className = 'text-xs text-red-500 font-medium';
+         
+         // Change border to red
+         mapContainerWrapper.classList.remove('border-green-200');
+         mapContainerWrapper.classList.add('border-red-200');
+       }
+     }
+
+     // New address form handler
+     document.getElementById('newAddressForm').addEventListener('submit', function(e) {
+       e.preventDefault();
+       
+       const formData = new FormData(this);
+       const firstName = formData.get('addressFirstName');
+       const lastName = formData.get('addressLastName');
+       const phone = formData.get('addressPhone');
+       const barangay = formData.get('barangay');
+       
+       const selectedLabelBtn = document.querySelector('.address-label-btn[data-label]');
+       const label = selectedLabelBtn ? selectedLabelBtn.dataset.label : 'home';
+       
+       // Validate required fields
+       if (!firstName || !lastName || !phone || !barangay) {
+         showToast('Please fill in all required fields!', 'error');
+         return;
+       }
+       
+       // Check if map pinning is required
+       const mapCoordinates = window.selectedMapCoordinates;
+       if (!mapCoordinates) {
+         showToast('Please pin a location on the map before submitting!', 'error');
+         return;
+       }
+       
+       // Create new address object
+       const newAddress = {
+         firstName: firstName,
+         lastName: lastName,
+         phone: phone,
+         barangay: barangay,
+         coordinates: mapCoordinates,
+         label: label === 'home' ? 'Home' : 'Work',
+         createdAt: new Date().toISOString()
+       };
+       
+       // Save to localStorage
+       const savedAddresses = JSON.parse(localStorage.getItem('savedAddresses')) || [];
+       savedAddresses.push(newAddress);
+       localStorage.setItem('savedAddresses', JSON.stringify(savedAddresses));
+       
+       // Close modal
+       closeNewAddressModal();
+       
+       // Show success message
+       showToast('Address added successfully!', 'success');
+     });
+
+    // Utility functions
+    function showToast(message, type = 'info') {
+      // Create toast element
+      const toast = document.createElement('div');
+      toast.className = `fixed top-20 right-4 p-4 rounded-xl shadow-lg z-50 animate-slideInRight ${
+        type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 
+        type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+        'bg-blue-50 text-blue-700 border border-blue-200'
+      }`;
+      toast.innerHTML = `
+        <div class="flex items-center">
+          <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'} mr-2"></i>
+          <span class="text-sm font-medium">${message}</span>
+        </div>
+      `;
+      
+      document.body.appendChild(toast);
+      
+      // Remove after 3 seconds
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+
+    function showNotification(message, type = 'info') {
+      // Create notification element
+      const notification = document.createElement('div');
+      notification.className = `fixed top-20 right-4 p-4 rounded-xl shadow-lg z-50 animate-slideInRight ${
+        type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 
+        type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+        'bg-blue-50 text-blue-700 border border-blue-200'
+      }`;
+      notification.innerHTML = `
+        <div class="flex items-center">
+          <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'} mr-2"></i>
+          <span class="text-sm font-medium">${message}</span>
+        </div>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      // Remove after 5 seconds
+      setTimeout(() => {
+        notification.remove();
+      }, 5000);
+    }
+
+    // Scroll handling
+    function handleScroll() {
+      const header = document.getElementById('header');
+      if (window.scrollY > 100) {
+        header.classList.add('scrolled');
+      } else {
+        header.classList.remove('scrolled');
+      }
+    }
+
+    // Accessibility
+    function initializeAccessibility() {
+      // Add ARIA attributes
+      elements.successModal.setAttribute('aria-hidden', 'true');
+      elements.successModal.setAttribute('role', 'dialog');
+      elements.successModal.setAttribute('aria-labelledby', 'modal-title');
+      
+
+      // Close modal with Escape key
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !elements.successModal.classList.contains('hidden')) {
+          closeSuccessModal();
+        }
+      });
+    }
+
+    // Cart management functions
+    function increaseQuantity(itemId) {
+      const itemElement = document.querySelector(`[data-item="${itemId}"]`);
+      const quantityElement = itemElement.querySelector('.quantity');
+      const priceElement = itemElement.querySelector('.item-price');
+      
+      let currentQuantity = parseInt(quantityElement.textContent);
+      currentQuantity++;
+      
+      quantityElement.textContent = currentQuantity;
+      
+      // Update price based on item
+      const basePrice = getItemBasePrice(itemId);
+      const newPrice = basePrice * currentQuantity;
+      priceElement.textContent = `₱${newPrice}`;
+      
+      // Update localStorage
+      updateCartInStorage(itemId, currentQuantity);
+      
+      // Update cart count in header
+      updateCartCount();
+      
+      // Update totals
+      updateOrderTotals();
+    }
+    
+    function decreaseQuantity(itemId) {
+      const itemElement = document.querySelector(`[data-item="${itemId}"]`);
+      const quantityElement = itemElement.querySelector('.quantity');
+      const priceElement = itemElement.querySelector('.item-price');
+      
+      let currentQuantity = parseInt(quantityElement.textContent);
+      
+      if (currentQuantity > 1) {
+        currentQuantity--;
+        quantityElement.textContent = currentQuantity;
+        
+        // Update price based on item
+        const basePrice = getItemBasePrice(itemId);
+        const newPrice = basePrice * currentQuantity;
+        priceElement.textContent = `₱${newPrice}`;
+        
+        // Update localStorage
+        updateCartInStorage(itemId, currentQuantity);
+        
+        // Update cart count in header
+        updateCartCount();
+        
+        // Update totals
+        updateOrderTotals();
+      }
+    }
+    
+    function removeItem(itemId) {
+      const itemElement = document.querySelector(`[data-item="${itemId}"]`);
+      
+      // Add removal animation
+      itemElement.style.transition = 'all 0.3s ease';
+      itemElement.style.transform = 'translateX(-100%)';
+      itemElement.style.opacity = '0';
+      
+      setTimeout(() => {
+        itemElement.remove();
+        
+        // Update localStorage
+        removeItemFromStorage(itemId);
+        
+        // Update cart count in header
+        updateCartCount();
+        
+        updateOrderTotals();
+        
+        // Check for pre-order items after removal
+        checkForPreorderItems();
+        
+        // Check if cart is empty
+        const remainingItems = document.querySelectorAll('[data-item]');
+        if (remainingItems.length === 0) {
+          showEmptyCartMessage();
+        }
+      }, 300);
+    }
+    
+    function getItemBasePrice(itemId) {
+      // Get cart data to find the actual price
+      const cartData = JSON.parse(localStorage.getItem('cartData')) || [];
+      const index = parseInt(itemId.replace('item-', ''));
+      const item = cartData[index];
+      return item ? item.price : 0;
+    }
+    
+    function updateCartInStorage(itemId, newQuantity) {
+      const cartData = JSON.parse(localStorage.getItem('cartData')) || [];
+      const index = parseInt(itemId.replace('item-', ''));
+      
+      if (cartData[index]) {
+        cartData[index].qty = newQuantity;
+        localStorage.setItem('cartData', JSON.stringify(cartData));
+      }
+    }
+    
+    function removeItemFromStorage(itemId) {
+      const cartData = JSON.parse(localStorage.getItem('cartData')) || [];
+      const index = parseInt(itemId.replace('item-', ''));
+      
+      if (cartData[index]) {
+        cartData.splice(index, 1);
+        localStorage.setItem('cartData', JSON.stringify(cartData));
+      }
+    }
+    
+    function updateOrderTotals() {
+      const items = document.querySelectorAll('[data-item]');
+      let subtotal = 0;
+      
+      items.forEach(item => {
+        const priceText = item.querySelector('.item-price').textContent;
+        const price = parseInt(priceText.replace('₱', ''));
+        subtotal += price;
+      });
+      
+      // Update subtotal
+      const subtotalElement = document.querySelector('.subtotal-amount');
+      if (subtotalElement) {
+        subtotalElement.textContent = `₱${subtotal}`;
+      }
+      
+      // Update total (assuming 50 delivery fee)
+      const deliveryFee = 50;
+      const total = subtotal + deliveryFee;
+      
+      const totalElement = document.querySelector('.total-amount');
+      if (totalElement) {
+        totalElement.textContent = `₱${total}`;
+      }
+    }
+    
+    function showEmptyCartMessage() {
+      const orderSummary = document.querySelector('.space-y-3');
+      orderSummary.innerHTML = `
+        <div class="text-center py-8">
+          <i class="fas fa-shopping-cart text-4xl text-brown-300 mb-4"></i>
+          <h3 class="text-lg font-semibold text-brown-600 mb-2">Your cart is empty</h3>
+          <p class="text-brown-500 mb-4">Add some delicious items to continue</p>
+          <a href="Menu-tailwind.html" class="bg-brown-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-brown-700 transition-colors">
+            Browse Menu
+          </a>
+        </div>
+      `;
+      
+      // Hide totals section
+      const totalsSection = document.querySelector('.border-t.border-brown-200');
+      if (totalsSection) {
+        totalsSection.style.display = 'none';
+      }
+    }
+
+    // Logout function
+    function logout() {
+      // Clear user data from localStorage
+      localStorage.removeItem('userData');
+      localStorage.removeItem('cartData');
+      localStorage.removeItem('favorites');
+      
+      // Show logout message
+      alert('You have been logged out successfully!');
+      
+      // Close dropdown
+      elements.profileDropdown.classList.add('hidden');
+      
+      // Redirect to login page
+      window.location.href = 'login-tailwind.html';
+    }
+
+    // Global functions for onclick handlers
+    window.toggleProfile = function() {
+      console.log('toggleProfile called on checkout page');
+      console.log('Profile dropdown element:', elements.profileDropdown);
+      if (elements.profileDropdown) {
+        elements.profileDropdown.classList.toggle('hidden');
+        console.log('Dropdown toggled, hidden class:', elements.profileDropdown.classList.contains('hidden'));
+      } else {
+        console.error('Profile dropdown element not found!');
+      }
+    };
+
+    window.logout = logout;
+    window.closeSuccessModal = closeSuccessModal;
+    window.viewOrderHistory = viewOrderHistory;
+    window.showAddressModal = showAddressModal;
+    window.closeAddressModal = closeAddressModal;
+    window.showNewAddressModal = showNewAddressModal;
+    window.closeNewAddressModal = closeNewAddressModal;
+    window.setAddressLabel = setAddressLabel;
+     window.selectAddress = selectAddress;
+     window.confirmAddressSelection = confirmAddressSelection;
+     window.editAddress = editAddress;
+     window.initMap = initMap;
+     window.initGoogleMaps = initGoogleMaps;
+     window.updateMapStatus = updateMapStatus;
+
+    // Add scrolled class styles
+    const style = document.createElement('style');
+    style.textContent = `
+      .scrolled {
+        background: rgba(255, 255, 255, 0.98) !important;
+        box-shadow: 0 4px 20px rgba(139, 69, 19, 0.1) !important;
+      }
+      
+      .error-message {
+        animation: slideInRight 0.3s ease-out;
+      }
+      
+      @keyframes slideInRight {
+        from {
+          opacity: 0;
+          transform: translateX(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>

@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#8b4513" />
+  <title>Cindy's Bakery — Order History</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'inter': ['Inter', 'sans-serif'],
+          },
+          colors: {
+            'brown': {
+              50: '#faf8f5',
+              100: '#f5f3f0',
+              200: '#e6ddd4',
+              300: '#d4c4b0',
+              400: '#c2ab8c',
+              500: '#b08b68',
+              600: '#8b4513',
+              700: '#a0522d',
+              800: '#6b3410',
+              900: '#4a240c',
+            }
+          },
+          animation: {
+            'fadeIn': 'fadeIn 0.6s ease-out',
+            'slideInUp': 'slideInUp 0.6s ease-out',
+          },
+          keyframes: {
+            fadeIn: {
+              'from': { opacity: '0' },
+              'to': { opacity: '1' }
+            },
+            slideInUp: {
+              'from': { opacity: '0', transform: 'translateY(30px)' },
+              'to': { opacity: '1', transform: 'translateY(0)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+    /* Touch-friendly interactions */
+    button, a, input, select, textarea {
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    /* Prevent zoom on input focus for iOS */
+    input[type="text"], input[type="email"], input[type="tel"], input[type="password"], textarea, select {
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body class="font-inter bg-gradient-to-br from-brown-50 to-brown-100 text-brown-600 min-h-screen overflow-x-hidden">
+  <!-- HEADER -->
+  <!-- Header -->
+  <header id="header" class="bg-white/95 backdrop-blur-xl px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between border-b border-brown-200/50 fixed top-0 left-0 right-0 z-50 transition-all duration-300 shadow-lg shadow-brown-600/5">
+    <div class="flex items-center justify-between w-full max-w-7xl mx-auto">
+      <!-- Logo -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <img src="https://via.placeholder.com/40x40/8b4513/ffffff?text=CB" alt="Cindy's Bakeshop Logo" class="w-8 h-8 sm:w-10 sm:h-10 transition-transform duration-300 drop-shadow-md hover:scale-110 hover:rotate-12 rounded-lg">
+        <a href="home-tailwind.html" class="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-brown-600 to-brown-700 bg-clip-text text-transparent no-underline tracking-tight focus-ring rounded-md">Cindy's Bakeshop</a>
+      </div>
+
+      <!-- Center - Desktop Navigation -->
+      <nav class="hidden lg:flex flex-1 justify-center">
+        <ul class="list-none flex gap-6 xl:gap-8 items-center justify-center">
+          <li><a href="home-tailwind.html" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm hover:bg-brown-50 hover:text-brown-700 focus-ring">Home</a></li>
+          <li><a href="Menu-tailwind.html" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm hover:bg-brown-50 hover:text-brown-700 focus-ring">Menu</a></li>
+          <li><a href="home-tailwind.html#about" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm hover:bg-brown-50 hover:text-brown-700 focus-ring">About</a></li>
+          <li><a href="home-tailwind.html#visit" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm hover:bg-brown-50 hover:text-brown-700 focus-ring">Contact</a></li>
+        </ul>
+      </nav>
+
+      <!-- Right Side - Cart, Profile Dropdown, and Mobile Menu -->
+      <div class="flex items-center gap-3 sm:gap-4 lg:gap-6">
+        <!-- Cart Link -->
+        <a href="checkout-tailwind.html" class="text-brown-600 no-underline flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 hover:bg-brown-50 hover:scale-105 focus-ring">
+          <i class="fas fa-shopping-cart text-lg sm:text-xl"></i>
+          <span class="font-medium hidden sm:inline">Cart</span>
+          <span class="bg-brown-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">0</span>
+        </a>
+
+        <!-- Profile Dropdown -->
+        <div class="relative">
+          <button onclick="toggleProfile()" class="flex items-center gap-2 text-brown-600 hover:text-brown-700 transition-colors duration-300 focus-ring rounded-lg p-1">
+            <img src="https://via.placeholder.com/32x32/8b4513/ffffff?text=👤" alt="Profile" class="w-8 h-8 border-2 border-brown-600 rounded-full object-cover">
+            <span class="hidden sm:inline font-medium" id="userNameDisplay">Profile</span>
+            <i class="fas fa-chevron-down text-xs hidden sm:block"></i>
+          </button>
+          
+          <div id="profileDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-brown-200/50 hidden z-50">
+            <a href="profile-tailwind.html" class="block px-4 py-3 text-brown-600 hover:bg-brown-50 transition-colors duration-200 rounded-t-xl">
+              <i class="fas fa-user mr-2"></i>View Profile
+            </a>
+            <a href="order-history-tailwind.html" class="block px-4 py-3 text-brown-600 hover:bg-brown-50 transition-colors duration-200 bg-brown-50">
+              <i class="fas fa-history mr-2"></i>Order History
+            </a>
+            <button onclick="logout()" class="block w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 transition-colors duration-200 rounded-b-xl">
+              <i class="fas fa-sign-out-alt mr-2"></i>Logout
+            </button>
+          </div>
+        </div>
+        
+        <!-- Mobile Menu Button -->
+        <button id="mobileMenuBtn" onclick="toggleMobileMenu()" class="lg:hidden p-2 text-brown-600 hover:bg-brown-50 rounded-lg transition-colors duration-300 focus-ring">
+          <i class="fas fa-bars text-lg"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Menu -->
+    <div id="mobileMenu" class="lg:hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-xl border-b border-brown-200/50 shadow-lg hidden">
+      <nav class="px-4 py-4">
+        <ul class="space-y-2">
+          <li><a href="home-tailwind.html" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Home</a></li>
+          <li><a href="Menu-tailwind.html" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Menu</a></li>
+          <li><a href="home-tailwind.html#about" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">About</a></li>
+          <li><a href="home-tailwind.html#visit" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Contact</a></li>
+          <li><a href="profile-tailwind.html" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Profile</a></li>
+          <li><a href="order-history-tailwind.html" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200 bg-brown-50">Order History</a></li>
+          <li><button onclick="logout()" class="block w-full text-left px-4 py-3 text-red-600 font-medium rounded-lg hover:bg-red-50 transition-colors duration-200">Logout</button></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="pt-20 sm:pt-24 px-8 py-16">
+    <div class="max-w-6xl mx-auto">
+      <!-- Page Header -->
+      <div class="text-center mb-12">
+        <h1 class="text-5xl font-bold text-brown-600 mb-4">Order History</h1>
+        <p class="text-xl text-brown-600">Track and manage your past orders</p>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="flex flex-wrap justify-center gap-4 mb-8">
+        <button onclick="filterOrders('all')" class="filter-btn active bg-gradient-to-r from-brown-600 to-brown-700 text-white px-6 py-3 rounded-full font-semibold transition-all duration-300 shadow-lg shadow-brown-600/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-brown-600/40">
+          All Orders
+        </button>
+        <button onclick="filterOrders('prepare')" class="filter-btn bg-white text-brown-600 border-2 border-brown-600 px-6 py-3 rounded-full font-semibold transition-all duration-300 hover:bg-brown-600 hover:text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brown-600/30">
+          Prepare
+        </button>
+        <button onclick="filterOrders('to-receive')" class="filter-btn bg-white text-brown-600 border-2 border-brown-600 px-6 py-3 rounded-full font-semibold transition-all duration-300 hover:bg-brown-600 hover:text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brown-600/30">
+          To Receive
+        </button>
+        <button onclick="filterOrders('completed')" class="filter-btn bg-white text-brown-600 border-2 border-brown-600 px-6 py-3 rounded-full font-semibold transition-all duration-300 hover:bg-brown-600 hover:text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brown-600/30">
+          Completed
+        </button>
+      </div>
+
+      <!-- Orders List -->
+      <div class="space-y-6">
+        <!-- Order 1 -->
+        <div class="order-item bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-brown-600/20 p-6 border border-brown-600/10" data-status="completed">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+            <div>
+              <h2 class="text-2xl font-bold text-brown-600">Order #12345</h2>
+              <p class="text-brown-600">December 15, 2024 • 2:30 PM</p>
+            </div>
+            <div class="flex items-center gap-4 mt-4 md:mt-0">
+              <span class="bg-green-100 text-green-600 px-4 py-2 rounded-full font-semibold">Completed</span>
+              <span class="text-2xl font-bold text-brown-600">₱860</span>
+            </div>
+          </div>
+
+          <div class="space-y-4 mb-6">
+            <div class="flex items-center gap-4">
+              <img src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=80&h=80&fit=crop&crop=center" alt="Chocolate Fudge Cake" class="w-16 h-16 rounded-xl object-cover">
+              <div class="flex-1">
+                <h3 class="font-semibold text-brown-600">Chocolate Fudge Cake</h3>
+                <p class="text-sm text-brown-600">Quantity: 1</p>
+                <p class="font-bold text-brown-600">₱450</p>
+              </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+              <img src="https://images.unsplash.com/photo-1509440159596-0249088772ff?w=80&h=80&fit=crop&crop=center" alt="Artisan Sourdough" class="w-16 h-16 rounded-xl object-cover">
+              <div class="flex-1">
+                <h3 class="font-semibold text-brown-600">Artisan Sourdough</h3>
+                <p class="text-sm text-brown-600">Quantity: 2</p>
+                <p class="font-bold text-brown-600">₱360</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-4 pt-6 border-t border-brown-600/10">
+            <button class="bg-brown-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-brown-700 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brown-600/30">
+              Reorder
+            </button>
+            <button onclick="openOrderDetails('12344')" class="bg-white text-brown-600 border-2 border-brown-600 px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-brown-600 hover:text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brown-600/30">
+              View Details
+            </button>
+          </div>
+        </div>
+
+        <!-- Order 2 -->
+        <div class="order-item bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-brown-600/20 p-6 border border-brown-600/10" data-status="prepare">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+            <div>
+              <h2 class="text-2xl font-bold text-brown-600">Order #12344</h2>
+              <p class="text-brown-600">December 14, 2024 • 5:15 PM</p>
+            </div>
+            <div class="flex items-center gap-4 mt-4 md:mt-0">
+              <span class="bg-blue-100 text-blue-600 px-4 py-2 rounded-full font-semibold">Prepare</span>
+              <span class="text-2xl font-bold text-brown-600">₱320</span>
+            </div>
+          </div>
+
+          <div class="space-y-4 mb-6">
+            <div class="flex items-center gap-4">
+              <img src="https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=80&h=80&fit=crop&crop=center" alt="Red Velvet Cupcake" class="w-16 h-16 rounded-xl object-cover">
+              <div class="flex-1">
+                <h3 class="font-semibold text-brown-600">Red Velvet Cupcake</h3>
+                <p class="text-sm text-brown-600">Quantity: 2</p>
+                <p class="font-bold text-brown-600">₱130</p>
+              </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+              <img src="https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=80&h=80&fit=crop&crop=center" alt="Butter Croissant" class="w-16 h-16 rounded-xl object-cover">
+              <div class="flex-1">
+                <h3 class="font-semibold text-brown-600">Butter Croissant</h3>
+                <p class="text-sm text-brown-600">Quantity: 2</p>
+                <p class="font-bold text-brown-600">₱170</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-4 pt-6 border-t border-brown-600/10">
+            <button class="bg-brown-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-brown-700 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brown-600/30">
+              Reorder
+            </button>
+            <button onclick="openOrderDetails('12344')" class="bg-white text-brown-600 border-2 border-brown-600 px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-brown-600 hover:text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brown-600/30">
+              View Details
+            </button>
+          </div>
+        </div>
+
+        <!-- Order 3 -->
+        <div class="order-item bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-brown-600/20 p-6 border border-brown-600/10" data-status="to-receive">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+            <div>
+              <h2 class="text-2xl font-bold text-brown-600">Order #12343</h2>
+              <p class="text-brown-600">December 12, 2024 • 11:45 AM</p>
+            </div>
+            <div class="flex items-center gap-4 mt-4 md:mt-0">
+              <span class="bg-orange-100 text-orange-600 px-4 py-2 rounded-full font-semibold">To Receive</span>
+              <span class="text-2xl font-bold text-brown-600">₱240</span>
+            </div>
+          </div>
+
+          <div class="space-y-4 mb-6">
+            <div class="flex items-center gap-4">
+              <img src="https://images.unsplash.com/photo-1517433670267-08bbd4be890f?w=80&h=80&fit=crop&crop=center" alt="Cinnamon Roll" class="w-16 h-16 rounded-xl object-cover">
+              <div class="flex-1">
+                <h3 class="font-semibold text-brown-600">Cinnamon Roll</h3>
+                <p class="text-sm text-brown-600">Quantity: 2</p>
+                <p class="font-bold text-brown-600">₱240</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-4 pt-6 border-t border-brown-600/10">
+            <button class="bg-brown-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-brown-700 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brown-600/30">
+              Reorder
+            </button>
+            <button onclick="openOrderDetails('12343')" class="bg-white text-brown-600 border-2 border-brown-600 px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-brown-600 hover:text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brown-600/30">
+              View Details
+            </button>
+          </div>
+        </div>
+
+        <!-- Order 4 -->
+        <div class="order-item bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-brown-600/20 p-6 border border-brown-600/10" data-status="prepare">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+            <div>
+              <h2 class="text-2xl font-bold text-brown-600">Order #12342</h2>
+              <p class="text-brown-600">December 10, 2024 • 3:20 PM</p>
+            </div>
+            <div class="flex items-center gap-4 mt-4 md:mt-0">
+              <span class="bg-blue-100 text-blue-600 px-4 py-2 rounded-full font-semibold">Prepare</span>
+              <span class="text-2xl font-bold text-brown-600">₱150</span>
+            </div>
+          </div>
+
+          <div class="space-y-4 mb-6">
+            <div class="flex items-center gap-4">
+              <img src="https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=80&h=80&fit=crop&crop=center" alt="Butter Croissant" class="w-16 h-16 rounded-xl object-cover opacity-50">
+              <div class="flex-1">
+                <h3 class="font-semibold text-brown-600">Butter Croissant</h3>
+                <p class="text-sm text-brown-600">Quantity: 1</p>
+                <p class="font-bold text-brown-600">₱85</p>
+              </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+              <img src="https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=80&h=80&fit=crop&crop=center" alt="Red Velvet Cupcake" class="w-16 h-16 rounded-xl object-cover opacity-50">
+              <div class="flex-1">
+                <h3 class="font-semibold text-brown-600">Red Velvet Cupcake</h3>
+                <p class="text-sm text-brown-600">Quantity: 1</p>
+                <p class="font-bold text-brown-600">₱65</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-4 pt-6 border-t border-brown-600/10">
+            <button class="bg-brown-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-brown-700 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brown-600/30">
+              Reorder
+            </button>
+            <button onclick="openOrderDetails('12345')" class="bg-white text-brown-600 border-2 border-brown-600 px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-brown-600 hover:text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brown-600/30">
+              View Details
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Load More Button -->
+      <div class="text-center mt-12">
+        <button class="bg-white text-brown-600 border-2 border-brown-600 px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-brown-600 hover:text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brown-600/30">
+          Load More Orders
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Order Details Modal -->
+  <div id="orderDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-3xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-6">
+        <h2 id="modalOrderTitle" class="text-3xl font-bold text-brown-600">Order Details</h2>
+        <button onclick="closeOrderDetails()" class="text-gray-500 hover:text-gray-700 text-2xl font-bold">
+          ×
+        </button>
+      </div>
+      
+      <div id="modalOrderContent" class="space-y-6">
+        <!-- Order content will be populated by JavaScript -->
+      </div>
+      
+      <div class="flex justify-end mt-8 pt-6 border-t border-brown-200">
+        <button onclick="closeOrderDetails()" class="bg-brown-600 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-brown-700 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brown-600/30">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Filter functionality
+    function filterOrders(status) {
+      const orders = document.querySelectorAll('.order-item');
+      const buttons = document.querySelectorAll('.filter-btn');
+      
+      // Update button states
+      buttons.forEach(btn => {
+        btn.classList.remove('active', 'bg-gradient-to-r', 'from-brown-600', 'to-brown-700', 'text-white');
+        btn.classList.add('bg-white', 'text-brown-600', 'border-2', 'border-brown-600');
+      });
+      
+      event.target.classList.remove('bg-white', 'text-brown-600', 'border-2', 'border-brown-600');
+      event.target.classList.add('active', 'bg-gradient-to-r', 'from-brown-600', 'to-brown-700', 'text-white');
+      
+      // Filter orders
+      orders.forEach(order => {
+        if (status === 'all' || order.dataset.status === status) {
+          order.style.display = 'block';
+          order.style.animation = 'fadeIn 0.6s ease-out';
+        } else {
+          order.style.display = 'none';
+        }
+      });
+    }
+
+    // Profile dropdown functionality
+    function toggleProfile() {
+      console.log('toggleProfile called on order-history page');
+      const dropdown = document.getElementById('profileDropdown');
+      console.log('Dropdown element:', dropdown);
+      if (dropdown) {
+        dropdown.classList.toggle('hidden');
+        console.log('Dropdown toggled, hidden class:', dropdown.classList.contains('hidden'));
+      } else {
+        console.error('Profile dropdown element not found!');
+      }
+    }
+
+    // Close profile dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+      const profileDropdown = document.getElementById('profileDropdown');
+      const profileButton = event.target.closest('button[onclick="toggleProfile()"]');
+      
+      if (!profileButton && !profileDropdown.contains(event.target)) {
+        profileDropdown.classList.add('hidden');
+      }
+    });
+
+    // Order Details Modal Functions
+    function openOrderDetails(orderId) {
+      const modal = document.getElementById('orderDetailsModal');
+      const modalTitle = document.getElementById('modalOrderTitle');
+      const modalContent = document.getElementById('modalOrderContent');
+      
+      // Set modal title
+      modalTitle.textContent = `Order #${orderId} Details`;
+      
+      // Get order data based on orderId
+      const orderData = getOrderData(orderId);
+      
+      // Populate modal content
+      modalContent.innerHTML = `
+        <div class="bg-brown-50 rounded-2xl p-6">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h3 class="text-xl font-bold text-brown-600">Order #${orderId}</h3>
+              <p class="text-brown-600">${orderData.date}</p>
+            </div>
+            <div class="text-right">
+              <span class="bg-${orderData.statusColor}-100 text-${orderData.statusColor}-600 px-4 py-2 rounded-full font-semibold">${orderData.status}</span>
+              <p class="text-2xl font-bold text-brown-600 mt-2">${orderData.total}</p>
+            </div>
+          </div>
+          
+          <div class="space-y-4">
+            <h4 class="text-lg font-semibold text-brown-600">Items Ordered:</h4>
+            ${orderData.items.map(item => `
+              <div class="flex items-center gap-4 bg-white rounded-xl p-4">
+                <img src="${item.image}" alt="${item.name}" class="w-16 h-16 rounded-xl object-cover">
+                <div class="flex-1">
+                  <h5 class="font-semibold text-brown-600">${item.name}</h5>
+                  <p class="text-sm text-brown-600">Quantity: ${item.quantity}</p>
+                  <p class="font-bold text-brown-600">${item.price}</p>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          
+          <div class="mt-6 pt-4 border-t border-brown-200">
+            <div class="flex justify-between items-center">
+              <span class="text-lg font-semibold text-brown-600">Total Amount:</span>
+              <span class="text-2xl font-bold text-brown-600">${orderData.total}</span>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Show modal
+      modal.classList.remove('hidden');
+    }
+    
+    function closeOrderDetails() {
+      const modal = document.getElementById('orderDetailsModal');
+      modal.classList.add('hidden');
+    }
+    
+    // Order data (in a real app, this would come from an API)
+    function getOrderData(orderId) {
+      const orders = {
+        '12345': {
+          date: 'December 15, 2024 • 2:30 PM',
+          status: 'Completed',
+          statusColor: 'green',
+          total: '₱860',
+          items: [
+            { name: 'Chocolate Fudge Cake', quantity: 1, price: '₱450', image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=80&h=80&fit=crop&crop=center' },
+            { name: 'New York Cheesecake', quantity: 1, price: '₱380', image: 'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=80&h=80&fit=crop&crop=center' },
+            { name: 'Butter Croissant', quantity: 2, price: '₱30', image: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=80&h=80&fit=crop&crop=center' }
+          ]
+        },
+        '12344': {
+          date: 'December 14, 2024 • 5:15 PM',
+          status: 'Prepare',
+          statusColor: 'blue',
+          total: '₱320',
+          items: [
+            { name: 'Red Velvet Cupcake', quantity: 2, price: '₱130', image: 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=80&h=80&fit=crop&crop=center' },
+            { name: 'Butter Croissant', quantity: 2, price: '₱170', image: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=80&h=80&fit=crop&crop=center' }
+          ]
+        },
+        '12343': {
+          date: 'December 12, 2024 • 11:45 AM',
+          status: 'To Receive',
+          statusColor: 'orange',
+          total: '₱240',
+          items: [
+            { name: 'Cinnamon Roll', quantity: 2, price: '₱240', image: 'https://images.unsplash.com/photo-1517433670267-08bbd4be890f?w=80&h=80&fit=crop&crop=center' }
+          ]
+        },
+        '12342': {
+          date: 'December 10, 2024 • 3:20 PM',
+          status: 'Prepare',
+          statusColor: 'blue',
+          total: '₱150',
+          items: [
+            { name: 'Whole Wheat Bread', quantity: 1, price: '₱150', image: 'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=80&h=80&fit=crop&crop=center' }
+          ]
+        }
+      };
+      
+      return orders[orderId] || orders['12345'];
+    }
+
+    // Update cart count in header
+    function updateCartCount() {
+      const cart = JSON.parse(localStorage.getItem("cartData")) || [];
+      const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+      const cartCountElement = document.querySelector('.bg-brown-600.text-white.text-xs.rounded-full');
+      if (cartCountElement) {
+        cartCountElement.textContent = totalItems;
+        // Show/hide badge based on count
+        if (totalItems > 0) {
+          cartCountElement.style.display = 'flex';
+        } else {
+          cartCountElement.style.display = 'none';
+        }
+      }
+    }
+
+    // Check if user is authenticated, redirect if not
+    function checkAuthentication() {
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      if (!userData || !userData.firstName) {
+        // User is not authenticated, redirect to login
+        alert('Please log in to view your order history.');
+        window.location.href = 'login-tailwind.html';
+        return false;
+      }
+      return true;
+    }
+
+    // Load user name for profile display
+    function loadUserName() {
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      const userNameDisplay = document.getElementById('userNameDisplay');
+      
+      if (userData && userData.firstName && userNameDisplay) {
+        userNameDisplay.textContent = userData.firstName;
+      }
+    }
+
+    // Initialize cart count on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check authentication first
+      if (!checkAuthentication()) {
+        return; // Stop execution if not authenticated
+      }
+      
+      updateCartCount();
+      loadUserName();
+    });
+
+    // Logout function
+    function logout() {
+      // Clear user data from localStorage
+      localStorage.removeItem('userData');
+      localStorage.removeItem('cartData');
+      localStorage.removeItem('favorites');
+      
+      // Show logout message
+      alert('You have been logged out successfully!');
+      
+      // Close dropdown
+      document.getElementById('profileDropdown').classList.add('hidden');
+      
+      // Redirect to login page
+      window.location.href = 'login-tailwind.html';
+    }
+
+    // Mobile menu functionality
+    function toggleMobileMenu() {
+      const mobileMenu = document.getElementById('mobileMenu');
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      
+      mobileMenu.classList.toggle('hidden');
+      
+      // Toggle hamburger icon
+      const icon = mobileMenuBtn.querySelector('i');
+      if (mobileMenu.classList.contains('hidden')) {
+        icon.className = 'fas fa-bars text-lg';
+      } else {
+        icon.className = 'fas fa-times text-lg';
+      }
+    }
+
+    // Close mobile menu when clicking outside
+    document.addEventListener('click', function(event) {
+      const mobileMenu = document.getElementById('mobileMenu');
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      
+      if (!mobileMenuBtn.contains(event.target) && !mobileMenu.contains(event.target)) {
+        mobileMenu.classList.add('hidden');
+        const icon = mobileMenuBtn.querySelector('i');
+        icon.className = 'fas fa-bars text-lg';
+      }
+    });
+
+    // Header scroll effect
+    window.addEventListener('scroll', function() {
+      const header = document.getElementById('header');
+      if (window.scrollY > 100) {
+        header.classList.add('scrolled');
+      } else {
+        header.classList.remove('scrolled');
+      }
+    });
+
+    // Global functions for onclick handlers
+    window.filterOrders = filterOrders;
+    window.toggleProfile = toggleProfile;
+    window.logout = logout;
+    window.toggleMobileMenu = toggleMobileMenu;
+
+    // Add scrolled class styles
+    const style = document.createElement('style');
+    style.textContent = `
+      .scrolled {
+        background: rgba(245, 243, 240, 0.98) !important;
+        box-shadow: 0 4px 20px rgba(139, 69, 19, 0.1) !important;
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>
