@@ -767,24 +767,47 @@
           return;
         }
 
+        if (!userEmail) {
+          throw new Error('Please sign in again to place your order.');
+        }
+
+        if (!checkoutData.length) {
+          throw new Error('Please reselect your items before checking out.');
+        }
+
         const payload = new URLSearchParams({
           cart_id: latest.cart_id,
           name,
           address,
           order_type: orderType,
           mop,
+          email: userEmail,
+          items: JSON.stringify(checkoutData),
         });
 
-        const orderRes = await fetch(`${apiBase}order_api.php?action=place`, {
+        const orderRes = await fetch(`${apiBase}order_api.php?action=create`, {
           method: 'POST',
           headers: {'Content-Type': 'application/x-www-form-urlencoded'},
           body: payload.toString(),
         });
 
         const orderText = await orderRes.text();
-        const orderData = JSON.parse(orderText);
-        if (orderData.error) {
-          throw new Error(orderData.error);
+        let orderData = null;
+        try {
+          orderData = JSON.parse(orderText);
+        } catch (parseError) {
+          if (!orderRes.ok) {
+            throw new Error(orderText || 'Failed to place order.');
+          }
+          throw new Error('Invalid response from server.');
+        }
+
+        if (!orderRes.ok) {
+          throw new Error(orderData.error || 'Failed to place order.');
+        }
+
+        if (!orderData || orderData.error) {
+          throw new Error((orderData && orderData.error) || 'Failed to place order.');
         }
 
         document.getElementById('confirmationMsg').textContent = 'Order placed successfully!';
