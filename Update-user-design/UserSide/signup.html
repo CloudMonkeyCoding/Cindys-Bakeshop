@@ -918,8 +918,78 @@ function updatePasswordStrength(value) {
 }
 
 if (passwordInput) {
-  passwordInput.addEventListener('input', () => updatePasswordStrength(passwordInput.value));
+  passwordInput.addEventListener('input', () => {
+    const value = passwordInput.value;
+    updatePasswordStrength(value);
+
+    if (!value) {
+      setErrorMessage(errors.password, '');
+    } else if (validatePassword(value)) {
+      setErrorMessage(errors.password, '');
+    } else {
+      setErrorMessage(
+        errors.password,
+        'Use at least 8 characters with uppercase, lowercase, number, and symbol.'
+      );
+    }
+
+    if (confirmPasswordInput) {
+      confirmPasswordInput.dispatchEvent(new Event('input'));
+    }
+  });
   updatePasswordStrength(passwordInput.value);
+}
+
+if (fullNameInput) {
+  fullNameInput.addEventListener('input', () => {
+    if (fullNameInput.value.trim()) {
+      setErrorMessage(errors.name, '');
+    }
+  });
+}
+
+if (emailInput) {
+  emailInput.addEventListener('input', () => {
+    const value = emailInput.value.trim();
+    if (!value) {
+      setErrorMessage(errors.email, '');
+    } else if (validateEmail(value)) {
+      setErrorMessage(errors.email, '');
+    } else {
+      setErrorMessage(errors.email, 'Please provide a valid email address.');
+    }
+  });
+}
+
+if (phoneInput) {
+  phoneInput.addEventListener('input', () => {
+    const value = phoneInput.value.trim();
+    if (!value) {
+      setErrorMessage(errors.phone, '');
+    } else if (validatePhone(value)) {
+      setErrorMessage(errors.phone, '');
+    } else {
+      setErrorMessage(errors.phone, 'Please enter a valid phone number.');
+    }
+  });
+}
+
+if (confirmPasswordInput) {
+  confirmPasswordInput.addEventListener('input', () => {
+    const confirmValue = confirmPasswordInput.value;
+    const passwordValue = passwordInput ? passwordInput.value : '';
+
+    if (!confirmValue) {
+      setErrorMessage(errors.confirmPassword, '');
+      return;
+    }
+
+    if (confirmValue && confirmValue === passwordValue) {
+      setErrorMessage(errors.confirmPassword, '');
+    } else {
+      setErrorMessage(errors.confirmPassword, 'Passwords do not match.');
+    }
+  });
 }
 
 function setFormFeedback(message, type) {
