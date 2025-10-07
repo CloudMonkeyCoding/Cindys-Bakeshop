@@ -363,11 +363,74 @@
       .categories button { padding:0.6rem 1rem; font-size:0.9rem; }
       .search-bar { width:100%; }
       .search-bar input { width:100%; max-width:300px; }
+      .pagination {
+        flex-direction: column;
+        border-radius: 24px;
+        max-width: 320px;
+        padding: 1rem;
+        gap: 0.75rem;
+      }
+      .pagination button {
+        width: 100%;
+      }
     }
 
     /* MENU GRID */
     .menu-section { max-width:1200px; margin:2rem auto; padding:0 2rem; }
     .menu-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); justify-content:left; gap:1.5rem; }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      margin: 2rem auto 0;
+      padding: 1rem 1.5rem;
+      max-width: 400px;
+      background: #ffffff;
+      border-radius: 999px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .pagination button {
+      padding: 0.6rem 1.4rem;
+      border: none;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    }
+
+    .pagination button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(231, 76, 60, 0.25);
+    }
+
+    .pagination button:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .pagination span {
+      font-weight: 600;
+      color: #8b4513;
+    }
+
+    .no-results {
+      text-align: center;
+      color: #8b4513;
+      font-weight: 600;
+      background: #fff6f3;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 2rem auto 0;
+      max-width: 480px;
+      box-shadow: 0 10px 30px rgba(231, 76, 60, 0.15);
+    }
     .menu-item { position:relative; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.08); transition:all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: none; min-height: 400px; }
     .menu-item:hover { transform:translateY(-8px) scale(1.02); box-shadow:0 12px 40px rgba(0,0,0,0.15); }
     .menu-item img { width:100%; height:200px; object-fit:cover; transition:transform 0.4s ease; }
@@ -654,6 +717,12 @@
         </div>
       </div>
     </div>
+    <p class="no-results" id="noResults" hidden>No menu items match your filters yet. Try adjusting your search or category.</p>
+    <div class="pagination" id="paginationControls" hidden>
+      <button id="prevPage">Previous</button>
+      <span id="paginationInfo">Page 1 of 1</span>
+      <button id="nextPage">Next</button>
+    </div>
   </section>
 
   <footer>© 2025 Cindy's Bakeshop • Freshness Guaranteed</footer>
@@ -723,34 +792,115 @@
     });
   });
 
-  // Category filtering
+  let favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+
+  // Category filtering + pagination state
   const categoryButtons = document.querySelectorAll(".categories button"),
-        menuItems = document.querySelectorAll(".menu-item"),
-        searchInput = document.getElementById("searchInput");
+        menuGridElement = document.getElementById("menuGrid"),
+        searchInput = document.getElementById("searchInput"),
+        paginationControls = document.getElementById("paginationControls"),
+        paginationInfo = document.getElementById("paginationInfo"),
+        prevPageBtn = document.getElementById("prevPage"),
+        nextPageBtn = document.getElementById("nextPage"),
+        noResultsMessage = document.getElementById("noResults");
+
+  const ITEMS_PER_PAGE = 8;
+  let currentCategory = "all";
+  let currentPage = 1;
+  let searchQuery = "";
+
+  function getMenuItemsArray() {
+    return Array.from(menuGridElement.querySelectorAll(".menu-item"));
+  }
+
+  function getFilteredItems() {
+    return getMenuItemsArray().filter(item => {
+      const title = item.querySelector("h3").textContent;
+      const name = title.toLowerCase();
+      const isFavorite = favorites.includes(title);
+
+      let matchesCategory = true;
+      if (currentCategory === "favorites") {
+        matchesCategory = isFavorite;
+      } else if (currentCategory !== "all") {
+        matchesCategory = item.dataset.category === currentCategory;
+      }
+
+      const matchesSearch = name.includes(searchQuery);
+      return matchesCategory && matchesSearch;
+    });
+  }
+
+  function updatePaginationControls(totalItems, totalPages) {
+    if (totalItems === 0) {
+      paginationControls.hidden = true;
+      paginationInfo.textContent = "Page 0 of 0";
+      prevPageBtn.disabled = true;
+      nextPageBtn.disabled = true;
+      return;
+    }
+
+    const shouldHide = totalItems <= ITEMS_PER_PAGE;
+    paginationControls.hidden = shouldHide;
+    paginationInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+    prevPageBtn.disabled = currentPage === 1;
+    nextPageBtn.disabled = currentPage === totalPages;
+  }
+
+  function updateMenuVisibility() {
+    const filteredItems = getFilteredItems();
+    const totalItems = filteredItems.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+
+    if (currentPage > totalPages) {
+      currentPage = totalPages;
+    }
+
+    const allItems = getMenuItemsArray();
+    allItems.forEach(item => {
+      item.style.display = "none";
+    });
+
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    filteredItems.slice(start, end).forEach(item => {
+      item.style.display = "block";
+    });
+
+    noResultsMessage.hidden = totalItems !== 0;
+    updatePaginationControls(totalItems, totalPages);
+  }
 
   categoryButtons.forEach(btn => {
     btn.addEventListener("click", () => {
       categoryButtons.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-      const category = btn.dataset.category;
-      menuItems.forEach(item => {
-        if(category === "favorites"){
-          let favorites = JSON.parse(localStorage.getItem("favorites")) || [];
-          item.style.display = favorites.includes(item.querySelector("h3").textContent) ? "block" : "none";
-        } else {
-          item.style.display = category === "all" || item.dataset.category === category ? "block" : "none";
-        }
-      });
+      currentCategory = btn.dataset.category;
+      currentPage = 1;
+      updateMenuVisibility();
     });
   });
 
   // Search
-  searchInput.addEventListener("keyup", () => {
-    const query = searchInput.value.toLowerCase();
-    menuItems.forEach(item => {
-      const name = item.querySelector("h3").textContent.toLowerCase();
-      item.style.display = name.includes(query) ? "block" : "none";
-    });
+  searchInput.addEventListener("input", () => {
+    searchQuery = searchInput.value.toLowerCase();
+    currentPage = 1;
+    updateMenuVisibility();
+  });
+
+  prevPageBtn.addEventListener("click", () => {
+    if (currentPage > 1) {
+      currentPage--;
+      updateMenuVisibility();
+    }
+  });
+
+  nextPageBtn.addEventListener("click", () => {
+    const totalPages = Math.max(1, Math.ceil(getFilteredItems().length / ITEMS_PER_PAGE));
+    if (currentPage < totalPages) {
+      currentPage++;
+      updateMenuVisibility();
+    }
   });
 
   // Unified Add Button Handler
@@ -979,7 +1129,6 @@
 
   // FAVORITES
   const favButtons = document.querySelectorAll(".favorite-btn");
-  let favorites = JSON.parse(localStorage.getItem("favorites")) || [];
 
   favButtons.forEach(btn => { if(favorites.includes(btn.dataset.name)) btn.classList.add("favorited"); });
 
@@ -990,6 +1139,7 @@
     items.forEach(item=>menuGrid.appendChild(item));
   }
   reorderFavorites();
+  updateMenuVisibility();
 
   favButtons.forEach(btn=>{
     btn.addEventListener("click", ()=>{
@@ -1005,6 +1155,7 @@
       }
       localStorage.setItem("favorites", JSON.stringify(favorites));
       reorderFavorites();
+      updateMenuVisibility();
       toast.classList.add("show");
       setTimeout(()=>toast.classList.remove("show"),2000);
     });
@@ -1036,6 +1187,7 @@
       }
       localStorage.setItem("favorites",JSON.stringify(favorites));
       reorderFavorites();
+      updateMenuVisibility();
       toast.classList.add("show");
       setTimeout(()=>toast.classList.remove("show"),2000);
     });
@@ -1070,6 +1222,7 @@
       }
       localStorage.setItem("favorites",JSON.stringify(favorites));
       reorderFavorites();
+      updateMenuVisibility();
       toast.classList.add("show");
       setTimeout(()=>toast.classList.remove("show"),2000);
     });
