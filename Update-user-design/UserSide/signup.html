@@ -828,6 +828,12 @@ const errors = {
 
 let mediaStream = null;
 
+function setErrorMessage(element, message) {
+  if (!element) return;
+  element.textContent = message;
+  element.style.display = message ? 'block' : 'none';
+}
+
 window.toggleMenu = function toggleMenu() {
   if (navMenu) {
     navMenu.classList.toggle('active');
@@ -903,10 +909,8 @@ function setFormFeedback(message, type) {
 }
 
 function clearErrors() {
-  Object.values(errors).forEach((el) => {
-    if (el) el.textContent = '';
-  });
-  if (faceError) faceError.textContent = '';
+  Object.values(errors).forEach((el) => setErrorMessage(el, ''));
+  setErrorMessage(faceError, '');
   setFormFeedback('', '');
 }
 
@@ -963,9 +967,7 @@ async function startCamera() {
     }
   } catch (error) {
     console.error('Camera access denied:', error);
-    if (faceError) {
-      faceError.textContent = 'Unable to access camera. Please allow camera permissions or try a different device.';
-    }
+    setErrorMessage(faceError, 'Unable to access camera. Please allow camera permissions or try a different device.');
   }
 }
 
@@ -995,7 +997,7 @@ function captureFace() {
   if (retakeBtn) {
     retakeBtn.style.display = 'block';
   }
-  if (faceError) faceError.textContent = '';
+  setErrorMessage(faceError, '');
 }
 
 function resetCapture() {
@@ -1038,7 +1040,7 @@ if (retakeBtn) {
 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
   startCamera();
 } else if (faceError) {
-  faceError.textContent = 'Camera access is not supported in this browser.';
+  setErrorMessage(faceError, 'Camera access is not supported in this browser.');
 }
 
 window.addEventListener('beforeunload', stopCamera);
@@ -1059,30 +1061,30 @@ if (signupForm) {
 
     if (!fullName) {
       valid = false;
-      if (errors.name) errors.name.textContent = 'Please enter your full name.';
+      setErrorMessage(errors.name, 'Please enter your full name.');
     }
 
     if (!email || !validateEmail(email)) {
       valid = false;
-      if (errors.email) errors.email.textContent = 'Please provide a valid email address.';
+      setErrorMessage(errors.email, 'Please provide a valid email address.');
     }
 
     if (phone && !validatePhone(phone)) {
       valid = false;
-      if (errors.phone) errors.phone.textContent = 'Please enter a valid phone number.';
+      setErrorMessage(errors.phone, 'Please enter a valid phone number.');
     }
 
     if (!password) {
       valid = false;
-      if (errors.password) errors.password.textContent = 'Please create a password.';
+      setErrorMessage(errors.password, 'Please create a password.');
     } else if (!validatePassword(password)) {
       valid = false;
-      if (errors.password) errors.password.textContent = 'Use at least 8 characters with uppercase, lowercase, number, and symbol.';
+      setErrorMessage(errors.password, 'Use at least 8 characters with uppercase, lowercase, number, and symbol.');
     }
 
     if (!confirmPassword || confirmPassword !== password) {
       valid = false;
-      if (errors.confirmPassword) errors.confirmPassword.textContent = 'Passwords do not match.';
+      setErrorMessage(errors.confirmPassword, 'Passwords do not match.');
     }
 
     if (!termsCheckbox || !termsCheckbox.checked) {
@@ -1092,7 +1094,7 @@ if (signupForm) {
 
     if (!faceImage) {
       valid = false;
-      if (faceError) faceError.textContent = 'Please capture your face before creating an account.';
+      setErrorMessage(faceError, 'Please capture your face before creating an account.');
     }
 
     if (!valid) {
