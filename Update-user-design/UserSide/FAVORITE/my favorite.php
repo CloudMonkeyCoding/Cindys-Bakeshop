@@ -161,6 +161,14 @@
     const rootPrefix = header?.dataset.rootPrefix || '../../../';
     const imagesBase = header?.dataset.imagesBase || `${rootPrefix}Images/`;
     const uploadsBase = `${rootPrefix}adminSide/products/uploads/`;
+    const categoryDirMap = new Map([
+      ['bread', 'bread'],
+      ['breads', 'bread'],
+      ['cake', 'cakes'],
+      ['cakes', 'cakes'],
+      ['pastry', 'pastry'],
+      ['pastries', 'pastry']
+    ]);
     const fallbackImage = `${imagesBase}logo.png`;
     const apiBase = header?.dataset.apiBase || `${rootPrefix}PHP/`;
     const userPrefix = header?.dataset.userPrefix || '../';
@@ -173,7 +181,7 @@
       setTimeout(() => toast.classList.remove('show'), 2200);
     }
 
-    function resolveImagePath(imagePath) {
+    function resolveImagePath(imagePath, category) {
       if (!imagePath) {
         return fallbackImage;
       }
@@ -184,7 +192,9 @@
       }
 
       const normalised = trimmed.replace(/\\/g, '/');
-      if (/^https?:\/\//i.test(normalised)) {
+      const lowerNormalised = normalised.toLowerCase();
+
+      if (/^https?:\/\//i.test(normalised) || lowerNormalised.startsWith('data:')) {
         return normalised;
       }
 
@@ -197,8 +207,12 @@
         .replace(/^(\.\.\/)+/, '');
       const lowerCleaned = cleaned.toLowerCase();
 
+      if (lowerCleaned.startsWith('images/')) {
+        return rootPrefix + cleaned.replace(/^\/+/, '');
+      }
+
       if (lowerCleaned.includes('adminside/products/uploads/')) {
-        return rootPrefix + cleaned;
+        return rootPrefix + cleaned.replace(/^\/+/, '');
       }
 
       if (lowerCleaned.startsWith('uploads/') || lowerCleaned.startsWith('products/uploads/')) {
@@ -206,15 +220,28 @@
         return fromUploads ? uploadsBase + fromUploads : fallbackImage;
       }
 
-      if (cleaned.includes('/')) {
-        return rootPrefix + cleaned;
+      const fileName = cleaned.split('/').pop() || '';
+      if (!fileName) {
+        return fallbackImage;
       }
 
-      if (cleaned && lowerCleaned !== 'logo.png') {
-        return uploadsBase + cleaned;
+      if (fileName.toLowerCase().startsWith('prod_')) {
+        return uploadsBase + fileName;
       }
 
-      return fallbackImage;
+      if (fileName.toLowerCase() === 'logo.png') {
+        return fallbackImage;
+      }
+
+      const categoryKey = typeof category === 'string' ? category.trim().toLowerCase() : '';
+      if (categoryKey) {
+        const mappedDir = categoryDirMap.get(categoryKey);
+        if (mappedDir) {
+          return `${imagesBase}${mappedDir}/${fileName}`;
+        }
+      }
+
+      return `${imagesBase}${fileName}`;
     }
 
     function renderFavorites(list) {
@@ -229,7 +256,7 @@
         const card = document.createElement('article');
         card.className = 'favorite-card';
         card.innerHTML = `
-          <img src="${resolveImagePath(item.Image_Path)}" alt="${item.Name}">
+          <img src="${resolveImagePath(item.Image_Path, item.Category)}" alt="${item.Name}">
           <h3>${item.Name}</h3>
           <div class="card-actions">
             <a href="${userPrefix}PRODUCT/product.php?id=${item.Product_ID}">View details</a>

@@ -15,7 +15,7 @@ function addFavorite($pdo, $userId, $productId) {
 // Get all favorite products for a user
 function getFavoritesByUserId($pdo, $userId) {
     $stmt = $pdo->prepare("
-        SELECT f.Favorite_ID, f.Product_ID, p.Name, p.Image_Path
+        SELECT f.Favorite_ID, f.Product_ID, p.Name, p.Image_Path, p.Category
         FROM favorites f
         JOIN product p ON f.Product_ID = p.Product_ID
         WHERE f.User_ID = :user_id
