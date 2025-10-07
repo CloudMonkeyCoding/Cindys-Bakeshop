@@ -246,6 +246,7 @@ nav ul li a:hover {
   display: block;
 }
 
+
 .form-group {
   margin-bottom: 1.5rem;
   position: relative;
@@ -257,6 +258,7 @@ nav ul li a:hover {
   color: #8b4513;
   font-weight: 600;
   font-size: 0.9rem;
+  transition: color 0.3s ease;
 }
 
 .form-group input {
@@ -278,6 +280,23 @@ nav ul li a:hover {
   box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
   background: #fff;
   transform: translateY(-1px);
+}
+
+.form-group.error-state label {
+  color: #c82333;
+}
+
+.form-group.error-state input {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.12);
+  background: #fff5f5;
+}
+
+.form-group.error-state .face-capture-wrapper {
+  border: 2px dashed rgba(220, 53, 69, 0.7);
+  border-radius: 12px;
+  padding: 0.75rem;
+  background: rgba(220, 53, 69, 0.05);
 }
 
 .form-group input::placeholder {
@@ -830,6 +849,14 @@ let mediaStream = null;
 
 function setErrorMessage(element, message) {
   if (!element) return;
+  const fieldGroup = element.closest('.form-group');
+  if (fieldGroup) {
+    if (message) {
+      fieldGroup.classList.add('error-state');
+    } else {
+      fieldGroup.classList.remove('error-state');
+    }
+  }
   element.textContent = message;
   element.style.display = message ? 'block' : 'none';
 }
