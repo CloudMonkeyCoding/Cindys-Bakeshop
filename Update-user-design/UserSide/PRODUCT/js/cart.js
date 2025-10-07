@@ -1,3 +1,18 @@
+const headerEl = document.getElementById('mainHeader');
+const apiBase = headerEl && headerEl.dataset && headerEl.dataset.apiBase
+  ? headerEl.dataset.apiBase
+  : '/PHP/';
+const userPrefix = headerEl && headerEl.dataset && headerEl.dataset.userPrefix
+  ? headerEl.dataset.userPrefix
+  : '';
+
+function buildApiUrl(path) {
+  if (!apiBase.endsWith('/')) {
+    return `${apiBase}/${path.replace(/^\//, '')}`;
+  }
+  return `${apiBase}${path.replace(/^\//, '')}`;
+}
+
 async function addToCart() {
   const qtyEl = document.getElementById("qty");
   const qty = qtyEl ? parseInt(qtyEl.value, 10) || 1 : 1;
@@ -21,8 +36,8 @@ async function addToCart() {
     }
 
     const listUrl = email
-      ? `/PHP/cart_api.php?action=list&email=${encodeURIComponent(email)}`
-      : `/PHP/cart_api.php?action=list`;
+      ? `${buildApiUrl('cart_api.php')}?action=list&email=${encodeURIComponent(email)}`
+      : `${buildApiUrl('cart_api.php')}?action=list`;
     const listResp = await fetch(listUrl);
     const listType = listResp.headers.get('Content-Type') || '';
     const listText = await listResp.text();
@@ -64,7 +79,7 @@ async function addToCart() {
     }
     if (email) params.set("email", email);
 
-    const response = await fetch(`/PHP/cart_api.php?action=${action}`, {
+    const response = await fetch(`${buildApiUrl('cart_api.php')}?action=${action}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString()
@@ -101,6 +116,6 @@ async function addToCart() {
 async function buyNow() {
   const success = await addToCart();
   if (success) {
-    window.location.href = "/userSide/CART/cart_checkout_page.php";
+    window.location.href = `${userPrefix}CART/cart_checkout_page.php`;
   }
 }

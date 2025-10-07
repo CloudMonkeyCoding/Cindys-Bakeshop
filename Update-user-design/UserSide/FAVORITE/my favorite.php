@@ -157,6 +157,21 @@
     const grid = document.getElementById('favoritesGrid');
     const noFav = document.getElementById('noFavorites');
     const toast = document.getElementById('favoritesToast');
+    const header = document.getElementById('mainHeader');
+    const rootPrefix = header?.dataset.rootPrefix || '../../../';
+    const imagesBase = header?.dataset.imagesBase || `${rootPrefix}Images/`;
+    const uploadsBase = `${rootPrefix}adminSide/products/uploads/`;
+    const categoryDirMap = new Map([
+      ['bread', 'bread'],
+      ['breads', 'bread'],
+      ['cake', 'cakes'],
+      ['cakes', 'cakes'],
+      ['pastry', 'pastry'],
+      ['pastries', 'pastry']
+    ]);
+    const fallbackImage = `${imagesBase}logo.png`;
+    const apiBase = header?.dataset.apiBase || `${rootPrefix}PHP/`;
+    const userPrefix = header?.dataset.userPrefix || '../';
     const auth = getAuth();
     let userEmail = null;
 
@@ -166,14 +181,67 @@
       setTimeout(() => toast.classList.remove('show'), 2200);
     }
 
-    function resolveImagePath(imagePath) {
+    function resolveImagePath(imagePath, category) {
       if (!imagePath) {
-        return '../../../Images/logo.png';
+        return fallbackImage;
       }
-      if (imagePath.startsWith('http')) {
-        return imagePath;
+
+      const trimmed = String(imagePath).trim();
+      if (trimmed === '') {
+        return fallbackImage;
       }
-      return '../../../adminSide/products/uploads/' + imagePath;
+
+      const normalised = trimmed.replace(/\\/g, '/');
+      const lowerNormalised = normalised.toLowerCase();
+
+      if (/^https?:\/\//i.test(normalised) || lowerNormalised.startsWith('data:')) {
+        return normalised;
+      }
+
+      if (normalised.startsWith('/')) {
+        return rootPrefix + normalised.replace(/^\/+/, '');
+      }
+
+      const cleaned = normalised
+        .replace(/^(\.\/)+/, '')
+        .replace(/^(\.\.\/)+/, '');
+      const lowerCleaned = cleaned.toLowerCase();
+
+      if (lowerCleaned.startsWith('images/')) {
+        return rootPrefix + cleaned.replace(/^\/+/, '');
+      }
+
+      if (lowerCleaned.includes('adminside/products/uploads/')) {
+        return rootPrefix + cleaned.replace(/^\/+/, '');
+      }
+
+      if (lowerCleaned.startsWith('uploads/') || lowerCleaned.startsWith('products/uploads/')) {
+        const fromUploads = cleaned.split('/').pop();
+        return fromUploads ? uploadsBase + fromUploads : fallbackImage;
+      }
+
+      const fileName = cleaned.split('/').pop() || '';
+      if (!fileName) {
+        return fallbackImage;
+      }
+
+      if (fileName.toLowerCase().startsWith('prod_')) {
+        return uploadsBase + fileName;
+      }
+
+      if (fileName.toLowerCase() === 'logo.png') {
+        return fallbackImage;
+      }
+
+      const categoryKey = typeof category === 'string' ? category.trim().toLowerCase() : '';
+      if (categoryKey) {
+        const mappedDir = categoryDirMap.get(categoryKey);
+        if (mappedDir) {
+          return `${imagesBase}${mappedDir}/${fileName}`;
+        }
+      }
+
+      return `${imagesBase}${fileName}`;
     }
 
     function renderFavorites(list) {
@@ -188,10 +256,10 @@
         const card = document.createElement('article');
         card.className = 'favorite-card';
         card.innerHTML = `
-          <img src="${resolveImagePath(item.Image_Path)}" alt="${item.Name}">
+          <img src="${resolveImagePath(item.Image_Path, item.Category)}" alt="${item.Name}">
           <h3>${item.Name}</h3>
           <div class="card-actions">
-            <a href="../PRODUCT/product.php?id=${item.Product_ID}">View details</a>
+            <a href="${userPrefix}PRODUCT/product.php?id=${item.Product_ID}">View details</a>
             <button type="button" class="primary" data-action="add" data-id="${item.Product_ID}">Add to cart</button>
             <button type="button" class="danger" data-action="remove" data-favorite="${item.Favorite_ID}">Remove</button>
           </div>
@@ -201,7 +269,7 @@
     }
 
     async function loadFavorites(email) {
-      const res = await fetch(`../../../PHP/favorite_api.php?action=list&email=${encodeURIComponent(email)}`);
+      const res = await fetch(`${apiBase}favorite_api.php?action=list&email=${encodeURIComponent(email)}`);
       const data = await res.json();
       if (data.error) {
         throw new Error(data.error);
@@ -210,7 +278,7 @@
     }
 
     async function removeFavorite(favoriteId) {
-      const res = await fetch('../../../PHP/favorite_api.php?action=remove', {
+      const res = await fetch(`${apiBase}favorite_api.php?action=remove`, {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: new URLSearchParams({ favorite_id: favoriteId })
@@ -226,7 +294,7 @@
         showToast('Sign in to add treats to your cart.');
         return;
       }
-      const res = await fetch('../../../PHP/cart_api.php?action=add', {
+      const res = await fetch(`${apiBase}cart_api.php?action=add`, {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: new URLSearchParams({ email: userEmail, product_id: productId, quantity: 1 })
