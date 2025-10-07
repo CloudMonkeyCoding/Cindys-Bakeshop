@@ -1224,11 +1224,26 @@ if (signupForm) {
       }, 1800);
     } catch (error) {
       console.error('Signup failed:', error);
-      let message = error && error.code === 'auth/email-already-in-use'
-        ? 'This email is already registered. Try logging in instead.'
-        : error && error.code === 'auth/weak-password'
-          ? 'Password is too weak. Please use a stronger password.'
-          : (error.message || 'Unable to create account. Please try again.');
+
+      let message = 'Unable to create account. Please try again.';
+      const errorCode = error && typeof error === 'object' ? error.code : undefined;
+
+      if (errorCode === 'auth/email-already-in-use') {
+        message = 'This email is already registered. Try logging in instead.';
+        setErrorMessage(errors.email, message);
+        if (emailInput) {
+          emailInput.focus();
+        }
+      } else if (errorCode === 'auth/weak-password') {
+        message = 'Password is too weak. Please use a stronger password.';
+        setErrorMessage(errors.password, message);
+        if (passwordInput) {
+          passwordInput.focus();
+        }
+      } else if (error instanceof Error && error.message) {
+        message = error.message;
+      }
+
       setFormFeedback(message, 'error');
     } finally {
       setButtonLoading(signupButton, false);
