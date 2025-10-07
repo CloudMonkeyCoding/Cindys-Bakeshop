@@ -3,13 +3,26 @@ $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1);
 $callerFile = isset($trace[0]['file']) ? $trace[0]['file'] : __FILE__;
 $callerDir = str_replace('\\', '/', dirname($callerFile));
 $baseDir = str_replace('\\', '/', __DIR__);
+$projectRoot = str_replace('\\', '/', dirname($baseDir, 2));
 $depth = 0;
+$userPrefix = '';
+$rootPrefix = '';
+
 if (strpos($callerDir, $baseDir) === 0) {
     $relative = trim(substr($callerDir, strlen($baseDir)), '/');
     $depth = $relative === '' ? 0 : substr_count($relative, '/') + 1;
+    $userPrefix = str_repeat('../', $depth);
+    $rootPrefix = str_repeat('../', $depth + 2);
+} else {
+    $relativeToRoot = '';
+    if (strpos($callerDir, $projectRoot) === 0) {
+        $relativeToRoot = trim(substr($callerDir, strlen($projectRoot)), '/');
+    }
+    $depth = $relativeToRoot === '' ? 0 : substr_count($relativeToRoot, '/') + 1;
+    $rootPrefix = $depth === 0 ? '' : str_repeat('../', $depth);
+    $userPathFromRoot = trim(str_replace($projectRoot, '', $baseDir), '/');
+    $userPrefix = $rootPrefix . $userPathFromRoot . '/';
 }
-$userPrefix = str_repeat('../', $depth);
-$rootPrefix = str_repeat('../', $depth + 2);
 $currentScript = basename($_SERVER['SCRIPT_NAME'] ?? '');
 
 $menuScripts = array('MENU.php', 'bread.php', 'cakes.php', 'pastry.php', 'product.php');
@@ -23,7 +36,7 @@ $imagesBase = $rootPrefix . 'Images/';
 $navItems = [
     [
         'label' => 'Home',
-        'href' => $userPrefix . 'home.php',
+        'href' => $rootPrefix . 'index.php',
         'match' => ['home.php', 'index.php']
     ],
     [
@@ -56,7 +69,7 @@ $activeResolver = function (array $needles) use ($currentScript): string {
   <div class="header-content">
     <div class="logo">
       <span class="logo-icon" aria-hidden="true">🥐</span>
-      <a href="<?= htmlspecialchars($userPrefix . 'home.php', ENT_QUOTES) ?>" class="logo-text">Cindy's Bakeshop</a>
+      <a href="<?= htmlspecialchars($rootPrefix . 'index.php', ENT_QUOTES) ?>" class="logo-text">Cindy's Bakeshop</a>
     </div>
 
     <button type="button" class="menu-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>

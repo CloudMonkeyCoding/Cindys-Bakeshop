@@ -8,8 +8,8 @@ if (strpos($callerDir, $baseDir) === 0) {
     $relative = trim(substr($callerDir, strlen($baseDir)), '/');
     $depth = $relative === '' ? 0 : substr_count($relative, '/') + 1;
 }
-$userPrefix = str_repeat('../', $depth);
-$rootPrefix = str_repeat('../', $depth + 2);
+$rootPrefix = $depth === 0 ? '' : str_repeat('../', $depth);
+$userPrefix = $rootPrefix . 'Update-user-design/UserSide/';
 $imagesBase = $rootPrefix . 'Images/';
 $productBase = $userPrefix . 'PRODUCT/';
 ?>
@@ -929,7 +929,7 @@ $productBase = $userPrefix . 'PRODUCT/';
     </style>
   </head>
   <body>
-    <?php include __DIR__ . '/topbar.php'; ?>
+    <?php include __DIR__ . '/Update-user-design/UserSide/topbar.php'; ?>
 
     <main>
     <!-- Hero Section -->
