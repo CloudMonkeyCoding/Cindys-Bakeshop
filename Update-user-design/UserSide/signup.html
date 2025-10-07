@@ -730,7 +730,7 @@ nav ul li a:hover {
 
     <div id="formFeedback" class="form-feedback" role="alert"></div>
 
-    <form id="signupForm">
+    <form id="signupForm" novalidate>
       <div class="form-group">
         <label for="fullName">Full Name</label>
         <input type="text" id="fullName" name="fullName" placeholder="Enter your full name" required>
@@ -1098,6 +1098,7 @@ if (signupForm) {
     }
 
     if (!valid) {
+      setFormFeedback('Please fix the highlighted fields before continuing.', 'error');
       return;
     }
 
