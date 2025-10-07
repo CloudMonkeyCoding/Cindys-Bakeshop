@@ -392,6 +392,22 @@
 
     const cartContainer = document.getElementById('cart-items');
     const masterCheckbox = document.querySelector('.check-all input[type="checkbox"]');
+    const header = document.getElementById('mainHeader');
+    const rootPrefix = header?.dataset.rootPrefix || '../../../';
+    const imagesBase = header?.dataset.imagesBase || `${rootPrefix}Images/`;
+    const uploadsBase = `${rootPrefix}adminSide/products/uploads/`;
+    const apiBase = header?.dataset.apiBase || `${rootPrefix}PHP/`;
+    const fallbackImage = `${imagesBase}logo.png`;
+    const categoryDirMap = new Map([
+      ['bread', 'bread'],
+      ['breads', 'bread'],
+      ['cake', 'cakes'],
+      ['cakes', 'cakes'],
+      ['pastry', 'pastry'],
+      ['pastries', 'pastry']
+    ]);
+    const totalPriceLabel = document.querySelector('.total-price');
+    const totalItemsLabel = document.querySelector('.total-items');
     let cartId = null;
     let checkoutData = [];
     let userEmail = null;
@@ -404,6 +420,69 @@
     const orderTypeSelect = document.getElementById('order-type');
     const mopSelect = document.getElementById('mop');
     const cartStatus = document.getElementById('cartStatus');
+
+    function resolveImagePath(imagePath, category) {
+      if (!imagePath) {
+        return fallbackImage;
+      }
+
+      const trimmed = String(imagePath).trim();
+      if (trimmed === '') {
+        return fallbackImage;
+      }
+
+      const normalised = trimmed.replace(/\\/g, '/');
+      const lowerNormalised = normalised.toLowerCase();
+
+      if (/^https?:\/\//i.test(normalised) || lowerNormalised.startsWith('data:')) {
+        return normalised;
+      }
+
+      if (normalised.startsWith('/')) {
+        return rootPrefix + normalised.replace(/^\/+/, '');
+      }
+
+      const cleaned = normalised
+        .replace(/^(\.\/)+/, '')
+        .replace(/^(\.\.\/)+/, '');
+      const lowerCleaned = cleaned.toLowerCase();
+
+      if (lowerCleaned.startsWith('images/')) {
+        return rootPrefix + cleaned.replace(/^\/+/, '');
+      }
+
+      if (lowerCleaned.includes('adminside/products/uploads/')) {
+        return rootPrefix + cleaned.replace(/^\/+/, '');
+      }
+
+      if (lowerCleaned.startsWith('uploads/') || lowerCleaned.startsWith('products/uploads/')) {
+        const fromUploads = cleaned.split('/').pop();
+        return fromUploads ? uploadsBase + fromUploads : fallbackImage;
+      }
+
+      const fileName = cleaned.split('/').pop() || '';
+      if (!fileName) {
+        return fallbackImage;
+      }
+
+      if (fileName.toLowerCase().startsWith('prod_')) {
+        return uploadsBase + fileName;
+      }
+
+      if (fileName.toLowerCase() === 'logo.png') {
+        return fallbackImage;
+      }
+
+      const categoryKey = typeof category === 'string' ? category.trim().toLowerCase() : '';
+      if (categoryKey) {
+        const mappedDir = categoryDirMap.get(categoryKey);
+        if (mappedDir) {
+          return `${imagesBase}${mappedDir}/${fileName}`;
+        }
+      }
+
+      return `${imagesBase}${fileName}`;
+    }
 
     orderTypeSelect.addEventListener('change', () => {
       mopSelect.innerHTML = '<option value="">-- Select --</option>';
@@ -451,7 +530,7 @@
 
     async function loadProfile() {
       if (!userEmail) return;
-      const res = await fetch(`../../../PHP/user_api.php?action=get_profile&email=${encodeURIComponent(userEmail)}`);
+      const res = await fetch(`${apiBase}user_api.php?action=get_profile&email=${encodeURIComponent(userEmail)}`);
       const data = await res.json();
       nameField.value = data.name || '';
       addressField.value = data.address || '';
@@ -459,7 +538,7 @@
 
     async function loadCart() {
       if (!userEmail) return;
-      const res = await fetch(`../../../PHP/cart_api.php?action=list&email=${encodeURIComponent(userEmail)}`);
+      const res = await fetch(`${apiBase}cart_api.php?action=list&email=${encodeURIComponent(userEmail)}`);
       const data = await res.json();
       cartId = data.cart_id;
       const cart = data.items;
@@ -467,8 +546,8 @@
 
       if (!cart || cart.length === 0) {
         cartContainer.innerHTML = '<p class="empty-note">Your cart is empty.</p>';
-        document.querySelector('.total-items').textContent = 'Items: 0';
-        document.querySelector('.total-price').textContent = 'Total Price: ₱0.00';
+        totalItemsLabel.textContent = 'Items: 0';
+        totalPriceLabel.textContent = 'Total Price: ₱0.00';
         cartStatus.textContent = 'Add items to continue';
         return;
       }
@@ -482,7 +561,7 @@
         div.setAttribute('data-product', item.Product_ID);
         div.setAttribute('data-price', item.Price);
         div.setAttribute('data-stock', item.Stock_Quantity);
-        const imageSrc = item.Image_Path ? '../../../adminSide/products/uploads/' + item.Image_Path : '../../../Images/logo.png';
+        const imageSrc = resolveImagePath(item.Image_Path, item.Category);
         div.innerHTML = `
           <div class="cart-item-left">
             <input type="checkbox" class="item-check" checked>
@@ -520,7 +599,7 @@
 
     function saveProfile() {
       if (!userEmail) return;
-      fetch('../../../PHP/user_api.php?action=set_profile', {
+      fetch(`${apiBase}user_api.php?action=set_profile`, {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: `email=${encodeURIComponent(userEmail)}&name=${encodeURIComponent(nameField.value)}&address=${encodeURIComponent(addressField.value)}`
@@ -539,8 +618,8 @@
           itemCount += qty;
         }
       });
-      document.querySelector('.total-price').textContent = 'Total Price: ₱' + total.toFixed(2);
-      document.querySelector('.total-items').textContent = 'Items: ' + itemCount;
+      totalPriceLabel.textContent = 'Total Price: ₱' + total.toFixed(2);
+      totalItemsLabel.textContent = 'Items: ' + itemCount;
       checkMasterToggle();
     }
 
@@ -565,7 +644,7 @@
     function saveQty(button, newQty) {
       const item = button.closest('.cart-item');
       const id = item.getAttribute('data-id');
-      fetch('../../../PHP/cart_api.php?action=update', {
+      fetch(`${apiBase}cart_api.php?action=update`, {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: `cart_item_id=${id}&quantity=${newQty}`
@@ -592,7 +671,7 @@
     function removeItem(button) {
       const item = button.closest('.cart-item');
       const id = item.getAttribute('data-id');
-      fetch('../../../PHP/cart_api.php?action=remove', {
+      fetch(`${apiBase}cart_api.php?action=remove`, {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: `cart_item_id=${id}`
@@ -670,7 +749,7 @@
       const mop = document.getElementById('mop').value;
 
       try {
-        const res = await fetch(`../../../PHP/cart_api.php?action=list&email=${encodeURIComponent(userEmail)}`);
+        const res = await fetch(`${apiBase}cart_api.php?action=list&email=${encodeURIComponent(userEmail)}`);
         const cartType = res.headers.get('Content-Type') || '';
         const cartText = await res.text();
         if (!res.ok || !cartType.includes('application/json')) {
@@ -696,7 +775,7 @@
           mop,
         });
 
-        const orderRes = await fetch('../../../PHP/order_api.php?action=place', {
+        const orderRes = await fetch(`${apiBase}order_api.php?action=place`, {
           method: 'POST',
           headers: {'Content-Type': 'application/x-www-form-urlencoded'},
           body: payload.toString(),
