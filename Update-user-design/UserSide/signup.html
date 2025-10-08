@@ -246,6 +246,7 @@ nav ul li a:hover {
   display: block;
 }
 
+
 .form-group {
   margin-bottom: 1.5rem;
   position: relative;
@@ -257,6 +258,7 @@ nav ul li a:hover {
   color: #8b4513;
   font-weight: 600;
   font-size: 0.9rem;
+  transition: color 0.3s ease;
 }
 
 .form-group input {
@@ -278,6 +280,23 @@ nav ul li a:hover {
   box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
   background: #fff;
   transform: translateY(-1px);
+}
+
+.form-group.error-state label {
+  color: #c82333;
+}
+
+.form-group.error-state input {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.12);
+  background: #fff5f5;
+}
+
+.form-group.error-state .face-capture-wrapper {
+  border: 2px dashed rgba(220, 53, 69, 0.7);
+  border-radius: 12px;
+  padding: 0.75rem;
+  background: rgba(220, 53, 69, 0.05);
 }
 
 .form-group input::placeholder {
@@ -730,7 +749,7 @@ nav ul li a:hover {
 
     <div id="formFeedback" class="form-feedback" role="alert"></div>
 
-    <form id="signupForm">
+    <form id="signupForm" novalidate>
       <div class="form-group">
         <label for="fullName">Full Name</label>
         <input type="text" id="fullName" name="fullName" placeholder="Enter your full name" required>
@@ -828,6 +847,20 @@ const errors = {
 
 let mediaStream = null;
 
+function setErrorMessage(element, message) {
+  if (!element) return;
+  const fieldGroup = element.closest('.form-group');
+  if (fieldGroup) {
+    if (message) {
+      fieldGroup.classList.add('error-state');
+    } else {
+      fieldGroup.classList.remove('error-state');
+    }
+  }
+  element.textContent = message;
+  element.style.display = message ? 'block' : 'none';
+}
+
 window.toggleMenu = function toggleMenu() {
   if (navMenu) {
     navMenu.classList.toggle('active');
@@ -885,8 +918,78 @@ function updatePasswordStrength(value) {
 }
 
 if (passwordInput) {
-  passwordInput.addEventListener('input', () => updatePasswordStrength(passwordInput.value));
+  passwordInput.addEventListener('input', () => {
+    const value = passwordInput.value;
+    updatePasswordStrength(value);
+
+    if (!value) {
+      setErrorMessage(errors.password, '');
+    } else if (validatePassword(value)) {
+      setErrorMessage(errors.password, '');
+    } else {
+      setErrorMessage(
+        errors.password,
+        'Use at least 8 characters with uppercase, lowercase, number, and symbol.'
+      );
+    }
+
+    if (confirmPasswordInput) {
+      confirmPasswordInput.dispatchEvent(new Event('input'));
+    }
+  });
   updatePasswordStrength(passwordInput.value);
+}
+
+if (fullNameInput) {
+  fullNameInput.addEventListener('input', () => {
+    if (fullNameInput.value.trim()) {
+      setErrorMessage(errors.name, '');
+    }
+  });
+}
+
+if (emailInput) {
+  emailInput.addEventListener('input', () => {
+    const value = emailInput.value.trim();
+    if (!value) {
+      setErrorMessage(errors.email, '');
+    } else if (validateEmail(value)) {
+      setErrorMessage(errors.email, '');
+    } else {
+      setErrorMessage(errors.email, 'Please provide a valid email address.');
+    }
+  });
+}
+
+if (phoneInput) {
+  phoneInput.addEventListener('input', () => {
+    const value = phoneInput.value.trim();
+    if (!value) {
+      setErrorMessage(errors.phone, '');
+    } else if (validatePhone(value)) {
+      setErrorMessage(errors.phone, '');
+    } else {
+      setErrorMessage(errors.phone, 'Please enter a valid phone number.');
+    }
+  });
+}
+
+if (confirmPasswordInput) {
+  confirmPasswordInput.addEventListener('input', () => {
+    const confirmValue = confirmPasswordInput.value;
+    const passwordValue = passwordInput ? passwordInput.value : '';
+
+    if (!confirmValue) {
+      setErrorMessage(errors.confirmPassword, '');
+      return;
+    }
+
+    if (confirmValue && confirmValue === passwordValue) {
+      setErrorMessage(errors.confirmPassword, '');
+    } else {
+      setErrorMessage(errors.confirmPassword, 'Passwords do not match.');
+    }
+  });
 }
 
 function setFormFeedback(message, type) {
@@ -903,10 +1006,8 @@ function setFormFeedback(message, type) {
 }
 
 function clearErrors() {
-  Object.values(errors).forEach((el) => {
-    if (el) el.textContent = '';
-  });
-  if (faceError) faceError.textContent = '';
+  Object.values(errors).forEach((el) => setErrorMessage(el, ''));
+  setErrorMessage(faceError, '');
   setFormFeedback('', '');
 }
 
@@ -963,9 +1064,7 @@ async function startCamera() {
     }
   } catch (error) {
     console.error('Camera access denied:', error);
-    if (faceError) {
-      faceError.textContent = 'Unable to access camera. Please allow camera permissions or try a different device.';
-    }
+    setErrorMessage(faceError, 'Unable to access camera. Please allow camera permissions or try a different device.');
   }
 }
 
@@ -995,7 +1094,7 @@ function captureFace() {
   if (retakeBtn) {
     retakeBtn.style.display = 'block';
   }
-  if (faceError) faceError.textContent = '';
+  setErrorMessage(faceError, '');
 }
 
 function resetCapture() {
@@ -1038,7 +1137,7 @@ if (retakeBtn) {
 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
   startCamera();
 } else if (faceError) {
-  faceError.textContent = 'Camera access is not supported in this browser.';
+  setErrorMessage(faceError, 'Camera access is not supported in this browser.');
 }
 
 window.addEventListener('beforeunload', stopCamera);
@@ -1059,30 +1158,30 @@ if (signupForm) {
 
     if (!fullName) {
       valid = false;
-      if (errors.name) errors.name.textContent = 'Please enter your full name.';
+      setErrorMessage(errors.name, 'Please enter your full name.');
     }
 
     if (!email || !validateEmail(email)) {
       valid = false;
-      if (errors.email) errors.email.textContent = 'Please provide a valid email address.';
+      setErrorMessage(errors.email, 'Please provide a valid email address.');
     }
 
     if (phone && !validatePhone(phone)) {
       valid = false;
-      if (errors.phone) errors.phone.textContent = 'Please enter a valid phone number.';
+      setErrorMessage(errors.phone, 'Please enter a valid phone number.');
     }
 
     if (!password) {
       valid = false;
-      if (errors.password) errors.password.textContent = 'Please create a password.';
+      setErrorMessage(errors.password, 'Please create a password.');
     } else if (!validatePassword(password)) {
       valid = false;
-      if (errors.password) errors.password.textContent = 'Use at least 8 characters with uppercase, lowercase, number, and symbol.';
+      setErrorMessage(errors.password, 'Use at least 8 characters with uppercase, lowercase, number, and symbol.');
     }
 
     if (!confirmPassword || confirmPassword !== password) {
       valid = false;
-      if (errors.confirmPassword) errors.confirmPassword.textContent = 'Passwords do not match.';
+      setErrorMessage(errors.confirmPassword, 'Passwords do not match.');
     }
 
     if (!termsCheckbox || !termsCheckbox.checked) {
@@ -1092,10 +1191,11 @@ if (signupForm) {
 
     if (!faceImage) {
       valid = false;
-      if (faceError) faceError.textContent = 'Please capture your face before creating an account.';
+      setErrorMessage(faceError, 'Please capture your face before creating an account.');
     }
 
     if (!valid) {
+      setFormFeedback('Please fix the highlighted fields before continuing.', 'error');
       return;
     }
 
@@ -1124,11 +1224,26 @@ if (signupForm) {
       }, 1800);
     } catch (error) {
       console.error('Signup failed:', error);
-      let message = error && error.code === 'auth/email-already-in-use'
-        ? 'This email is already registered. Try logging in instead.'
-        : error && error.code === 'auth/weak-password'
-          ? 'Password is too weak. Please use a stronger password.'
-          : (error.message || 'Unable to create account. Please try again.');
+
+      let message = 'Unable to create account. Please try again.';
+      const errorCode = error && typeof error === 'object' ? error.code : undefined;
+
+      if (errorCode === 'auth/email-already-in-use') {
+        message = 'This email is already registered. Try logging in instead.';
+        setErrorMessage(errors.email, message);
+        if (emailInput) {
+          emailInput.focus();
+        }
+      } else if (errorCode === 'auth/weak-password') {
+        message = 'Password is too weak. Please use a stronger password.';
+        setErrorMessage(errors.password, message);
+        if (passwordInput) {
+          passwordInput.focus();
+        }
+      } else if (error instanceof Error && error.message) {
+        message = error.message;
+      }
+
       setFormFeedback(message, 'error');
     } finally {
       setButtonLoading(signupButton, false);
