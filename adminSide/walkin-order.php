@@ -167,7 +167,7 @@ include 'includes/sidebar.php';
 
 <?php
 $csrfTokenJson = json_encode($_SESSION['csrf_token']);
-$apiUrlJson = json_encode('api/walkin_order_actions.php');
+$apiUrlJson = json_encode('../PHP/walkin_order_actions.php');
 $ordersUrlJson = json_encode('orders.php');
 $productCatalogJson = json_encode($productCatalog, JSON_UNESCAPED_UNICODE);
 if ($productCatalogJson === false) {

@@ -565,7 +565,7 @@ $extraScripts = <<<'JS'
     button.disabled = true;
     button.textContent = 'Loading...';
     try {
-      const response = await fetch(`api/user_details.php?user_id=${encodeURIComponent(userId)}`);
+      const response = await fetch(`../PHP/user_details.php?user_id=${encodeURIComponent(userId)}`);
       const data = await response.json();
       if (!response.ok || !data?.success) {
         throw new Error(data?.message || 'Failed to load user details');
@@ -678,7 +678,7 @@ $extraScripts = <<<'JS'
     formData.append('user_id', userId);
 
     try {
-      const response = await fetch('api/user_staff_actions.php', {
+      const response = await fetch('../PHP/user_staff_actions.php', {
         method: 'POST',
         body: formData,
       });

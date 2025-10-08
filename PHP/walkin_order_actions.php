@@ -25,15 +25,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-require_once '../../PHP/db_connect.php';
-require_once '../../PHP/order_functions.php';
-require_once '../../PHP/order_item_functions.php';
-require_once '../../PHP/product_functions.php';
-require_once '../../PHP/inventory_functions.php';
-require_once '../../PHP/transaction_functions.php';
-require_once '../../PHP/user_functions.php';
-require_once '../../PHP/delivery_functions.php';
-require_once '../../PHP/email_functions.php';
+require_once __DIR__ . '/db_connect.php';
+require_once __DIR__ . '/order_functions.php';
+require_once __DIR__ . '/order_item_functions.php';
+require_once __DIR__ . '/product_functions.php';
+require_once __DIR__ . '/inventory_functions.php';
+require_once __DIR__ . '/transaction_functions.php';
+require_once __DIR__ . '/user_functions.php';
+require_once __DIR__ . '/delivery_functions.php';
+require_once __DIR__ . '/email_functions.php';
 
 walkin_order_log('Bootstrap completed for walk-in order API');
 

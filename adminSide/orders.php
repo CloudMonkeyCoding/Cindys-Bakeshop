@@ -194,7 +194,7 @@ $extraScripts = <<<JS
 
   async function updateStatus(orderId, status) {
     try {
-      const response = await fetch('api/order_actions.php', {
+      const response = await fetch('../PHP/order_actions.php', {
         method: 'POST',
         headers: { 'Accept': 'application/json' },
         body: new URLSearchParams({

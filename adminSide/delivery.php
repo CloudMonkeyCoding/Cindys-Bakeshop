@@ -148,7 +148,7 @@ $extraScripts = <<<JS
   });
 
   async function updateDelivery(data) {
-    const response = await fetch('api/delivery_actions.php', {
+    const response = await fetch('../PHP/delivery_actions.php', {
       method: 'POST',
       headers: { 'Accept': 'application/json' },
       body: data

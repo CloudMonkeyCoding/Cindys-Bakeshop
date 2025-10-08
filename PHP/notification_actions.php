@@ -20,8 +20,8 @@ if (!$ids) {
     exit;
 }
 
-require_once '../../PHP/db_connect.php';
-require_once '../../PHP/notification_functions.php';
+require_once __DIR__ . '/db_connect.php';
+require_once __DIR__ . '/notification_functions.php';
 
 if (!$pdo) {
     http_response_code(500);

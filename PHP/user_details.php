@@ -7,10 +7,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
-require_once '../../PHP/db_connect.php';
-require_once '../../PHP/user_functions.php';
-require_once '../../PHP/order_functions.php';
-require_once '../../PHP/store_staff_functions.php';
+require_once __DIR__ . '/db_connect.php';
+require_once __DIR__ . '/user_functions.php';
+require_once __DIR__ . '/order_functions.php';
+require_once __DIR__ . '/store_staff_functions.php';
 
 function normalizeFacePath($path)
 {
