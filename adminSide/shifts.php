@@ -5,7 +5,7 @@ require_once '../PHP/db_connect.php';
 require_once '../PHP/shift_functions.php';
 
 $activePage = 'shifts';
-$pageTitle = "Shift Schedule - Cindy's Bakeshop";
+$pageTitle = "Shift Management - Cindy's Bakeshop";
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -211,7 +211,7 @@ include 'includes/sidebar.php';
 
 <div class="main">
   <div class="page-header">
-    <h1>Shift Schedule</h1>
+    <h1>Shift Management</h1>
     <a href="edit-profile.php" class="user-info">
       <span>Admin</span>
       <img src="https://i.pravatar.cc/80" alt="Admin avatar">

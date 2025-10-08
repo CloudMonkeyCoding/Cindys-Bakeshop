@@ -27,7 +27,7 @@ function isDropdownActive(array $pages, $activePage) {
     <li>
       <a href="shifts.php" class="<?= isActive('shifts', $activePage); ?>">
         <span><i class="fa-solid fa-clock"></i></span>
-        Shifts
+        Shift Management
       </a>
     </li>
     <li>
