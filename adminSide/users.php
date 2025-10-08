@@ -9,7 +9,7 @@ $allUsers = [];
 $blockedUsers = [];
 
 if ($pdo) {
-    $stmt = $pdo->query("SELECT u.User_ID, u.Name, u.Email, CASE WHEN ss.Store_Staff_ID IS NULL THEN 0 ELSE 1 END AS Is_Employee FROM user u LEFT JOIN store_staff ss ON u.User_ID = ss.User_ID");
+    $stmt = $pdo->query("SELECT u.User_ID, u.Name, u.Email, EXISTS(SELECT 1 FROM store_staff ss WHERE ss.User_ID = u.User_ID) AS Is_Employee FROM user u");
     $allUsers = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
 
     $sql = "SELECT b.Blacklist_ID, u.Name, u.Email, b.Blacklist_reason AS Reason,
@@ -58,7 +58,7 @@ include 'includes/sidebar.php';
           <?php foreach ($allUsers as $user): ?>
             <?php
               $userId = isset($user['User_ID']) ? (int)$user['User_ID'] : 0;
-              $isEmployee = !empty($user['Is_Employee']);
+              $isEmployee = isset($user['Is_Employee']) && (int)$user['Is_Employee'] === 1;
               $userNameSafe = htmlspecialchars($user['Name'] ?? '', ENT_QUOTES, 'UTF-8');
               $userEmailSafe = htmlspecialchars($user['Email'] ?? '', ENT_QUOTES, 'UTF-8');
             ?>
@@ -70,9 +70,11 @@ include 'includes/sidebar.php';
                   <button type="button" class="btn btn-primary btn-view-user" data-user="<?= $userId; ?>">
                     View Details
                   </button>
-                  <span class="badge badge-success employee-badge" role="status" data-role-badge <?= $isEmployee ? '' : 'hidden'; ?> aria-hidden="<?= $isEmployee ? 'false' : 'true'; ?>">
-                    Employee
-                  </span>
+                  <?php if ($isEmployee): ?>
+                    <span class="badge badge-success employee-badge" role="status" data-role-badge aria-hidden="false">
+                      Employee
+                    </span>
+                  <?php endif; ?>
                   <button
                     type="button"
                     class="btn btn-secondary btn-mark-employee"<?= $isEmployee ? ' hidden' : ''; ?>
@@ -599,6 +601,7 @@ $extraScripts = <<<'JS'
       badge.className = 'badge badge-success employee-badge';
       badge.setAttribute('role', 'status');
       badge.setAttribute('data-role-badge', '');
+      badge.setAttribute('aria-hidden', 'false');
       badge.textContent = 'Employee';
       const container = row.querySelector('.table-action-list');
       if (container) {
@@ -608,13 +611,14 @@ $extraScripts = <<<'JS'
       }
     }
     if (badge) {
-      badge.hidden = !isEmployee;
       if (!isEmployee) {
-        badge.setAttribute('hidden', '');
+        badge.remove();
+        badge = null;
       } else {
+        badge.hidden = false;
         badge.removeAttribute('hidden');
+        badge.setAttribute('aria-hidden', 'false');
       }
-      badge.setAttribute('aria-hidden', isEmployee ? 'false' : 'true');
     }
 
     const markButton = row.querySelector('.btn-mark-employee');
