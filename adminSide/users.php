@@ -38,15 +38,8 @@ include 'includes/sidebar.php';
     <div class="table-actions">
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
         <button class="btn btn-secondary" id="showAll">All Users</button>
+        <button class="btn btn-muted" id="showEmployees">Employees</button>
         <button class="btn btn-muted" id="showBlocked">Blocked Users</button>
-      </div>
-      <div class="filter-group" id="employeeFilterWrapper">
-        <label for="employeeFilter">Show</label>
-        <select id="employeeFilter">
-          <option value="all" selected>All roles</option>
-          <option value="employee">Employees only</option>
-          <option value="non_employee">Non-employees</option>
-        </select>
       </div>
       <input type="text" id="userSearch" placeholder="🔍 Search user...">
     </div>
@@ -222,19 +215,18 @@ include 'includes/sidebar.php';
 $extraScripts = <<<'JS'
 <script>
   const showAllBtn = document.getElementById('showAll');
+  const showEmployeesBtn = document.getElementById('showEmployees');
   const showBlockedBtn = document.getElementById('showBlocked');
   const allTable = document.getElementById('allUsersTable');
   const blockedTable = document.getElementById('blockedUsersTable');
   const searchInput = document.getElementById('userSearch');
-  const employeeFilter = document.getElementById('employeeFilter');
-  const employeeFilterWrapper = document.getElementById('employeeFilterWrapper');
   const noMatchRow = document.querySelector('#allUsersTable tr[data-empty-state="no-match"]');
+  let currentView = 'all';
 
   function searchUsers() {
     const query = (searchInput?.value || '').toLowerCase();
-    const roleFilter = employeeFilter?.value || 'all';
     if (!allTable || !blockedTable) return;
-    if (blockedTable.style.display === 'none') {
+    if (currentView !== 'blocked') {
       const userRows = Array.from(allTable.querySelectorAll('tbody tr[data-user-id]'));
       let visibleCount = 0;
       userRows.forEach(row => {
@@ -247,12 +239,7 @@ $extraScripts = <<<'JS'
         }
 
         const isEmployee = row.dataset.isEmployee === '1';
-        let matchesRole = true;
-        if (roleFilter === 'employee') {
-          matchesRole = isEmployee;
-        } else if (roleFilter === 'non_employee') {
-          matchesRole = !isEmployee;
-        }
+        const matchesRole = currentView === 'employees' ? isEmployee : true;
 
         if (matchesRole) {
           row.style.display = '';
@@ -283,36 +270,37 @@ $extraScripts = <<<'JS'
     }
   }
 
-  function toggleView(showBlocked) {
-    if (showBlocked) {
-      if (allTable) allTable.style.display = 'none';
-      if (blockedTable) blockedTable.style.display = '';
-      showBlockedBtn?.classList.replace('btn-muted', 'btn-secondary');
-      showAllBtn?.classList.replace('btn-secondary', 'btn-muted');
-      if (employeeFilterWrapper) {
-        employeeFilterWrapper.hidden = true;
-      }
-      if (employeeFilter) {
-        employeeFilter.value = 'all';
-      }
+  function setButtonState(button, isActive) {
+    if (!button) return;
+    if (isActive) {
+      button.classList.add('btn-secondary');
+      button.classList.remove('btn-muted');
     } else {
-      if (allTable) allTable.style.display = '';
-      if (blockedTable) blockedTable.style.display = 'none';
-      showAllBtn?.classList.replace('btn-muted', 'btn-secondary');
-      showBlockedBtn?.classList.replace('btn-secondary', 'btn-muted');
-      if (employeeFilterWrapper) {
-        employeeFilterWrapper.hidden = false;
-      }
+      button.classList.add('btn-muted');
+      button.classList.remove('btn-secondary');
     }
+  }
+
+  function toggleView(target) {
+    currentView = target;
+    const showingBlocked = target === 'blocked';
+
+    if (allTable) allTable.style.display = showingBlocked ? 'none' : '';
+    if (blockedTable) blockedTable.style.display = showingBlocked ? '' : 'none';
+
+    setButtonState(showAllBtn, target === 'all');
+    setButtonState(showEmployeesBtn, target === 'employees');
+    setButtonState(showBlockedBtn, target === 'blocked');
+
     searchUsers();
   }
 
   searchInput?.addEventListener('input', searchUsers);
-  employeeFilter?.addEventListener('change', searchUsers);
-  showAllBtn?.addEventListener('click', () => toggleView(false));
-  showBlockedBtn?.addEventListener('click', () => toggleView(true));
+  showAllBtn?.addEventListener('click', () => toggleView('all'));
+  showEmployeesBtn?.addEventListener('click', () => toggleView('employees'));
+  showBlockedBtn?.addEventListener('click', () => toggleView('blocked'));
 
-  toggleView(false);
+  toggleView('all');
 
   const userModal = document.getElementById('userDetailsModal');
   const userModalBody = userModal ? userModal.querySelector('.user-modal-body') : null;
