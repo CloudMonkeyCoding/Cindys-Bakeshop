@@ -380,6 +380,17 @@ table td {
   border-bottom: 1px solid #eee;
 }
 
+.table-action-list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.table-action-list .employee-badge {
+  margin-top: 4px;
+}
+
 table tbody tr:hover {
   background: rgba(241, 196, 15, 0.12);
   transition: background 0.3s ease;

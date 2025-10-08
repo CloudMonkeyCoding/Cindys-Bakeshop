@@ -9,7 +9,7 @@ $allUsers = [];
 $blockedUsers = [];
 
 if ($pdo) {
-    $stmt = $pdo->query("SELECT User_ID, Name, Email FROM user");
+    $stmt = $pdo->query("SELECT u.User_ID, u.Name, u.Email, CASE WHEN ss.Store_Staff_ID IS NULL THEN 0 ELSE 1 END AS Is_Employee FROM user u LEFT JOIN store_staff ss ON u.User_ID = ss.User_ID");
     $allUsers = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
 
     $sql = "SELECT b.Blacklist_ID, u.Name, u.Email, b.Blacklist_reason AS Reason,
@@ -56,14 +56,34 @@ include 'includes/sidebar.php';
           <tr><td colspan="3" class="table-empty">No users found.</td></tr>
         <?php else: ?>
           <?php foreach ($allUsers as $user): ?>
-            <?php $userId = isset($user['User_ID']) ? (int)$user['User_ID'] : 0; ?>
-            <tr data-user-id="<?= $userId; ?>">
-              <td><?= htmlspecialchars($user['Name'] ?? ''); ?></td>
-              <td><?= htmlspecialchars($user['Email'] ?? ''); ?></td>
+            <?php
+              $userId = isset($user['User_ID']) ? (int)$user['User_ID'] : 0;
+              $isEmployee = !empty($user['Is_Employee']);
+              $userNameSafe = htmlspecialchars($user['Name'] ?? '', ENT_QUOTES, 'UTF-8');
+              $userEmailSafe = htmlspecialchars($user['Email'] ?? '', ENT_QUOTES, 'UTF-8');
+            ?>
+            <tr data-user-id="<?= $userId; ?>" data-is-employee="<?= $isEmployee ? '1' : '0'; ?>">
+              <td><?= $userNameSafe; ?></td>
+              <td><?= $userEmailSafe; ?></td>
               <td>
-                <button class="btn btn-primary btn-view-user" data-user="<?= $userId; ?>">
-                  View Details
-                </button>
+                <div class="table-action-list">
+                  <button type="button" class="btn btn-primary btn-view-user" data-user="<?= $userId; ?>">
+                    View Details
+                  </button>
+                  <span class="badge badge-success employee-badge" role="status" data-role-badge <?= $isEmployee ? '' : 'hidden'; ?> aria-hidden="<?= $isEmployee ? 'false' : 'true'; ?>">
+                    Employee
+                  </span>
+                  <?php if (!$isEmployee): ?>
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-mark-employee"
+                      data-user-id="<?= $userId; ?>"
+                      data-user-name="<?= $userNameSafe; ?>"
+                    >
+                      Mark as Employee
+                    </button>
+                  <?php endif; ?>
+                </div>
               </td>
             </tr>
           <?php endforeach; ?>
@@ -94,7 +114,7 @@ include 'includes/sidebar.php';
               <td><?= htmlspecialchars($user['IP_Address'] ?? ''); ?></td>
               <td style="display:flex;gap:8px;flex-wrap:wrap;">
                 <?php if ($blockedUserId): ?>
-                  <button class="btn btn-primary btn-view-user" data-user="<?= $blockedUserId; ?>">View Details</button>
+                  <button type="button" class="btn btn-primary btn-view-user" data-user="<?= $blockedUserId; ?>">View Details</button>
                 <?php else: ?>
                   <button class="btn btn-muted" disabled title="User profile unavailable">View Details</button>
                 <?php endif; ?>
@@ -119,6 +139,7 @@ include 'includes/sidebar.php';
         </div>
         <div class="user-profile-meta">
           <h2 id="userDetailsName">Select a user</h2>
+          <span class="badge badge-success employee-badge" id="userDetailsEmployeeBadge" role="status" hidden aria-hidden="true">Employee</span>
           <p class="user-contact"><a id="userDetailsEmail" href="#">—</a></p>
           <p class="user-contact muted" id="userDetailsAddress">—</p>
           <div class="user-warning" id="userDetailsWarnings" aria-live="polite">Warnings: 0</div>
@@ -239,6 +260,7 @@ $extraScripts = <<<'JS'
   const userDetailsEmail = document.getElementById('userDetailsEmail');
   const userDetailsAddress = document.getElementById('userDetailsAddress');
   const userDetailsWarnings = document.getElementById('userDetailsWarnings');
+  const userDetailsEmployeeBadge = document.getElementById('userDetailsEmployeeBadge');
   const userDetailsAvatar = document.getElementById('userDetailsAvatar');
   const userDetailsAvatarFallback = document.getElementById('userDetailsAvatarFallback');
   const userDetailsTotalOrders = document.getElementById('userDetailsTotalOrders');
@@ -249,6 +271,7 @@ $extraScripts = <<<'JS'
   const dateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   let userOrders = [];
+  let activeUserId = null;
 
   if (userDetailsAvatar) {
     userDetailsAvatar.addEventListener('error', () => {
@@ -273,6 +296,10 @@ $extraScripts = <<<'JS'
     if (!userModal) return;
     userModal.classList.remove('active');
     userModal.setAttribute('aria-hidden', 'true');
+    if (userModal.dataset.activeUserId) {
+      delete userModal.dataset.activeUserId;
+    }
+    activeUserId = null;
   }
 
   closeUserModalBtn?.addEventListener('click', closeUserModal);
@@ -369,6 +396,11 @@ $extraScripts = <<<'JS'
       const warnings = Number.parseInt(user?.warning_count ?? 0, 10) || 0;
       userDetailsWarnings.textContent = `Warnings: ${warnings}`;
       userDetailsWarnings.classList.toggle('has-warning', warnings > 0);
+    }
+    if (userDetailsEmployeeBadge) {
+      const isEmployee = Boolean(user?.is_employee);
+      userDetailsEmployeeBadge.hidden = !isEmployee;
+      userDetailsEmployeeBadge.setAttribute('aria-hidden', isEmployee ? 'false' : 'true');
     }
   }
 
@@ -536,10 +568,76 @@ $extraScripts = <<<'JS'
       updateStatusFilterOptions((data.summary && data.summary.status_counts) || {});
       resetUserOrderControls();
       applyUserOrderFilters();
+      const parsedUserId = Number.parseInt(userId, 10);
+      activeUserId = Number.isNaN(parsedUserId) ? null : parsedUserId;
+      if (userModal && activeUserId !== null) {
+        userModal.dataset.activeUserId = String(activeUserId);
+      }
       openUserModal();
     } catch (error) {
       alert(error.message);
     } finally {
+      button.disabled = false;
+      button.textContent = previousText;
+    }
+  }
+
+  async function handleMarkEmployee(event) {
+    const button = event.currentTarget;
+    const userId = button.dataset.userId;
+    const userName = (button.dataset.userName || 'this user').trim() || 'this user';
+    if (!userId) {
+      alert('Missing user ID.');
+      return;
+    }
+    if (!window.confirm(`Mark ${userName} as an employee?`)) {
+      return;
+    }
+    const previousText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Marking...';
+    const formData = new FormData();
+    formData.append('action', 'mark_employee');
+    formData.append('user_id', userId);
+    try {
+      const response = await fetch('api/user_staff_actions.php', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await response.json();
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || 'Failed to mark user as employee.');
+      }
+      const numericUserId = Number.parseInt(userId, 10);
+      const row = button.closest('tr');
+      if (row) {
+        row.dataset.isEmployee = '1';
+        let badge = row.querySelector('[data-role-badge]');
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'badge badge-success employee-badge';
+          badge.setAttribute('role', 'status');
+          badge.setAttribute('data-role-badge', '');
+          badge.textContent = 'Employee';
+          const container = button.parentElement;
+          if (container) {
+            container.insertBefore(badge, button);
+          } else {
+            row.append(badge);
+          }
+        }
+        badge.hidden = false;
+        badge.removeAttribute('hidden');
+        badge.setAttribute('aria-hidden', 'false');
+      }
+      if (activeUserId !== null && !Number.isNaN(numericUserId) && numericUserId === activeUserId && userDetailsEmployeeBadge) {
+        userDetailsEmployeeBadge.hidden = false;
+        userDetailsEmployeeBadge.setAttribute('aria-hidden', 'false');
+      }
+      button.remove();
+      alert(result?.message || `${userName} is now marked as an employee.`);
+    } catch (error) {
+      alert(error.message);
       button.disabled = false;
       button.textContent = previousText;
     }
@@ -554,7 +652,17 @@ $extraScripts = <<<'JS'
     });
   }
 
+  function attachMarkEmployeeListeners() {
+    document.querySelectorAll('.btn-mark-employee').forEach(button => {
+      if (!button.dataset.initialized) {
+        button.addEventListener('click', handleMarkEmployee);
+        button.dataset.initialized = 'true';
+      }
+    });
+  }
+
   attachViewUserListeners();
+  attachMarkEmployeeListeners();
 
   document.querySelectorAll('.btn-unblock').forEach(button => {
     button.addEventListener('click', async () => {

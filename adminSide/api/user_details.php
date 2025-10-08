@@ -10,6 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 require_once '../../PHP/db_connect.php';
 require_once '../../PHP/user_functions.php';
 require_once '../../PHP/order_functions.php';
+require_once '../../PHP/store_staff_functions.php';
 
 function normalizeFacePath($path)
 {
@@ -40,6 +41,7 @@ if (!$user) {
     exit;
 }
 
+$staffRecord = getStoreStaffByUserId($pdo, $userId);
 $orders = getOrdersByUserId($pdo, $userId) ?: [];
 
 $normalizedOrders = array_map(static function ($order) {
@@ -78,6 +80,7 @@ $response = [
         'address' => $user['Address'] ?? '',
         'warning_count' => isset($user['Warning_Count']) ? (int)$user['Warning_Count'] : 0,
         'face_image_path' => normalizeFacePath($user['Face_Image_Path'] ?? null),
+        'is_employee' => $staffRecord ? true : false,
     ],
     'orders' => $normalizedOrders,
     'summary' => [
