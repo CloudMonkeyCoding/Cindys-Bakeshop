@@ -36,6 +36,7 @@ The SQL dump defines the following tables:
 - **product** – product catalog (`Product_ID`, `Name`, `Description`, `Price`, `Stock_Quantity`, `Category`, `Image_Path`)
 - **shopping_cart** – cart ownership (`Cart_ID`, `User_ID`)
 - **store_staff** – identifies staff accounts (`Store_Staff_ID`, `User_ID`)
+- **shift_schedule** – assigned and logged shifts for staff (`Shift_ID`, `User_ID`, `Shift_Date`, `Scheduled_Start`, `Scheduled_End`, `Actual_Start`, `Actual_End`, `Status`, `Notes`)
 - **transaction** – payment records (`Transaction_ID`, `Order_ID`, `Payment_Method`, `Payment_Status`, `Payment_Date`, `Amount_Paid`, `Reference_Number`)
 - **user** – registered users and preferences (`User_ID`, `Name`, `Email`, `Password`, `Address`, `Language`, `Theme`, `Notify_Order_Status`, `Notify_Promotions`, `Notify_Feedback`, `Warning_Count`, `Face_Image_Path`)
 - **product_ratings** – aggregated product reviews (`Rating_ID`, `Product_Name`, `Average_Rating`, `Total_Review`, `Comments`)
@@ -58,6 +59,12 @@ The SQL dump defines the following tables:
 
 ### Upgrading an Existing Database
 If you are updating an existing installation, apply the `Database/add_order_source_columns.sql` migration after pulling the latest code. The script adds the new `Source` and `Fulfillment_Type` columns required by the admin tooling.
+
+Run the shift scheduling migration to create the tables that power the admin shift tracker:
+
+```sh
+mysql -u root -p cindysdb < Database/add_shift_schedule_tables.sql
+```
 
 ```sh
 mysql -u root -p cindysdb < Database/add_order_source_columns.sql

@@ -61,7 +61,7 @@ $extraScripts = <<<JS
     const ids = Array.from(document.querySelectorAll('#notificationTable tbody tr')).map(row => row.dataset.id);
     if (!ids.length) return;
     try {
-      const response = await fetch('api/notification_actions.php', {
+      const response = await fetch('../PHP/notification_actions.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'mark_read', ids })

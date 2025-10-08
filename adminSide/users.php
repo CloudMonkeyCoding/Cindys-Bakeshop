@@ -12,6 +12,19 @@ if ($pdo) {
     $stmt = $pdo->query("SELECT User_ID, Name, Email FROM user");
     $allUsers = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
 
+    $staffStmt = $pdo->query("SELECT User_ID FROM store_staff");
+    $staffIds = $staffStmt ? $staffStmt->fetchAll(PDO::FETCH_COLUMN, 0) : [];
+    $staffLookup = [];
+    foreach ($staffIds as $staffUserId) {
+        $staffLookup[(int)$staffUserId] = true;
+    }
+
+    foreach ($allUsers as &$user) {
+        $userId = isset($user['User_ID']) ? (int)$user['User_ID'] : 0;
+        $user['Is_Employee'] = isset($staffLookup[$userId]) ? 1 : 0;
+    }
+    unset($user);
+
     $sql = "SELECT b.Blacklist_ID, u.Name, u.Email, b.Blacklist_reason AS Reason,
                    b.IP_Address, b.User_ID
             FROM blacklist b
@@ -38,6 +51,7 @@ include 'includes/sidebar.php';
     <div class="table-actions">
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
         <button class="btn btn-secondary" id="showAll">All Users</button>
+        <button class="btn btn-muted" id="showEmployees">Employees</button>
         <button class="btn btn-muted" id="showBlocked">Blocked Users</button>
       </div>
       <input type="text" id="userSearch" placeholder="🔍 Search user...">
@@ -53,21 +67,54 @@ include 'includes/sidebar.php';
       </thead>
       <tbody>
         <?php if (empty($allUsers)): ?>
-          <tr><td colspan="3" class="table-empty">No users found.</td></tr>
+          <tr data-empty-state="no-users"><td colspan="3" class="table-empty">No users found.</td></tr>
         <?php else: ?>
           <?php foreach ($allUsers as $user): ?>
-            <?php $userId = isset($user['User_ID']) ? (int)$user['User_ID'] : 0; ?>
-            <tr data-user-id="<?= $userId; ?>">
-              <td><?= htmlspecialchars($user['Name'] ?? ''); ?></td>
-              <td><?= htmlspecialchars($user['Email'] ?? ''); ?></td>
+            <?php
+              $userId = isset($user['User_ID']) ? (int)$user['User_ID'] : 0;
+              $isEmployee = isset($user['Is_Employee']) && (int)$user['Is_Employee'] === 1;
+              $userNameSafe = htmlspecialchars($user['Name'] ?? '', ENT_QUOTES, 'UTF-8');
+              $userEmailSafe = htmlspecialchars($user['Email'] ?? '', ENT_QUOTES, 'UTF-8');
+            ?>
+            <tr data-user-id="<?= $userId; ?>" data-is-employee="<?= $isEmployee ? '1' : '0'; ?>">
+              <td><?= $userNameSafe; ?></td>
+              <td><?= $userEmailSafe; ?></td>
               <td>
-                <button class="btn btn-primary btn-view-user" data-user="<?= $userId; ?>">
-                  View Details
-                </button>
+                <div class="table-action-list">
+                  <button type="button" class="btn btn-primary btn-view-user" data-user="<?= $userId; ?>">
+                    View Details
+                  </button>
+                  <?php if ($isEmployee): ?>
+                    <span class="badge badge-success employee-badge" role="status" data-role-badge aria-hidden="false">
+                      Employee
+                    </span>
+                  <?php endif; ?>
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-mark-employee"<?= $isEmployee ? ' hidden' : ''; ?>
+                    data-user-id="<?= $userId; ?>"
+                    data-user-name="<?= $userNameSafe; ?>"
+                    data-action="mark_employee"
+                  >
+                    Mark as Employee
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-muted btn-remove-employee"<?= $isEmployee ? '' : ' hidden'; ?>
+                    data-user-id="<?= $userId; ?>"
+                    data-user-name="<?= $userNameSafe; ?>"
+                    data-action="remove_employee"
+                  >
+                    Remove Employee
+                  </button>
+                </div>
               </td>
             </tr>
           <?php endforeach; ?>
         <?php endif; ?>
+        <tr data-empty-state="no-match" class="table-empty" hidden>
+          <td colspan="3">No users match your search or filters.</td>
+        </tr>
       </tbody>
     </table>
 
@@ -94,7 +141,7 @@ include 'includes/sidebar.php';
               <td><?= htmlspecialchars($user['IP_Address'] ?? ''); ?></td>
               <td style="display:flex;gap:8px;flex-wrap:wrap;">
                 <?php if ($blockedUserId): ?>
-                  <button class="btn btn-primary btn-view-user" data-user="<?= $blockedUserId; ?>">View Details</button>
+                  <button type="button" class="btn btn-primary btn-view-user" data-user="<?= $blockedUserId; ?>">View Details</button>
                 <?php else: ?>
                   <button class="btn btn-muted" disabled title="User profile unavailable">View Details</button>
                 <?php endif; ?>
@@ -119,6 +166,7 @@ include 'includes/sidebar.php';
         </div>
         <div class="user-profile-meta">
           <h2 id="userDetailsName">Select a user</h2>
+          <span class="badge badge-success employee-badge" id="userDetailsEmployeeBadge" role="status" hidden aria-hidden="true">Employee</span>
           <p class="user-contact"><a id="userDetailsEmail" href="#">—</a></p>
           <p class="user-contact muted" id="userDetailsAddress">—</p>
           <div class="user-warning" id="userDetailsWarnings" aria-live="polite">Warnings: 0</div>
@@ -180,20 +228,45 @@ include 'includes/sidebar.php';
 $extraScripts = <<<'JS'
 <script>
   const showAllBtn = document.getElementById('showAll');
+  const showEmployeesBtn = document.getElementById('showEmployees');
   const showBlockedBtn = document.getElementById('showBlocked');
   const allTable = document.getElementById('allUsersTable');
   const blockedTable = document.getElementById('blockedUsersTable');
   const searchInput = document.getElementById('userSearch');
+  const noMatchRow = document.querySelector('#allUsersTable tr[data-empty-state="no-match"]');
+  let currentView = 'all';
 
   function searchUsers() {
     const query = (searchInput?.value || '').toLowerCase();
     if (!allTable || !blockedTable) return;
-    if (blockedTable.style.display === 'none') {
-      allTable.querySelectorAll('tbody tr').forEach(row => {
+    if (currentView !== 'blocked') {
+      const userRows = Array.from(allTable.querySelectorAll('tbody tr[data-user-id]'));
+      let visibleCount = 0;
+      userRows.forEach(row => {
         const name = row.cells[0]?.textContent.toLowerCase() || '';
         const email = row.cells[1]?.textContent.toLowerCase() || '';
-        row.style.display = (name.includes(query) || email.includes(query)) ? '' : 'none';
+        const matchesQuery = name.includes(query) || email.includes(query);
+        if (!matchesQuery) {
+          row.style.display = 'none';
+          return;
+        }
+
+        const isEmployee = row.dataset.isEmployee === '1';
+        const matchesRole = currentView === 'employees' ? isEmployee : true;
+
+        if (matchesRole) {
+          row.style.display = '';
+          visibleCount += 1;
+        } else {
+          row.style.display = 'none';
+        }
       });
+
+      if (noMatchRow) {
+        const shouldShowNoMatch = userRows.length > 0 && visibleCount === 0;
+        noMatchRow.hidden = !shouldShowNoMatch;
+        noMatchRow.style.display = shouldShowNoMatch ? '' : 'none';
+      }
     } else {
       blockedTable.querySelectorAll('tbody tr').forEach(row => {
         const name = row.cells[0]?.textContent.toLowerCase() || '';
@@ -203,29 +276,44 @@ $extraScripts = <<<'JS'
         const matchesSearch = [name, email, reason, ip].some(value => value.includes(query));
         row.style.display = matchesSearch ? '' : 'none';
       });
+      if (noMatchRow) {
+        noMatchRow.hidden = true;
+        noMatchRow.style.display = 'none';
+      }
     }
   }
 
-  function toggleView(showBlocked) {
-    if (showBlocked) {
-      if (allTable) allTable.style.display = 'none';
-      if (blockedTable) blockedTable.style.display = '';
-      showBlockedBtn?.classList.replace('btn-muted', 'btn-secondary');
-      showAllBtn?.classList.replace('btn-secondary', 'btn-muted');
+  function setButtonState(button, isActive) {
+    if (!button) return;
+    if (isActive) {
+      button.classList.add('btn-secondary');
+      button.classList.remove('btn-muted');
     } else {
-      if (allTable) allTable.style.display = '';
-      if (blockedTable) blockedTable.style.display = 'none';
-      showAllBtn?.classList.replace('btn-muted', 'btn-secondary');
-      showBlockedBtn?.classList.replace('btn-secondary', 'btn-muted');
+      button.classList.add('btn-muted');
+      button.classList.remove('btn-secondary');
     }
+  }
+
+  function toggleView(target) {
+    currentView = target;
+    const showingBlocked = target === 'blocked';
+
+    if (allTable) allTable.style.display = showingBlocked ? 'none' : '';
+    if (blockedTable) blockedTable.style.display = showingBlocked ? '' : 'none';
+
+    setButtonState(showAllBtn, target === 'all');
+    setButtonState(showEmployeesBtn, target === 'employees');
+    setButtonState(showBlockedBtn, target === 'blocked');
+
     searchUsers();
   }
 
   searchInput?.addEventListener('input', searchUsers);
-  showAllBtn?.addEventListener('click', () => toggleView(false));
-  showBlockedBtn?.addEventListener('click', () => toggleView(true));
+  showAllBtn?.addEventListener('click', () => toggleView('all'));
+  showEmployeesBtn?.addEventListener('click', () => toggleView('employees'));
+  showBlockedBtn?.addEventListener('click', () => toggleView('blocked'));
 
-  toggleView(false);
+  toggleView('all');
 
   const userModal = document.getElementById('userDetailsModal');
   const userModalBody = userModal ? userModal.querySelector('.user-modal-body') : null;
@@ -239,6 +327,7 @@ $extraScripts = <<<'JS'
   const userDetailsEmail = document.getElementById('userDetailsEmail');
   const userDetailsAddress = document.getElementById('userDetailsAddress');
   const userDetailsWarnings = document.getElementById('userDetailsWarnings');
+  const userDetailsEmployeeBadge = document.getElementById('userDetailsEmployeeBadge');
   const userDetailsAvatar = document.getElementById('userDetailsAvatar');
   const userDetailsAvatarFallback = document.getElementById('userDetailsAvatarFallback');
   const userDetailsTotalOrders = document.getElementById('userDetailsTotalOrders');
@@ -249,6 +338,7 @@ $extraScripts = <<<'JS'
   const dateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   let userOrders = [];
+  let activeUserId = null;
 
   if (userDetailsAvatar) {
     userDetailsAvatar.addEventListener('error', () => {
@@ -273,6 +363,10 @@ $extraScripts = <<<'JS'
     if (!userModal) return;
     userModal.classList.remove('active');
     userModal.setAttribute('aria-hidden', 'true');
+    if (userModal.dataset.activeUserId) {
+      delete userModal.dataset.activeUserId;
+    }
+    activeUserId = null;
   }
 
   closeUserModalBtn?.addEventListener('click', closeUserModal);
@@ -369,6 +463,11 @@ $extraScripts = <<<'JS'
       const warnings = Number.parseInt(user?.warning_count ?? 0, 10) || 0;
       userDetailsWarnings.textContent = `Warnings: ${warnings}`;
       userDetailsWarnings.classList.toggle('has-warning', warnings > 0);
+    }
+    if (userDetailsEmployeeBadge) {
+      const isEmployee = Boolean(user?.is_employee);
+      userDetailsEmployeeBadge.hidden = !isEmployee;
+      userDetailsEmployeeBadge.setAttribute('aria-hidden', isEmployee ? 'false' : 'true');
     }
   }
 
@@ -525,7 +624,7 @@ $extraScripts = <<<'JS'
     button.disabled = true;
     button.textContent = 'Loading...';
     try {
-      const response = await fetch(`api/user_details.php?user_id=${encodeURIComponent(userId)}`);
+      const response = await fetch(`../PHP/user_details.php?user_id=${encodeURIComponent(userId)}`);
       const data = await response.json();
       if (!response.ok || !data?.success) {
         throw new Error(data?.message || 'Failed to load user details');
@@ -536,10 +635,137 @@ $extraScripts = <<<'JS'
       updateStatusFilterOptions((data.summary && data.summary.status_counts) || {});
       resetUserOrderControls();
       applyUserOrderFilters();
+      const parsedUserId = Number.parseInt(userId, 10);
+      activeUserId = Number.isNaN(parsedUserId) ? null : parsedUserId;
+      if (userModal && activeUserId !== null) {
+        userModal.dataset.activeUserId = String(activeUserId);
+      }
       openUserModal();
     } catch (error) {
       alert(error.message);
     } finally {
+      button.disabled = false;
+      button.textContent = previousText;
+    }
+  }
+
+  function updateEmployeeControls(row, isEmployee) {
+    if (!row) return;
+    row.dataset.isEmployee = isEmployee ? '1' : '0';
+    let badge = row.querySelector('[data-role-badge]');
+    if (!badge && isEmployee) {
+      badge = document.createElement('span');
+      badge.className = 'badge badge-success employee-badge';
+      badge.setAttribute('role', 'status');
+      badge.setAttribute('data-role-badge', '');
+      badge.setAttribute('aria-hidden', 'false');
+      badge.textContent = 'Employee';
+      const container = row.querySelector('.table-action-list');
+      if (container) {
+        container.insertBefore(badge, container.firstChild);
+      } else {
+        row.append(badge);
+      }
+    }
+    if (badge) {
+      if (!isEmployee) {
+        badge.remove();
+        badge = null;
+      } else {
+        badge.hidden = false;
+        badge.removeAttribute('hidden');
+        badge.setAttribute('aria-hidden', 'false');
+      }
+    }
+
+    const markButton = row.querySelector('.btn-mark-employee');
+    if (markButton) {
+      markButton.hidden = isEmployee;
+      if (isEmployee) {
+        markButton.setAttribute('hidden', '');
+      } else {
+        markButton.removeAttribute('hidden');
+      }
+      markButton.disabled = false;
+      markButton.textContent = 'Mark as Employee';
+    }
+
+    const removeButton = row.querySelector('.btn-remove-employee');
+    if (removeButton) {
+      removeButton.hidden = !isEmployee;
+      if (!isEmployee) {
+        removeButton.setAttribute('hidden', '');
+      } else {
+        removeButton.removeAttribute('hidden');
+      }
+      removeButton.disabled = false;
+      removeButton.textContent = 'Remove Employee';
+    }
+  }
+
+  function updateModalEmployeeBadge(isEmployee) {
+    if (!userDetailsEmployeeBadge) return;
+    userDetailsEmployeeBadge.hidden = !isEmployee;
+    if (!isEmployee) {
+      userDetailsEmployeeBadge.setAttribute('aria-hidden', 'true');
+    } else {
+      userDetailsEmployeeBadge.setAttribute('aria-hidden', 'false');
+    }
+  }
+
+  async function handleEmployeeAction(event) {
+    const button = event.currentTarget;
+    const action = button.dataset.action;
+    const userId = button.dataset.userId;
+    const userName = (button.dataset.userName || 'this user').trim() || 'this user';
+    if (!userId || !action) {
+      alert('Missing user information.');
+      return;
+    }
+
+    const confirmMessage = action === 'remove_employee'
+      ? `Remove ${userName}'s employee status?`
+      : `Mark ${userName} as an employee?`;
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    const previousText = button.textContent;
+    button.disabled = true;
+    button.textContent = action === 'remove_employee' ? 'Removing...' : 'Marking...';
+
+    const formData = new FormData();
+    formData.append('action', action);
+    formData.append('user_id', userId);
+
+    try {
+      const response = await fetch('../PHP/user_staff_actions.php', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await response.json();
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || 'Failed to update employee status.');
+      }
+
+      const numericUserId = Number.parseInt(userId, 10);
+      const row = button.closest('tr');
+      const isEmployee = action === 'mark_employee';
+      if (row) {
+        updateEmployeeControls(row, isEmployee);
+      }
+
+      searchUsers();
+
+      if (activeUserId !== null && !Number.isNaN(numericUserId) && numericUserId === activeUserId) {
+        updateModalEmployeeBadge(isEmployee);
+      }
+
+      alert(result?.message || (isEmployee
+        ? `${userName} is now marked as an employee.`
+        : `${userName}'s employee status has been removed.`));
+    } catch (error) {
+      alert(error.message);
       button.disabled = false;
       button.textContent = previousText;
     }
@@ -554,7 +780,17 @@ $extraScripts = <<<'JS'
     });
   }
 
+  function attachEmployeeActionListeners() {
+    document.querySelectorAll('.btn-mark-employee, .btn-remove-employee').forEach(button => {
+      if (!button.dataset.initialized) {
+        button.addEventListener('click', handleEmployeeAction);
+        button.dataset.initialized = 'true';
+      }
+    });
+  }
+
   attachViewUserListeners();
+  attachEmployeeActionListeners();
 
   document.querySelectorAll('.btn-unblock').forEach(button => {
     button.addEventListener('click', async () => {
