@@ -40,6 +40,14 @@ include 'includes/sidebar.php';
         <button class="btn btn-secondary" id="showAll">All Users</button>
         <button class="btn btn-muted" id="showBlocked">Blocked Users</button>
       </div>
+      <div class="filter-group" id="employeeFilterWrapper">
+        <label for="employeeFilter">Show</label>
+        <select id="employeeFilter">
+          <option value="all" selected>All roles</option>
+          <option value="employee">Employees only</option>
+          <option value="non_employee">Non-employees</option>
+        </select>
+      </div>
       <input type="text" id="userSearch" placeholder="🔍 Search user...">
     </div>
 
@@ -53,7 +61,7 @@ include 'includes/sidebar.php';
       </thead>
       <tbody>
         <?php if (empty($allUsers)): ?>
-          <tr><td colspan="3" class="table-empty">No users found.</td></tr>
+          <tr data-empty-state="no-users"><td colspan="3" class="table-empty">No users found.</td></tr>
         <?php else: ?>
           <?php foreach ($allUsers as $user): ?>
             <?php
@@ -98,6 +106,9 @@ include 'includes/sidebar.php';
             </tr>
           <?php endforeach; ?>
         <?php endif; ?>
+        <tr data-empty-state="no-match" class="table-empty" hidden>
+          <td colspan="3">No users match your search or filters.</td>
+        </tr>
       </tbody>
     </table>
 
@@ -215,16 +226,47 @@ $extraScripts = <<<'JS'
   const allTable = document.getElementById('allUsersTable');
   const blockedTable = document.getElementById('blockedUsersTable');
   const searchInput = document.getElementById('userSearch');
+  const employeeFilter = document.getElementById('employeeFilter');
+  const employeeFilterWrapper = document.getElementById('employeeFilterWrapper');
+  const noMatchRow = document.querySelector('#allUsersTable tr[data-empty-state="no-match"]');
 
   function searchUsers() {
     const query = (searchInput?.value || '').toLowerCase();
+    const roleFilter = employeeFilter?.value || 'all';
     if (!allTable || !blockedTable) return;
     if (blockedTable.style.display === 'none') {
-      allTable.querySelectorAll('tbody tr').forEach(row => {
+      const userRows = Array.from(allTable.querySelectorAll('tbody tr[data-user-id]'));
+      let visibleCount = 0;
+      userRows.forEach(row => {
         const name = row.cells[0]?.textContent.toLowerCase() || '';
         const email = row.cells[1]?.textContent.toLowerCase() || '';
-        row.style.display = (name.includes(query) || email.includes(query)) ? '' : 'none';
+        const matchesQuery = name.includes(query) || email.includes(query);
+        if (!matchesQuery) {
+          row.style.display = 'none';
+          return;
+        }
+
+        const isEmployee = row.dataset.isEmployee === '1';
+        let matchesRole = true;
+        if (roleFilter === 'employee') {
+          matchesRole = isEmployee;
+        } else if (roleFilter === 'non_employee') {
+          matchesRole = !isEmployee;
+        }
+
+        if (matchesRole) {
+          row.style.display = '';
+          visibleCount += 1;
+        } else {
+          row.style.display = 'none';
+        }
       });
+
+      if (noMatchRow) {
+        const shouldShowNoMatch = userRows.length > 0 && visibleCount === 0;
+        noMatchRow.hidden = !shouldShowNoMatch;
+        noMatchRow.style.display = shouldShowNoMatch ? '' : 'none';
+      }
     } else {
       blockedTable.querySelectorAll('tbody tr').forEach(row => {
         const name = row.cells[0]?.textContent.toLowerCase() || '';
@@ -234,6 +276,10 @@ $extraScripts = <<<'JS'
         const matchesSearch = [name, email, reason, ip].some(value => value.includes(query));
         row.style.display = matchesSearch ? '' : 'none';
       });
+      if (noMatchRow) {
+        noMatchRow.hidden = true;
+        noMatchRow.style.display = 'none';
+      }
     }
   }
 
@@ -243,16 +289,26 @@ $extraScripts = <<<'JS'
       if (blockedTable) blockedTable.style.display = '';
       showBlockedBtn?.classList.replace('btn-muted', 'btn-secondary');
       showAllBtn?.classList.replace('btn-secondary', 'btn-muted');
+      if (employeeFilterWrapper) {
+        employeeFilterWrapper.hidden = true;
+      }
+      if (employeeFilter) {
+        employeeFilter.value = 'all';
+      }
     } else {
       if (allTable) allTable.style.display = '';
       if (blockedTable) blockedTable.style.display = 'none';
       showAllBtn?.classList.replace('btn-muted', 'btn-secondary');
       showBlockedBtn?.classList.replace('btn-secondary', 'btn-muted');
+      if (employeeFilterWrapper) {
+        employeeFilterWrapper.hidden = false;
+      }
     }
     searchUsers();
   }
 
   searchInput?.addEventListener('input', searchUsers);
+  employeeFilter?.addEventListener('change', searchUsers);
   showAllBtn?.addEventListener('click', () => toggleView(false));
   showBlockedBtn?.addEventListener('click', () => toggleView(true));
 

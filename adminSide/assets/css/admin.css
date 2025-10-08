@@ -348,6 +348,18 @@ img {
   margin-bottom: 16px;
 }
 
+.filter-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #444;
+}
+
 .table-actions input,
 .table-actions select,
 .toolbar input,
