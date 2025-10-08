@@ -55,6 +55,97 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $pdo) {
                     $errors[] = 'Failed to create shift schedule. Please try again.';
                 }
             }
+        } elseif ($action === 'create_weekly_shifts') {
+            $userId = isset($_POST['weekly_user_id']) ? (int) $_POST['weekly_user_id'] : 0;
+            $weekStart = trim($_POST['week_start'] ?? '');
+            $selectedDays = isset($_POST['weekly_days']) && is_array($_POST['weekly_days'])
+                ? array_unique(array_map('intval', $_POST['weekly_days']))
+                : [];
+            $startTimes = isset($_POST['weekly_start']) && is_array($_POST['weekly_start']) ? $_POST['weekly_start'] : [];
+            $endTimes = isset($_POST['weekly_end']) && is_array($_POST['weekly_end']) ? $_POST['weekly_end'] : [];
+            $notes = trim($_POST['weekly_notes'] ?? '');
+
+            if ($userId <= 0) {
+                $errors[] = 'Select a staff member to assign these shifts to.';
+            }
+
+            $weekStartDate = DateTimeImmutable::createFromFormat('Y-m-d', $weekStart) ?: null;
+            if (!$weekStartDate) {
+                $errors[] = 'Provide a valid week start date.';
+            }
+
+            $selectedDays = array_values(array_filter($selectedDays, static function ($day) {
+                return $day >= 0 && $day <= 6;
+            }));
+            sort($selectedDays);
+
+            if (!$selectedDays) {
+                $errors[] = 'Select at least one day of the week to schedule.';
+            }
+
+            $weeklyShifts = [];
+
+            if (!$errors && $weekStartDate) {
+                foreach ($selectedDays as $dayIndex) {
+                    $start = trim($startTimes[$dayIndex] ?? '');
+                    $end = trim($endTimes[$dayIndex] ?? '');
+
+                    $startValid = DateTime::createFromFormat('H:i', $start) !== false;
+                    $endValid = DateTime::createFromFormat('H:i', $end) !== false;
+
+                    if (!$startValid || !$endValid) {
+                        $errors[] = 'Enter start and end times for each selected day.';
+                        break;
+                    }
+
+                    if ($startValid && $endValid && $start >= $end) {
+                        $errors[] = 'Weekly shift end times must be later than the start times.';
+                        break;
+                    }
+
+                    $shiftDate = $weekStartDate->modify("+{$dayIndex} day");
+
+                    if ($shiftDate === false) {
+                        $errors[] = 'Unable to determine the date for one of the selected days.';
+                        break;
+                    }
+
+                    $weeklyShifts[] = [
+                        'date' => $shiftDate->format('Y-m-d'),
+                        'start' => $start,
+                        'end' => $end,
+                    ];
+                }
+            }
+
+            if (!$errors && $weeklyShifts) {
+                try {
+                    $pdo->beginTransaction();
+                    foreach ($weeklyShifts as $shiftData) {
+                        createShiftSchedule(
+                            $pdo,
+                            $userId,
+                            $shiftData['date'],
+                            $shiftData['start'],
+                            $shiftData['end'],
+                            $notes ?: null
+                        );
+                    }
+                    $pdo->commit();
+                    $scheduledCount = count($weeklyShifts);
+                    $messages[] = sprintf(
+                        '%d shift%s scheduled for the week starting %s.',
+                        $scheduledCount,
+                        $scheduledCount === 1 ? '' : 's',
+                        $weekStartDate ? $weekStartDate->format('M d, Y') : $weekStart
+                    );
+                } catch (PDOException $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    $errors[] = 'Failed to save the weekly shifts. Please try again.';
+                }
+            }
         } elseif ($action === 'start_shift') {
             $shiftId = isset($_POST['shift_id']) ? (int) $_POST['shift_id'] : 0;
             if ($shiftId <= 0) {
@@ -185,6 +276,81 @@ include 'includes/sidebar.php';
     </form>
   </div>
 
+  <div class="card shift-week-card">
+    <h2>Plan a Week of Shifts</h2>
+    <p class="card-subtitle">Pick the first day of the week, choose the days your staff member should work, and we&rsquo;ll create each shift for you.</p>
+    <form method="post" class="shift-form weekly-shift-form">
+      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
+      <input type="hidden" name="action" value="create_weekly_shifts">
+      <div class="weekly-form-grid">
+        <label>
+          Staff Member
+          <select name="weekly_user_id" required>
+            <option value="">Select staff</option>
+            <?php foreach ($staffMembers as $staff): ?>
+              <option value="<?= (int) $staff['User_ID']; ?>">
+                <?= htmlspecialchars($staff['Name'] ?? 'Staff #' . $staff['User_ID']); ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+        <label>
+          Week Starting
+          <input type="date" name="week_start" required>
+        </label>
+        <div class="weekly-defaults">
+          <label>
+            Default Start
+            <input type="time" name="weekly_default_start" placeholder="08:00">
+          </label>
+          <label>
+            Default End
+            <input type="time" name="weekly_default_end" placeholder="17:00">
+          </label>
+          <button type="button" class="btn btn-secondary apply-defaults-btn" data-apply-defaults>Apply to selected days</button>
+        </div>
+        <label class="full-width">
+          Notes (optional)
+          <input type="text" name="weekly_notes" placeholder="These notes will appear on every shift for the week">
+        </label>
+      </div>
+
+      <?php
+        $weeklyDayLabels = [
+          0 => 'Monday',
+          1 => 'Tuesday',
+          2 => 'Wednesday',
+          3 => 'Thursday',
+          4 => 'Friday',
+          5 => 'Saturday',
+          6 => 'Sunday',
+        ];
+      ?>
+      <div class="weekly-day-grid">
+        <?php foreach ($weeklyDayLabels as $dayIndex => $dayLabel): ?>
+          <div class="weekly-day-row" data-day-row>
+            <label class="day-toggle">
+              <input type="checkbox" name="weekly_days[]" value="<?= $dayIndex; ?>">
+              <span><?= htmlspecialchars($dayLabel); ?></span>
+            </label>
+            <div class="time-pair">
+              <label>
+                Start
+                <input type="time" name="weekly_start[<?= $dayIndex; ?>]" data-role="start" disabled>
+              </label>
+              <label>
+                End
+                <input type="time" name="weekly_end[<?= $dayIndex; ?>]" data-role="end" disabled>
+              </label>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Schedule Week</button>
+    </form>
+  </div>
+
   <div class="table-container">
     <div class="table-actions">
       <h2>Upcoming &amp; Recent Shifts</h2>
@@ -254,5 +420,64 @@ include 'includes/sidebar.php';
     </table>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const weeklyForm = document.querySelector('.weekly-shift-form');
+  if (!weeklyForm) {
+    return;
+  }
+
+  const dayRows = Array.from(weeklyForm.querySelectorAll('[data-day-row]'));
+  const defaultStart = weeklyForm.querySelector('input[name="weekly_default_start"]');
+  const defaultEnd = weeklyForm.querySelector('input[name="weekly_default_end"]');
+  const applyButton = weeklyForm.querySelector('[data-apply-defaults]');
+
+  const toggleRowState = (row, enabled) => {
+    const startField = row.querySelector('input[data-role="start"]');
+    const endField = row.querySelector('input[data-role="end"]');
+    startField.disabled = !enabled;
+    endField.disabled = !enabled;
+    row.classList.toggle('is-disabled', !enabled);
+    if (!enabled) {
+      startField.value = '';
+      endField.value = '';
+    }
+  };
+
+  dayRows.forEach((row) => {
+    const checkbox = row.querySelector('input[type="checkbox"]');
+    toggleRowState(row, checkbox.checked);
+    checkbox.addEventListener('change', () => {
+      toggleRowState(row, checkbox.checked);
+    });
+  });
+
+  if (applyButton) {
+    applyButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      const startValue = defaultStart ? defaultStart.value : '';
+      const endValue = defaultEnd ? defaultEnd.value : '';
+
+      dayRows.forEach((row) => {
+        const checkbox = row.querySelector('input[type="checkbox"]');
+        if (!checkbox.checked) {
+          return;
+        }
+
+        const startField = row.querySelector('input[data-role="start"]');
+        const endField = row.querySelector('input[data-role="end"]');
+
+        if (startValue) {
+          startField.value = startValue;
+        }
+        if (endValue) {
+          endField.value = endValue;
+        }
+      });
+    });
+  }
+});
+</script>
 
 <?php include 'includes/footer.php'; ?>
