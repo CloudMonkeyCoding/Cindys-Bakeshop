@@ -9,8 +9,21 @@ $allUsers = [];
 $blockedUsers = [];
 
 if ($pdo) {
-    $stmt = $pdo->query("SELECT u.User_ID, u.Name, u.Email, EXISTS(SELECT 1 FROM store_staff ss WHERE ss.User_ID = u.User_ID) AS Is_Employee FROM user u");
+    $stmt = $pdo->query("SELECT User_ID, Name, Email FROM user");
     $allUsers = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+
+    $staffStmt = $pdo->query("SELECT User_ID FROM store_staff");
+    $staffIds = $staffStmt ? $staffStmt->fetchAll(PDO::FETCH_COLUMN, 0) : [];
+    $staffLookup = [];
+    foreach ($staffIds as $staffUserId) {
+        $staffLookup[(int)$staffUserId] = true;
+    }
+
+    foreach ($allUsers as &$user) {
+        $userId = isset($user['User_ID']) ? (int)$user['User_ID'] : 0;
+        $user['Is_Employee'] = isset($staffLookup[$userId]) ? 1 : 0;
+    }
+    unset($user);
 
     $sql = "SELECT b.Blacklist_ID, u.Name, u.Email, b.Blacklist_reason AS Reason,
                    b.IP_Address, b.User_ID
@@ -741,6 +754,8 @@ $extraScripts = <<<'JS'
       if (row) {
         updateEmployeeControls(row, isEmployee);
       }
+
+      searchUsers();
 
       if (activeUserId !== null && !Number.isNaN(numericUserId) && numericUserId === activeUserId) {
         updateModalEmployeeBadge(isEmployee);
