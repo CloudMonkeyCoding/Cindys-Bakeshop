@@ -73,16 +73,24 @@ include 'includes/sidebar.php';
                   <span class="badge badge-success employee-badge" role="status" data-role-badge <?= $isEmployee ? '' : 'hidden'; ?> aria-hidden="<?= $isEmployee ? 'false' : 'true'; ?>">
                     Employee
                   </span>
-                  <?php if (!$isEmployee): ?>
-                    <button
-                      type="button"
-                      class="btn btn-secondary btn-mark-employee"
-                      data-user-id="<?= $userId; ?>"
-                      data-user-name="<?= $userNameSafe; ?>"
-                    >
-                      Mark as Employee
-                    </button>
-                  <?php endif; ?>
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-mark-employee"<?= $isEmployee ? ' hidden' : ''; ?>
+                    data-user-id="<?= $userId; ?>"
+                    data-user-name="<?= $userNameSafe; ?>"
+                    data-action="mark_employee"
+                  >
+                    Mark as Employee
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-muted btn-remove-employee"<?= $isEmployee ? '' : ' hidden'; ?>
+                    data-user-id="<?= $userId; ?>"
+                    data-user-name="<?= $userNameSafe; ?>"
+                    data-action="remove_employee"
+                  >
+                    Remove Employee
+                  </button>
                 </div>
               </td>
             </tr>
@@ -582,23 +590,93 @@ $extraScripts = <<<'JS'
     }
   }
 
-  async function handleMarkEmployee(event) {
+  function updateEmployeeControls(row, isEmployee) {
+    if (!row) return;
+    row.dataset.isEmployee = isEmployee ? '1' : '0';
+    let badge = row.querySelector('[data-role-badge]');
+    if (!badge && isEmployee) {
+      badge = document.createElement('span');
+      badge.className = 'badge badge-success employee-badge';
+      badge.setAttribute('role', 'status');
+      badge.setAttribute('data-role-badge', '');
+      badge.textContent = 'Employee';
+      const container = row.querySelector('.table-action-list');
+      if (container) {
+        container.insertBefore(badge, container.firstChild);
+      } else {
+        row.append(badge);
+      }
+    }
+    if (badge) {
+      badge.hidden = !isEmployee;
+      if (!isEmployee) {
+        badge.setAttribute('hidden', '');
+      } else {
+        badge.removeAttribute('hidden');
+      }
+      badge.setAttribute('aria-hidden', isEmployee ? 'false' : 'true');
+    }
+
+    const markButton = row.querySelector('.btn-mark-employee');
+    if (markButton) {
+      markButton.hidden = isEmployee;
+      if (isEmployee) {
+        markButton.setAttribute('hidden', '');
+      } else {
+        markButton.removeAttribute('hidden');
+      }
+      markButton.disabled = false;
+      markButton.textContent = 'Mark as Employee';
+    }
+
+    const removeButton = row.querySelector('.btn-remove-employee');
+    if (removeButton) {
+      removeButton.hidden = !isEmployee;
+      if (!isEmployee) {
+        removeButton.setAttribute('hidden', '');
+      } else {
+        removeButton.removeAttribute('hidden');
+      }
+      removeButton.disabled = false;
+      removeButton.textContent = 'Remove Employee';
+    }
+  }
+
+  function updateModalEmployeeBadge(isEmployee) {
+    if (!userDetailsEmployeeBadge) return;
+    userDetailsEmployeeBadge.hidden = !isEmployee;
+    if (!isEmployee) {
+      userDetailsEmployeeBadge.setAttribute('aria-hidden', 'true');
+    } else {
+      userDetailsEmployeeBadge.setAttribute('aria-hidden', 'false');
+    }
+  }
+
+  async function handleEmployeeAction(event) {
     const button = event.currentTarget;
+    const action = button.dataset.action;
     const userId = button.dataset.userId;
     const userName = (button.dataset.userName || 'this user').trim() || 'this user';
-    if (!userId) {
-      alert('Missing user ID.');
+    if (!userId || !action) {
+      alert('Missing user information.');
       return;
     }
-    if (!window.confirm(`Mark ${userName} as an employee?`)) {
+
+    const confirmMessage = action === 'remove_employee'
+      ? `Remove ${userName}'s employee status?`
+      : `Mark ${userName} as an employee?`;
+    if (!window.confirm(confirmMessage)) {
       return;
     }
+
     const previousText = button.textContent;
     button.disabled = true;
-    button.textContent = 'Marking...';
+    button.textContent = action === 'remove_employee' ? 'Removing...' : 'Marking...';
+
     const formData = new FormData();
-    formData.append('action', 'mark_employee');
+    formData.append('action', action);
     formData.append('user_id', userId);
+
     try {
       const response = await fetch('api/user_staff_actions.php', {
         method: 'POST',
@@ -606,36 +684,23 @@ $extraScripts = <<<'JS'
       });
       const result = await response.json();
       if (!response.ok || !result?.success) {
-        throw new Error(result?.message || 'Failed to mark user as employee.');
+        throw new Error(result?.message || 'Failed to update employee status.');
       }
+
       const numericUserId = Number.parseInt(userId, 10);
       const row = button.closest('tr');
+      const isEmployee = action === 'mark_employee';
       if (row) {
-        row.dataset.isEmployee = '1';
-        let badge = row.querySelector('[data-role-badge]');
-        if (!badge) {
-          badge = document.createElement('span');
-          badge.className = 'badge badge-success employee-badge';
-          badge.setAttribute('role', 'status');
-          badge.setAttribute('data-role-badge', '');
-          badge.textContent = 'Employee';
-          const container = button.parentElement;
-          if (container) {
-            container.insertBefore(badge, button);
-          } else {
-            row.append(badge);
-          }
-        }
-        badge.hidden = false;
-        badge.removeAttribute('hidden');
-        badge.setAttribute('aria-hidden', 'false');
+        updateEmployeeControls(row, isEmployee);
       }
-      if (activeUserId !== null && !Number.isNaN(numericUserId) && numericUserId === activeUserId && userDetailsEmployeeBadge) {
-        userDetailsEmployeeBadge.hidden = false;
-        userDetailsEmployeeBadge.setAttribute('aria-hidden', 'false');
+
+      if (activeUserId !== null && !Number.isNaN(numericUserId) && numericUserId === activeUserId) {
+        updateModalEmployeeBadge(isEmployee);
       }
-      button.remove();
-      alert(result?.message || `${userName} is now marked as an employee.`);
+
+      alert(result?.message || (isEmployee
+        ? `${userName} is now marked as an employee.`
+        : `${userName}'s employee status has been removed.`));
     } catch (error) {
       alert(error.message);
       button.disabled = false;
@@ -652,17 +717,17 @@ $extraScripts = <<<'JS'
     });
   }
 
-  function attachMarkEmployeeListeners() {
-    document.querySelectorAll('.btn-mark-employee').forEach(button => {
+  function attachEmployeeActionListeners() {
+    document.querySelectorAll('.btn-mark-employee, .btn-remove-employee').forEach(button => {
       if (!button.dataset.initialized) {
-        button.addEventListener('click', handleMarkEmployee);
+        button.addEventListener('click', handleEmployeeAction);
         button.dataset.initialized = 'true';
       }
     });
   }
 
   attachViewUserListeners();
-  attachMarkEmployeeListeners();
+  attachEmployeeActionListeners();
 
   document.querySelectorAll('.btn-unblock').forEach(button => {
     button.addEventListener('click', async () => {

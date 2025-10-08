@@ -18,7 +18,7 @@ if (!$pdo) {
 }
 
 $action = $_POST['action'] ?? '';
-if ($action !== 'mark_employee') {
+if (!in_array($action, ['mark_employee', 'remove_employee'], true)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Unsupported action']);
     exit;
@@ -39,14 +39,29 @@ if (!$user) {
 }
 
 $existingStaff = getStoreStaffByUserId($pdo, $userId);
-if ($existingStaff) {
-    echo json_encode(['success' => true, 'message' => 'User is already marked as an employee.']);
-    exit;
-}
 
 try {
-    addStoreStaff($pdo, $userId);
-    echo json_encode(['success' => true, 'message' => 'User marked as employee successfully.']);
+    if ($action === 'mark_employee') {
+        if ($existingStaff) {
+            echo json_encode(['success' => true, 'message' => 'User is already marked as an employee.']);
+            exit;
+        }
+
+        addStoreStaff($pdo, $userId);
+        echo json_encode(['success' => true, 'message' => 'User marked as employee successfully.']);
+        exit;
+    }
+
+    if ($action === 'remove_employee') {
+        if (!$existingStaff) {
+            echo json_encode(['success' => true, 'message' => 'User is not currently marked as an employee.']);
+            exit;
+        }
+
+        deleteStoreStaffByUserId($pdo, $userId);
+        echo json_encode(['success' => true, 'message' => 'Employee status removed successfully.']);
+        exit;
+    }
 } catch (PDOException $exception) {
     http_response_code(500);
     echo json_encode([
