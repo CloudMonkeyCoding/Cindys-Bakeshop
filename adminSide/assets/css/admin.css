@@ -1390,3 +1390,119 @@ button,
     flex: 1 1 calc(50% - 6px);
   }
 }
+
+.alert {
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.alert ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.alert-success {
+  background: rgba(46, 204, 113, 0.12);
+  color: #1e8449;
+  border: 1px solid rgba(46, 204, 113, 0.35);
+}
+
+.alert-error {
+  background: rgba(231, 76, 60, 0.12);
+  color: #943126;
+  border: 1px solid rgba(231, 76, 60, 0.35);
+}
+
+.shift-form-card h2 {
+  margin-bottom: 16px;
+}
+
+.shift-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.shift-form .form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.shift-form label {
+  font-size: 14px;
+  color: var(--muted-text);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shift-form input,
+.shift-form select {
+  border: 1px solid #dcdde1;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.shift-form .full-width {
+  grid-column: 1 / -1;
+}
+
+.shift-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shift-action-buttons .inline-form {
+  display: inline;
+}
+
+.shift-action-buttons .inline-form .btn {
+  width: 100%;
+}
+
+.actual-times {
+  font-size: 13px;
+  color: var(--muted-text);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-scheduled {
+  background: rgba(52, 152, 219, 0.16);
+  color: #1b4f72;
+}
+
+.status-in_progress {
+  background: rgba(241, 196, 15, 0.2);
+  color: #935116;
+}
+
+.status-completed {
+  background: rgba(46, 204, 113, 0.18);
+  color: #1d8348;
+}
+
+.status-missed {
+  background: rgba(149, 165, 166, 0.25);
+  color: #566573;
+}
+
+.muted {
+  color: var(--muted-text);
+  font-size: 13px;
+}

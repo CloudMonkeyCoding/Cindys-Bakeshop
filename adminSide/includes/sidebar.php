@@ -25,6 +25,12 @@ function isDropdownActive(array $pages, $activePage) {
       </a>
     </li>
     <li>
+      <a href="shifts.php" class="<?= isActive('shifts', $activePage); ?>">
+        <span><i class="fa-solid fa-clock"></i></span>
+        Shifts
+      </a>
+    </li>
+    <li>
       <a href="products.php" class="<?= isActive('products', $activePage); ?>">
         <span><i class="fa-solid fa-box-open"></i></span>
         Products
