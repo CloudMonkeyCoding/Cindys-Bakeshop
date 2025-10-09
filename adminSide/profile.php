@@ -29,14 +29,14 @@ include 'includes/sidebar.php';
     <h1>My Profile</h1>
     <a href="profile.php" class="user-info">
       <span><?= htmlspecialchars($adminSession['name']); ?></span>
-      <img src="https://i.pravatar.cc/80" alt="<?= htmlspecialchars($adminSession['name']); ?> avatar">
+      <img src="<?= htmlspecialchars($adminSession['avatar_url']); ?>" alt="<?= htmlspecialchars($adminSession['name']); ?> avatar">
     </a>
   </div>
 
   <div class="card profile-card">
     <?php if ($profile): ?>
       <div class="profile-header">
-        <img src="https://i.pravatar.cc/120" alt="<?= htmlspecialchars($profile['Name'] ?? ''); ?> avatar">
+        <img src="<?= htmlspecialchars($adminSession['avatar_url']); ?>" alt="<?= htmlspecialchars($profile['Name'] ?? ''); ?> avatar">
         <div>
           <h2><?= htmlspecialchars($profile['Name'] ?? ''); ?></h2>
           <p class="profile-role"><?= htmlspecialchars($roleLabel); ?></p>

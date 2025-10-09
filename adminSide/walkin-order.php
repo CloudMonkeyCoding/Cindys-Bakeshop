@@ -43,7 +43,7 @@ include 'includes/sidebar.php';
     <h1>Walk-in POS</h1>
     <a href="profile.php" class="user-info">
       <span><?= htmlspecialchars($adminSession['name']); ?></span>
-      <img src="https://i.pravatar.cc/80" alt="<?= htmlspecialchars($adminSession['name']); ?> avatar">
+      <img src="<?= htmlspecialchars($adminSession['avatar_url']); ?>" alt="<?= htmlspecialchars($adminSession['name']); ?> avatar">
     </a>
   </div>
 

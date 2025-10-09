@@ -16,6 +16,31 @@ if (!function_exists('redirectToAdminLogin')) {
     }
 }
 
+if (!function_exists('normalizeAdminFacePath')) {
+    function normalizeAdminFacePath(?string $path): ?string
+    {
+        if ($path === null) {
+            return null;
+        }
+
+        $trimmed = trim((string) $path);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        if (preg_match('/^https?:\/\//i', $trimmed)) {
+            return $trimmed;
+        }
+
+        $normalized = str_replace('\\', '/', $trimmed);
+        if ($normalized === '') {
+            return null;
+        }
+
+        return $normalized[0] === '/' ? $normalized : '/' . ltrim($normalized, '/');
+    }
+}
+
 if (empty($_SESSION['admin_logged_in'])) {
     redirectToAdminLogin('admin_error_message', 'Please sign in to access the admin portal.');
 }
@@ -37,6 +62,7 @@ if (empty($_SESSION['admin_has_staff_access'])) {
 $adminId = isset($_SESSION['admin_user_id']) ? (int) $_SESSION['admin_user_id'] : 0;
 if ($adminId > 0) {
     require_once __DIR__ . '/../../PHP/db_connect.php';
+    require_once __DIR__ . '/../../PHP/user_functions.php';
 
     if ($pdo instanceof PDO) {
         $stmt = $pdo->prepare('SELECT Store_Staff_ID, Is_Super_Admin FROM store_staff WHERE User_ID = :user_id LIMIT 1');
@@ -57,6 +83,20 @@ if ($adminId > 0) {
         } else {
             unset($_SESSION['admin_store_staff_id']);
         }
+
+        $userRow = getUserById($pdo, $adminId);
+        if ($userRow) {
+            if (!empty($userRow['Name'])) {
+                $_SESSION['admin_name'] = $userRow['Name'];
+            }
+
+            $facePath = normalizeAdminFacePath($userRow['Face_Image_Path'] ?? null);
+            if ($facePath) {
+                $_SESSION['admin_face_image_path'] = $facePath;
+            } else {
+                unset($_SESSION['admin_face_image_path']);
+            }
+        }
     }
 }
 
@@ -65,5 +105,7 @@ $adminSession = [
     'name' => $_SESSION['admin_name'] ?? 'Admin',
     'email' => $_SESSION['admin_email'] ?? '',
     'is_super_admin' => !empty($_SESSION['admin_is_super_admin']),
-    'is_employee' => !empty($_SESSION['admin_is_employee'])
+    'is_employee' => !empty($_SESSION['admin_is_employee']),
+    'face_image_path' => $_SESSION['admin_face_image_path'] ?? null,
+    'avatar_url' => !empty($_SESSION['admin_face_image_path']) ? $_SESSION['admin_face_image_path'] : '/Images/logo.png',
 ];
