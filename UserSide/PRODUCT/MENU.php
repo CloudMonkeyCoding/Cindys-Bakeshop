@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../../../PHP/db_connect.php';
-require_once __DIR__ . '/../../../PHP/product_functions.php';
+require_once __DIR__ . '/../../PHP/db_connect.php';
+require_once __DIR__ . '/../../PHP/product_functions.php';
 
 $products = [];
 if ($pdo) {
@@ -22,7 +22,7 @@ function buildProductPayload(array $product): array
         'price' => (float)($product['Price'] ?? 0),
         'stock' => $stock,
         'category' => $category !== '' ? $category : 'other',
-        'image' => getProductImageUrl($product, '../../../'),
+        'image' => getProductImageUrl($product, '../../'),
         'isPreorder' => $stock <= 0,
     ];
 }
@@ -727,7 +727,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       </div>
     </div>
 
-    <section class="best-sellers" aria-labelledby="best-sellers-title">
+    <section class="best-sellers" aria-labelledby="best-sellers-title" id="bestSellersSection">
       <h2 id="best-sellers-title">⭐ Best Sellers</h2>
       <div class="best-seller-list" id="bestSellerList"></div>
     </section>
@@ -795,6 +795,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     const prevPageButton = document.getElementById('prevPage');
     const nextPageButton = document.getElementById('nextPage');
     const bestSellerList = document.getElementById('bestSellerList');
+    const bestSellersSection = document.getElementById('bestSellersSection');
     const preorderSection = document.getElementById('preorderSection');
     const preorderList = document.getElementById('preorderList');
     const categoryPills = document.getElementById('categoryPills');
@@ -908,7 +909,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       }
 
       const favoriteId = favorites.get(product.id);
-      const endpoint = favoriteId ? '../../../PHP/favorite_api.php?action=remove' : '../../../PHP/favorite_api.php?action=add';
+      const endpoint = favoriteId ? '../../PHP/favorite_api.php?action=remove' : '../../PHP/favorite_api.php?action=add';
       const payload = favoriteId
         ? new URLSearchParams({ favorite_id: favoriteId })
         : new URLSearchParams({ product_id: product.id, email: userEmail });
@@ -1102,6 +1103,11 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       if (!menuGrid) return;
       const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
 
+      if (bestSellersSection) {
+        const shouldShowBestSellers = activeCategory === 'all' && !query;
+        bestSellersSection.hidden = !shouldShowBestSellers;
+      }
+
       filteredProducts = products.filter(product => {
         const matchesCategory = activeCategory === 'all' || product.category === activeCategory;
         const description = (product.description || '').toLowerCase();
@@ -1165,7 +1171,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
 
     function hydrateFavorites(email) {
       if (!email) return;
-      fetch(`../../../PHP/favorite_api.php?action=list&email=${encodeURIComponent(email)}`)
+      fetch(`../../PHP/favorite_api.php?action=list&email=${encodeURIComponent(email)}`)
         .then(res => res.json())
         .then(list => {
           if (!Array.isArray(list)) return;
@@ -1212,7 +1218,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
           quantity: currentQuantity,
           email: userEmail,
         });
-        fetch('../../../PHP/cart_api.php?action=add', {
+        fetch('../../PHP/cart_api.php?action=add', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body,

@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../../../PHP/db_connect.php';
-require_once __DIR__ . '/../../../PHP/user_functions.php';
+require_once __DIR__ . '/../../PHP/db_connect.php';
+require_once __DIR__ . '/../../PHP/user_functions.php';
 
 $email = $_GET['email'] ?? $_POST['email'] ?? '';
 $userId = null;

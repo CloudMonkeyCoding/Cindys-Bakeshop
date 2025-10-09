@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../../../PHP/db_connect.php';
-require_once __DIR__ . '/../../../PHP/product_functions.php';
+require_once __DIR__ . '/../../PHP/db_connect.php';
+require_once __DIR__ . '/../../PHP/product_functions.php';
 
 $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 if ($id === null || $id === false) {
@@ -30,7 +30,7 @@ try {
 
 $category = $product['Category'] ?? '';
 $price = isset($product['Price']) ? number_format((float)$product['Price'], 2) : '0.00';
-$imageUrl = getProductImageUrl($product, '../../../');
+$imageUrl = getProductImageUrl($product, '../../');
 $stock = (int)($product['Stock_Quantity'] ?? 0);
 ?>
 <!DOCTYPE html>
