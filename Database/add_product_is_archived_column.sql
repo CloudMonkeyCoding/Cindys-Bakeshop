@@ -1,0 +1,2 @@
+ALTER TABLE `product`
+ADD COLUMN `Is_Archived` TINYINT(1) NOT NULL DEFAULT 0 AFTER `Image_Path`;

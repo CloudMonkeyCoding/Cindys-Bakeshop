@@ -23,13 +23,13 @@ function addProduct($pdo, $name, $description, $price, $stock_quantity, $categor
 
 // 2) Get all products
 function getAllProducts($pdo) {
-    $stmt = $pdo->query("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path FROM product");
+    $stmt = $pdo->query("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path, IFNULL(Is_Archived, 0) AS Is_Archived FROM product WHERE IFNULL(Is_Archived, 0) = 0");
     return $stmt->fetchAll();
 }
 
 // 2a) Get products by category
 function getProductsByCategory($pdo, $category) {
-    $stmt = $pdo->prepare("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path FROM product WHERE Category = :category");
+    $stmt = $pdo->prepare("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path, IFNULL(Is_Archived, 0) AS Is_Archived FROM product WHERE Category = :category AND IFNULL(Is_Archived, 0) = 0");
     $stmt->execute([':category' => $category]);
     return $stmt->fetchAll();
 }
@@ -85,7 +85,7 @@ function getProductImageUrl(array $product, string $relativePrefix = ''): string
 
 // 3) Get a product by ID
 function getProductById($pdo, $productId) {
-    $stmt = $pdo->prepare("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path FROM product WHERE Product_ID = :product_id");
+    $stmt = $pdo->prepare("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path, IFNULL(Is_Archived, 0) AS Is_Archived FROM product WHERE Product_ID = :product_id AND IFNULL(Is_Archived, 0) = 0");
     $stmt->execute([':product_id' => $productId]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
@@ -158,11 +158,16 @@ function processImageUpload($imageFile) {
     return $fileName;
 }
 
-// 5) Delete product by ID
-function deleteProductById($pdo, $productId) {
-    $stmt = $pdo->prepare("DELETE FROM product WHERE Product_ID = :product_id");
+// 5) Archive product by ID
+function archiveProductById($pdo, $productId) {
+    $stmt = $pdo->prepare("UPDATE product SET Is_Archived = 1 WHERE Product_ID = :product_id");
     $stmt->execute([':product_id' => $productId]);
     return $stmt->rowCount();
+}
+
+// Backwards compatibility helper for any legacy delete calls
+function deleteProductById($pdo, $productId) {
+    return archiveProductById($pdo, $productId);
 }
 
 // 6) Search products by name or category
@@ -191,7 +196,7 @@ function adjustProductStock($pdo, $productId, $quantityChange) {
 
 // 8) Count total products (optional)
 function countProducts($pdo) {
-    $stmt = $pdo->query("SELECT COUNT(*) FROM product");
+    $stmt = $pdo->query("SELECT COUNT(*) FROM product WHERE IFNULL(Is_Archived, 0) = 0");
     return $stmt->fetchColumn();
 }
 
@@ -242,9 +247,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             echo json_encode(['success' => $success]);
             break;
 
+        case 'archive':
         case 'delete':
             $id = filter_input(INPUT_POST, 'product_id', FILTER_VALIDATE_INT) ?? 0;
-            $success = deleteProductById($pdo, $id) > 0;
+            $success = archiveProductById($pdo, $id) > 0;
             echo json_encode(['success' => $success]);
             break;
 

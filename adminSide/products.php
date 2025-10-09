@@ -65,7 +65,7 @@ include 'includes/sidebar.php';
               <td><?= htmlspecialchars($product['Category']); ?></td>
               <td style="display:flex;gap:10px;flex-wrap:wrap;">
                 <button class="btn btn-secondary btn-edit" data-id="<?= $product['Product_ID']; ?>">Edit</button>
-                <button class="btn btn-muted btn-delete" data-id="<?= $product['Product_ID']; ?>">Delete</button>
+                <button class="btn btn-muted btn-archive" data-id="<?= $product['Product_ID']; ?>">Archive</button>
               </td>
             </tr>
           <?php endforeach; ?>
@@ -240,7 +240,7 @@ $extraScripts = <<<JS
         <td>\${product.category || ''}</td>
         <td style="display:flex;gap:10px;flex-wrap:wrap;">
           <button class="btn btn-secondary btn-edit" data-id="\${product.id}">Edit</button>
-          <button class="btn btn-muted btn-delete" data-id="\${product.id}">Delete</button>
+          <button class="btn btn-muted btn-archive" data-id="\${product.id}">Archive</button>
         </td>
       `;
       productTableBody.appendChild(row);
@@ -397,17 +397,17 @@ $extraScripts = <<<JS
       });
     });
 
-    document.querySelectorAll('.btn-delete').forEach(button => {
+    document.querySelectorAll('.btn-archive').forEach(button => {
       button.addEventListener('click', async () => {
         const id = Number(button.dataset.id);
-        if (!confirm('Delete this product?')) return;
+        if (!confirm('Archive this product?')) return;
         const formData = new FormData();
-        formData.append('action', 'delete');
+        formData.append('action', 'archive');
         formData.append('product_id', id);
         const response = await fetch('../PHP/product_functions.php', { method: 'POST', body: formData });
         const result = await response.json();
         if (!result.success) {
-          alert('Failed to delete product');
+          alert('Failed to archive product');
           return;
         }
         await reloadProducts();

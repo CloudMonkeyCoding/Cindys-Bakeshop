@@ -115,7 +115,8 @@ CREATE TABLE `product` (
   `Price` decimal(10,2) DEFAULT NULL,
   `Stock_Quantity` int(11) DEFAULT NULL,
   `Category` varchar(100) DEFAULT NULL,
-  `Image_Path` varchar(255) DEFAULT NULL
+  `Image_Path` varchar(255) DEFAULT NULL,
+  `Is_Archived` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
