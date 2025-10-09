@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/require_admin_login.php';
 
 require_once '../PHP/db_connect.php';
 require_once '../PHP/order_functions.php';
@@ -615,9 +615,9 @@ include 'includes/sidebar.php';
       </form>
       <p class="timeframe-summary">Showing <?= htmlspecialchars($timeframeLabel); ?> &middot; <?= htmlspecialchars($rangeDisplay); ?></p>
     </div>
-    <a href="edit-profile.php" class="user-info">
-      <span>Admin</span>
-      <img src="https://i.pravatar.cc/80" alt="Admin avatar">
+    <a href="profile.php" class="user-info">
+      <span><?= htmlspecialchars($adminSession['name']); ?></span>
+      <img src="<?= htmlspecialchars($adminSession['avatar_url']); ?>" alt="<?= htmlspecialchars($adminSession['name']); ?> avatar">
     </a>
   </div>
 

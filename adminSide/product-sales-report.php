@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/includes/require_super_admin.php';
 require_once '../PHP/db_connect.php';
 
 $activePage = 'product-sales-report';

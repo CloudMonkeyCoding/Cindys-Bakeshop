@@ -1,5 +1,7 @@
 <?php
 $activePage = $activePage ?? '';
+$adminSession = $adminSession ?? [];
+$isSuperAdmin = !empty($adminSession['is_super_admin']);
 function isActive($page, $activePage) {
     return $page === $activePage ? 'active' : '';
 }
@@ -76,18 +78,20 @@ function isDropdownActive(array $pages, $activePage) {
             Inventory Report
           </a>
         </li>
-        <li>
-          <a href="financial-report.php" class="<?= isActive('financial-report', $activePage); ?>">
-            <i class="fa-solid fa-peso-sign"></i>
-            Financial Report
-          </a>
-        </li>
-        <li>
-          <a href="product-sales-report.php" class="<?= isActive('product-sales-report', $activePage); ?>">
-            <i class="fa-solid fa-chart-column"></i>
-            Product Sales Report
-          </a>
-        </li>
+        <?php if ($isSuperAdmin): ?>
+          <li>
+            <a href="financial-report.php" class="<?= isActive('financial-report', $activePage); ?>">
+              <i class="fa-solid fa-peso-sign"></i>
+              Financial Report
+            </a>
+          </li>
+          <li>
+            <a href="product-sales-report.php" class="<?= isActive('product-sales-report', $activePage); ?>">
+              <i class="fa-solid fa-chart-column"></i>
+              Product Sales Report
+            </a>
+          </li>
+        <?php endif; ?>
       </ul>
     </li>
     <li>
@@ -96,6 +100,14 @@ function isDropdownActive(array $pages, $activePage) {
         Notifications
       </a>
     </li>
+    <?php if ($isSuperAdmin): ?>
+      <li>
+        <a href="logs.php" class="<?= isActive('logs', $activePage); ?>">
+          <span><i class="fa-solid fa-clipboard-list"></i></span>
+          Activity Logs
+        </a>
+      </li>
+    <?php endif; ?>
     <li>
       <a href="settings.php" class="<?= isActive('settings', $activePage); ?>">
         <span><i class="fa-solid fa-gear"></i></span>

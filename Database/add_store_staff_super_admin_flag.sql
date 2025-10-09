@@ -1,0 +1,2 @@
+ALTER TABLE store_staff
+    ADD COLUMN Is_Super_Admin TINYINT(1) NOT NULL DEFAULT 0 AFTER User_ID;

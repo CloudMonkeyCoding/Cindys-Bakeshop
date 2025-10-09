@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/includes/require_admin_login.php';
 require_once '../PHP/db_connect.php';
 require_once '../PHP/product_functions.php';
 
@@ -20,9 +21,9 @@ include 'includes/sidebar.php';
 <div class="main">
   <div class="header">
     <h1 id="productsHeading">Products</h1>
-    <a href="edit-profile.php" class="user-info">
-      <span>Admin</span>
-      <img src="https://i.pravatar.cc/80" alt="Admin avatar">
+    <a href="profile.php" class="user-info">
+      <span><?= htmlspecialchars($adminSession['name']); ?></span>
+      <img src="<?= htmlspecialchars($adminSession['avatar_url']); ?>" alt="<?= htmlspecialchars($adminSession['name']); ?> avatar">
     </a>
   </div>
 

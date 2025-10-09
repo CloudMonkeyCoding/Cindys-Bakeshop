@@ -1,3 +1,23 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (!empty($_SESSION['admin_logged_in'])) {
+    header('Location: dashboard.php');
+    exit;
+}
+
+$timeoutMessage = $_SESSION['admin_timeout_message'] ?? '';
+if ($timeoutMessage !== '') {
+    unset($_SESSION['admin_timeout_message']);
+}
+
+$errorMessage = $_SESSION['admin_error_message'] ?? '';
+if ($errorMessage !== '') {
+    unset($_SESSION['admin_error_message']);
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -30,7 +50,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: url('../images/cindyslogin.jpg') no-repeat center center;
+      background: url('../Images/cindyslogin.jpg') no-repeat center center;
       background-size: cover;
       opacity: 0.1;
       z-index: 0;
@@ -350,15 +370,31 @@
 
   <div class="login-container">
     <div class="header">
-      <img src="../images/cindy's logo.png" alt="Cindy's Bakeshop Logo">
+      <img src="Cindys.png" alt="Cindy's Bakeshop Logo">
       <h1>CINDY'S</h1>
       <p>Give your sweet tooth a treat</p>
       <span class="admin-badge">ADMIN PORTAL</span>
     </div>
 
     <div class="form-section">
-      <div class="success-message" id="successMessage"></div>
-      <div class="error-alert" id="errorAlert"></div>
+      <div
+        class="success-message"
+        id="successMessage"
+        <?php if ($timeoutMessage !== ''): ?>style="display: block;"<?php endif; ?>
+      >
+        <?php if ($timeoutMessage !== ''): ?>
+          <?= htmlspecialchars($timeoutMessage, ENT_QUOTES, 'UTF-8'); ?>
+        <?php endif; ?>
+      </div>
+      <div
+        class="error-alert"
+        id="errorAlert"
+        <?php if ($errorMessage !== ''): ?>style="display: block;"<?php endif; ?>
+      >
+        <?php if ($errorMessage !== ''): ?>
+          <?= htmlspecialchars($errorMessage, ENT_QUOTES, 'UTF-8'); ?>
+        <?php endif; ?>
+      </div>
 
       <form id="adminLoginForm">
         <div class="form-group">
@@ -398,7 +434,7 @@
     const passwordInput = document.getElementById('password');
     const loginBtn = document.getElementById('loginBtn');
     const btnText = document.getElementById('btnText');
-    const loading = document.getElementById('loading');
+    const loadingIndicator = document.getElementById('loading');
     const successMessage = document.getElementById('successMessage');
     const errorAlert = document.getElementById('errorAlert');
 
@@ -470,15 +506,15 @@
       successMessage.style.display = 'none';
     }
 
-    function setLoading(loading) {
-      if (loading) {
+    function setLoading(isLoading) {
+      if (isLoading) {
         loginBtn.disabled = true;
         btnText.textContent = 'Signing In...';
-        loading.style.display = 'block';
+        loadingIndicator.style.display = 'block';
       } else {
         loginBtn.disabled = false;
-        btnText.textContent = 'Sign In';
-        loading.style.display = 'none';
+        btnText.textContent = 'Sign In to Dashboard';
+        loadingIndicator.style.display = 'none';
       }
     }
 
@@ -494,7 +530,7 @@
       clearErrors();
       
       try {
-        const response = await fetch('../../PHP/admin_auth.php', {
+        const response = await fetch('../PHP/admin_auth.php', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -504,13 +540,19 @@
             password: passwordInput.value
           })
         });
-        
+
         const result = await response.json();
-        
+
+        if (!response.ok) {
+          const message = result.message || 'Login failed. Please try again.';
+          showErrorAlert(message);
+          return;
+        }
+
         if (result.success) {
           showSuccess('Login successful! Redirecting to dashboard...');
           setTimeout(() => {
-            window.location.href = '../dashboard/admin_dash.html';
+            window.location.href = 'dashboard.php';
           }, 1500);
         } else {
           showErrorAlert(result.message || 'Login failed. Please try again.');

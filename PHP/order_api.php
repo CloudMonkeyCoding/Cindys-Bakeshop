@@ -10,6 +10,7 @@ require_once __DIR__ . '/cart_item_functions.php';
 require_once __DIR__ . '/email_functions.php';
 require_once __DIR__ . '/notification_functions.php';
 require_once __DIR__ . '/user_request_helpers.php';
+require_once __DIR__ . '/audit_log_functions.php';
 
 startJsonResponse();
 requireDatabaseConnection($pdo);
@@ -95,6 +96,19 @@ switch ($action) {
             $orderId,
             "Order #{$orderId} has been placed by user ID {$userId}. Total amount: {$total}."
         );
+
+        record_audit_log($pdo, 'order_created', "Online order #{$orderId} created.", [
+            'actor_id' => $userId ?: null,
+            'actor_email' => $user['Email'] ?? null,
+            'source' => 'order_api',
+            'metadata' => [
+                'order_id' => $orderId,
+                'total' => $total,
+                'order_type' => $orderType,
+                'payment_method' => $mop,
+                'item_count' => count($items),
+            ],
+        ]);
 
         sendJsonResponse(['order_id' => $orderId]);
 
