@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/require_admin_login.php';
 
 require_once '../PHP/db_connect.php';
 require_once '../PHP/shift_functions.php';
@@ -213,8 +213,8 @@ include 'includes/sidebar.php';
   <div class="page-header">
     <h1>Shift Management</h1>
     <a href="edit-profile.php" class="user-info">
-      <span>Admin</span>
-      <img src="https://i.pravatar.cc/80" alt="Admin avatar">
+      <span><?= htmlspecialchars($adminSession['name']); ?></span>
+      <img src="https://i.pravatar.cc/80" alt="<?= htmlspecialchars($adminSession['name']); ?> avatar">
     </a>
   </div>
 

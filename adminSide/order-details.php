@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/includes/require_admin_login.php';
 require_once '../PHP/db_connect.php';
 require_once '../PHP/order_functions.php';
 require_once '../PHP/order_item_functions.php';

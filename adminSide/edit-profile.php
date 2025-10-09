@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/require_admin_login.php';
 require_once '../PHP/db_connect.php';
 
 $activePage = 'settings';

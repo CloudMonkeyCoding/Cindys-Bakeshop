@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/require_admin_login.php';
 require_once '../PHP/db_connect.php';
 require_once '../PHP/user_functions.php';
 
@@ -42,8 +42,9 @@ include 'includes/sidebar.php';
   <div class="header">
     <h1>Account Settings</h1>
     <a href="edit-profile.php" class="user-info">
-      <span><?= htmlspecialchars($userSettings['Name'] ?? 'Admin'); ?></span>
-      <img src="https://i.pravatar.cc/80" alt="Admin avatar">
+      <?php $settingsName = $userSettings['Name'] ?? $adminSession['name']; ?>
+      <span><?= htmlspecialchars($settingsName); ?></span>
+      <img src="https://i.pravatar.cc/80" alt="<?= htmlspecialchars($settingsName); ?> avatar">
     </a>
   </div>
 
