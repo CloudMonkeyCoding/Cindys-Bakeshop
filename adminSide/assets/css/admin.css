@@ -775,6 +775,49 @@ button,
   color: var(--muted-text);
 }
 
+.log-table details {
+  cursor: pointer;
+}
+
+.log-table details > summary {
+  font-weight: 600;
+  color: #4f46e5;
+}
+
+.log-table details[open] > summary {
+  margin-bottom: 6px;
+}
+
+.log-table pre {
+  background-color: #f5f7ff;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: 'Fira Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.8rem;
+  max-height: 220px;
+  overflow: auto;
+  line-height: 1.4;
+}
+
+.log-event-type {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.log-actor-meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--muted-text);
+}
+
 .user-warning {
   margin-top: 8px;
   font-size: 13px;

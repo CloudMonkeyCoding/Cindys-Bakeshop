@@ -6,6 +6,7 @@ requirePostRequest();
 
 require_once __DIR__ . '/db_connect.php';
 require_once __DIR__ . '/order_functions.php';
+require_once __DIR__ . '/audit_log_functions.php';
 
 requireDatabaseConnection($pdo);
 
@@ -26,6 +27,17 @@ switch ($action) {
             sendJsonResponse(['success' => false, 'message' => 'Unsupported status value'], 422);
         }
         updateOrderStatus($pdo, $orderId, $status);
+        $adminId = isset($_SESSION['admin_user_id']) ? (int) $_SESSION['admin_user_id'] : null;
+        $adminEmail = $_SESSION['admin_email'] ?? null;
+        record_audit_log($pdo, 'order_status_updated', "Order #{$orderId} status updated to {$status}.", [
+            'actor_id' => $adminId ?: null,
+            'actor_email' => $adminEmail,
+            'source' => 'order_actions',
+            'metadata' => [
+                'order_id' => $orderId,
+                'status' => $status,
+            ],
+        ]);
         sendJsonResponse(['success' => true, 'status' => $status]);
 
     default:

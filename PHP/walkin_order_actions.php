@@ -34,6 +34,7 @@ require_once __DIR__ . '/transaction_functions.php';
 require_once __DIR__ . '/user_functions.php';
 require_once __DIR__ . '/delivery_functions.php';
 require_once __DIR__ . '/email_functions.php';
+require_once __DIR__ . '/audit_log_functions.php';
 
 walkin_order_log('Bootstrap completed for walk-in order API');
 
@@ -62,6 +63,9 @@ $respond = static function (int $status, array $payload): void {
 };
 
 walkin_order_log('Processing request', ['action' => $action]);
+
+$adminUserId = isset($_SESSION['admin_user_id']) ? (int) $_SESSION['admin_user_id'] : null;
+$adminEmail = $_SESSION['admin_email'] ?? null;
 
 switch ($action) {
     case 'search_products':
@@ -396,6 +400,23 @@ switch ($action) {
             'order_id' => $orderId,
             'total' => $orderTotal,
         ]);
+
+        record_audit_log($pdo, 'walkin_order_created', "Walk-in order #{$orderId} created.", [
+            'actor_id' => $adminUserId ?: null,
+            'actor_email' => $adminEmail,
+            'source' => 'walkin_order_actions',
+            'metadata' => [
+                'order_id' => $orderId,
+                'order_total' => $orderTotal,
+                'item_count' => count($orderItems),
+                'customer_mode' => $customerMode,
+                'customer_user_id' => $userId,
+                'payment_method' => $paymentMethod,
+                'payment_status' => $paymentStatus,
+                'fulfillment_type' => $fulfillmentType,
+            ],
+        ]);
+
         $respond(200, [
             'success' => true,
             'order_id' => (int)$orderId,

@@ -7,6 +7,7 @@ requirePostRequest('Only POST requests are allowed');
 require_once __DIR__ . '/db_connect.php';
 require_once __DIR__ . '/user_functions.php';
 require_once __DIR__ . '/store_staff_functions.php';
+require_once __DIR__ . '/audit_log_functions.php';
 
 requireDatabaseConnection($pdo);
 
@@ -94,6 +95,35 @@ function firebaseSignIn(string $apiKey, string $email, string $password): array
     ];
 }
 
+$remoteAddress = $_SERVER['REMOTE_ADDR'] ?? null;
+
+/**
+ * @param array<string, mixed> $options
+ */
+function logAdminAuthEvent($pdo, string $eventType, string $message, array $options = []): void
+{
+    if (!$pdo instanceof PDO) {
+        return;
+    }
+
+    global $remoteAddress;
+
+    $meta = [];
+    if (isset($options['metadata']) && is_array($options['metadata'])) {
+        $meta = $options['metadata'];
+    }
+    if ($remoteAddress) {
+        $meta['ip_address'] = $remoteAddress;
+    }
+
+    record_audit_log($pdo, $eventType, $message, [
+        'actor_email' => $options['actor_email'] ?? ($options['email'] ?? null),
+        'actor_id' => $options['actor_id'] ?? null,
+        'source' => 'admin_auth',
+        'metadata' => $meta,
+    ]);
+}
+
 $data = readJsonBody();
 if (!$data) {
     $data = $_POST;
@@ -103,6 +133,9 @@ $email = isset($data['email']) ? trim((string) $data['email']) : '';
 $password = isset($data['password']) ? (string) $data['password'] : '';
 
 if ($email === '' || $password === '') {
+    logAdminAuthEvent($pdo, 'admin_login_validation_failed', 'Login blocked: missing email or password.', [
+        'actor_email' => $email,
+    ]);
     sendJsonResponse([
         'success' => false,
         'message' => 'Email and password are required.'
@@ -110,6 +143,9 @@ if ($email === '' || $password === '') {
 }
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    logAdminAuthEvent($pdo, 'admin_login_validation_failed', 'Login blocked: invalid email format.', [
+        'actor_email' => $email,
+    ]);
     sendJsonResponse([
         'success' => false,
         'message' => 'Please provide a valid email address.'
@@ -118,6 +154,9 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
 $apiKey = $_ENV['FIREBASE_API_KEY'] ?? getenv('FIREBASE_API_KEY');
 if (!$apiKey) {
+    logAdminAuthEvent($pdo, 'admin_login_error', 'Login failed: Firebase API key is not configured.', [
+        'actor_email' => $email,
+    ]);
     sendJsonResponse([
         'success' => false,
         'message' => 'Authentication service is not configured. Please contact support.'
@@ -126,6 +165,13 @@ if (!$apiKey) {
 
 $firebaseResult = firebaseSignIn($apiKey, $email, $password);
 if (!$firebaseResult['success']) {
+    logAdminAuthEvent($pdo, 'admin_login_failed', 'Firebase rejected admin login attempt.', [
+        'actor_email' => $email,
+        'metadata' => [
+            'firebase_code' => $firebaseResult['errorCode'] ?? null,
+            'status' => $firebaseResult['status'] ?? null,
+        ],
+    ]);
     sendJsonResponse([
         'success' => false,
         'message' => $firebaseResult['message'],
@@ -135,6 +181,9 @@ if (!$firebaseResult['success']) {
 
 $user = getUserByEmail($pdo, $firebaseResult['email']);
 if (!$user) {
+    logAdminAuthEvent($pdo, 'admin_login_denied', 'Login denied: user not found in admin database.', [
+        'actor_email' => $firebaseResult['email'] ?? $email,
+    ]);
     sendJsonResponse([
         'success' => false,
         'message' => 'Your account is not registered in the admin database.'
@@ -143,6 +192,10 @@ if (!$user) {
 
 $staffRecord = getStoreStaffByUserId($pdo, (int) $user['User_ID']);
 if (!$staffRecord) {
+    logAdminAuthEvent($pdo, 'admin_login_denied', 'Login denied: user lacks staff access.', [
+        'actor_email' => $firebaseResult['email'] ?? $email,
+        'actor_id' => (int) $user['User_ID'],
+    ]);
     sendJsonResponse([
         'success' => false,
         'message' => 'You must be marked as an employee or super admin to access the admin portal.'
@@ -166,6 +219,15 @@ $_SESSION['admin_has_staff_access'] = true;
 if ($storeStaffId) {
     $_SESSION['admin_store_staff_id'] = $storeStaffId;
 }
+
+logAdminAuthEvent($pdo, 'admin_login_success', 'Admin login successful.', [
+    'actor_email' => $_SESSION['admin_email'] ?? $firebaseResult['email'] ?? $email,
+    'actor_id' => (int) $user['User_ID'],
+    'metadata' => [
+        'is_super_admin' => $isSuperAdmin,
+        'store_staff_id' => $storeStaffId,
+    ],
+]);
 
 sendJsonResponse([
     'success' => true,
