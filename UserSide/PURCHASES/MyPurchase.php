@@ -145,16 +145,6 @@
       color: var(--primary-brown);
     }
 
-    .order-actions button.primary {
-      background: linear-gradient(135deg, var(--primary-brown), var(--primary-brown-dark));
-      color: #fff;
-    }
-
-    .order-actions button.danger {
-      background: rgba(200, 40, 60, 0.12);
-      color: #c8283c;
-    }
-
     .empty-state {
       text-align: center;
       padding: 3rem;
@@ -166,68 +156,6 @@
       margin-top: 2rem;
     }
 
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.4);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 3500;
-      padding: 1.5rem;
-    }
-
-    .modal-backdrop.show {
-      display: flex;
-    }
-
-    .modal-card {
-      background: #fff;
-      border-radius: 24px;
-      padding: 2rem;
-      max-width: 420px;
-      width: 100%;
-      box-shadow: var(--shadow-strong);
-      display: grid;
-      gap: 1.2rem;
-    }
-
-    .modal-card h3 {
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: var(--primary-brown);
-    }
-
-    .modal-card select {
-      border-radius: 16px;
-      border: 1px solid rgba(139, 69, 19, 0.12);
-      padding: 0.75rem 1rem;
-      font-size: 0.95rem;
-    }
-
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.8rem;
-    }
-
-    .modal-actions button {
-      padding: 0.65rem 1.3rem;
-      border-radius: var(--radius-pill);
-      border: none;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .modal-actions .primary {
-      background: linear-gradient(135deg, var(--primary-brown), var(--primary-brown-dark));
-      color: #fff;
-    }
-
-    .modal-actions .secondary {
-      background: rgba(139, 69, 19, 0.12);
-      color: var(--primary-brown);
-    }
 
     @media (max-width: 780px) {
       .order-card {
@@ -260,24 +188,6 @@
     <div class="empty-state" id="ordersEmpty" hidden>No orders yet. Explore the menu and treat yourself!</div>
   </main>
 
-  <div class="modal-backdrop" id="cancelModal" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="modal-card">
-      <h3>Cancel order</h3>
-      <p>Please select a reason so we can improve your next visit.</p>
-      <select id="cancelReason">
-        <option value="">-- Select a reason --</option>
-        <option value="Changed my mind">Changed my mind</option>
-        <option value="Wrong item ordered">Wrong item ordered</option>
-        <option value="Found a better option">Found a better option</option>
-        <option value="Others">Others</option>
-      </select>
-      <div class="modal-actions">
-        <button type="button" class="secondary" id="cancelClose">Keep order</button>
-        <button type="button" class="primary" id="cancelConfirm">Confirm cancel</button>
-      </div>
-    </div>
-  </div>
-
   <script type="module">
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import "../firebase-init.js";
@@ -286,14 +196,9 @@
     const ordersGrid = document.getElementById('ordersGrid');
     const ordersEmpty = document.getElementById('ordersEmpty');
     const tabs = document.querySelectorAll('.status-tabs button');
-    const cancelModal = document.getElementById('cancelModal');
-    const cancelReason = document.getElementById('cancelReason');
-    const cancelClose = document.getElementById('cancelClose');
-    const cancelConfirm = document.getElementById('cancelConfirm');
 
     let userEmail = null;
     let orders = [];
-    let pendingCancelId = null;
     let activeFilter = 'all';
 
     const STATUS_MAP = new Map([
@@ -373,7 +278,6 @@
           </div>
           <div class="order-actions">
             <a href="../INVOICE/orderDetails.php?order_id=${order.Order_ID ?? ''}">View details</a>
-            ${category === 'to-process' ? '<button type="button" class="danger" data-action="cancel" data-id="' + (order.Order_ID ?? '') + '">Cancel order</button>' : ''}
           </div>
         `;
         ordersGrid.appendChild(card);
@@ -406,40 +310,6 @@
           renderOrders();
         });
     }
-
-    ordersGrid.addEventListener('click', (event) => {
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) return;
-      if (target.dataset.action === 'cancel') {
-        pendingCancelId = target.dataset.id;
-        cancelModal.classList.add('show');
-        cancelModal.setAttribute('aria-hidden', 'false');
-      }
-    });
-
-    cancelClose.addEventListener('click', () => {
-      pendingCancelId = null;
-      cancelReason.value = '';
-      cancelModal.classList.remove('show');
-      cancelModal.setAttribute('aria-hidden', 'true');
-    });
-
-    cancelConfirm.addEventListener('click', () => {
-      if (!cancelReason.value) {
-        alert('Please select a reason before cancelling.');
-        return;
-      }
-      if (pendingCancelId) {
-        alert(`Order #${pendingCancelId} cancelled for reason: ${cancelReason.value}`);
-      }
-      cancelClose.click();
-    });
-
-    cancelModal.addEventListener('click', (event) => {
-      if (event.target === cancelModal) {
-        cancelClose.click();
-      }
-    });
 
     onAuthStateChanged(auth, user => {
       if (user) {
