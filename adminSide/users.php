@@ -129,15 +129,17 @@ $currentAdminIsSuper = !empty($adminSession['is_super_admin']);
                       Mark as Employee
                     </button>
                   <?php endif; ?>
-                  <button
-                    type="button"
-                    class="btn btn-muted btn-remove-employee"<?= $isEmployee ? '' : ' hidden'; ?>
-                    data-user-id="<?= $userId; ?>"
-                    data-user-name="<?= $userNameSafe; ?>"
-                    data-action="remove_employee"
-                  >
-                    Remove Employee
-                  </button>
+                  <?php if ($currentAdminIsSuper): ?>
+                    <button
+                      type="button"
+                      class="btn btn-muted btn-remove-employee"<?= $isEmployee ? '' : ' hidden'; ?>
+                      data-user-id="<?= $userId; ?>"
+                      data-user-name="<?= $userNameSafe; ?>"
+                      data-action="remove_employee"
+                    >
+                      Remove Employee
+                    </button>
+                  <?php endif; ?>
                   <?php if ($currentAdminIsSuper): ?>
                     <button
                       type="button"
@@ -756,6 +758,12 @@ $extraScripts = <<<'JS'
 
     const removeButton = row.querySelector('.btn-remove-employee');
     if (removeButton) {
+      if (!adminIsSuperAdmin) {
+        removeButton.hidden = true;
+        removeButton.setAttribute('hidden', '');
+        removeButton.disabled = true;
+        return;
+      }
       removeButton.hidden = !shouldBeEmployee;
       if (!shouldBeEmployee) {
         removeButton.setAttribute('hidden', '');
@@ -852,6 +860,10 @@ $extraScripts = <<<'JS'
     const userName = (button.dataset.userName || 'this user').trim() || 'this user';
     if (action === 'mark_employee' && !adminIsSuperAdmin) {
       alert('Only the super admin can mark other users as employees.');
+      return;
+    }
+    if (action === 'remove_employee' && !adminIsSuperAdmin) {
+      alert('Only the super admin can remove employee status.');
       return;
     }
     if (!userId || !action) {

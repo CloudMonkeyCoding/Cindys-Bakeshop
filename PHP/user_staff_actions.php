@@ -54,6 +54,10 @@ if ($action === 'mark_employee' && !$currentIsSuperAdmin) {
     sendJsonResponse(['success' => false, 'message' => 'Only the super admin can mark users as employees.'], 403);
 }
 
+if ($action === 'remove_employee' && !$currentIsSuperAdmin) {
+    sendJsonResponse(['success' => false, 'message' => 'Only the super admin can remove employee status.'], 403);
+}
+
 try {
     if ($action === 'mark_employee') {
         if ($existingStaff) {
