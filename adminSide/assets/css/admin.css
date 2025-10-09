@@ -1532,6 +1532,72 @@ button,
   color: var(--muted-text);
 }
 
+.profile-card {
+  max-width: 520px;
+  display: grid;
+  gap: 24px;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.profile-header img {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.profile-header h2 {
+  font-size: 26px;
+  margin: 0 0 6px 0;
+  color: var(--dark);
+}
+
+.profile-role {
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+
+.profile-email {
+  font-size: 14px;
+  color: var(--muted-text);
+}
+
+.profile-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px 24px;
+}
+
+.profile-meta div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-meta dt {
+  font-weight: 600;
+  color: var(--dark);
+  font-size: 14px;
+}
+
+.profile-meta dd {
+  margin: 0;
+  color: var(--muted-text);
+  line-height: 1.5;
+}
+
+.profile-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .weekly-form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

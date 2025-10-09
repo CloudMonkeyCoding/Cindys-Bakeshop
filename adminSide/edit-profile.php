@@ -5,24 +5,36 @@ require_once '../PHP/db_connect.php';
 $activePage = 'settings';
 $pageTitle = "Edit Profile - Cindy's Bakeshop";
 $message = '';
+$profile = null;
+$userId = isset($adminSession['id']) ? (int) $adminSession['id'] : 0;
 
-if ($pdo) {
+if ($pdo instanceof PDO && $userId > 0) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $name = filter_input(INPUT_POST, 'name', FILTER_SANITIZE_SPECIAL_CHARS) ?: '';
-        $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL) ?: '';
-        $userId = (int)($_POST['user_id'] ?? 0);
-        if ($name && $email) {
+        $name = trim((string) filter_input(INPUT_POST, 'name', FILTER_SANITIZE_SPECIAL_CHARS));
+        $email = trim((string) filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL));
+
+        if ($name !== '' && $email !== '') {
             $stmt = $pdo->prepare('UPDATE user SET Name = :name, Email = :email WHERE User_ID = :id');
-            $success = $stmt->execute([':name' => $name, ':email' => $email, ':id' => $userId]);
+            $success = $stmt->execute([
+                ':name' => $name,
+                ':email' => $email,
+                ':id' => $userId,
+            ]);
+            if ($success) {
+                $_SESSION['admin_name'] = $name;
+                $_SESSION['admin_email'] = $email;
+                $adminSession['name'] = $name;
+                $adminSession['email'] = $email;
+            }
             $message = $success ? 'Profile updated successfully.' : 'Failed to update profile.';
         } else {
             $message = 'Please provide a valid name and email.';
         }
     }
-    $stmt = $pdo->query('SELECT User_ID, Name, Email FROM user ORDER BY User_ID ASC LIMIT 1');
-    $profile = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : null;
-} else {
-    $profile = null;
+
+    $stmt = $pdo->prepare('SELECT User_ID, Name, Email FROM user WHERE User_ID = :id LIMIT 1');
+    $stmt->execute([':id' => $userId]);
+    $profile = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
 include 'includes/header.php';
@@ -32,7 +44,7 @@ include 'includes/sidebar.php';
 <div class="main">
   <div class="header">
     <h1>Edit Profile</h1>
-    <a href="settings.php" class="btn btn-muted" style="text-decoration:none;">← Back to Settings</a>
+    <a href="profile.php" class="btn btn-muted" style="text-decoration:none;">← Back to Profile</a>
   </div>
 
   <div class="card" style="max-width:480px;">

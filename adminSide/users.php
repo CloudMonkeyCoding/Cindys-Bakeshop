@@ -56,7 +56,7 @@ $currentAdminIsSuper = !empty($adminSession['is_super_admin']);
 <div class="main" data-admin-id="<?= $currentAdminId; ?>" data-admin-super="<?= $currentAdminIsSuper ? '1' : '0'; ?>">
   <div class="header">
     <h1>Users</h1>
-    <a href="edit-profile.php" class="user-info">
+    <a href="profile.php" class="user-info">
       <span><?= htmlspecialchars($adminSession['name']); ?></span>
       <img src="https://i.pravatar.cc/80" alt="<?= htmlspecialchars($adminSession['name']); ?> avatar">
     </a>

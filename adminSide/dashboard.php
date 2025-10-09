@@ -615,7 +615,7 @@ include 'includes/sidebar.php';
       </form>
       <p class="timeframe-summary">Showing <?= htmlspecialchars($timeframeLabel); ?> &middot; <?= htmlspecialchars($rangeDisplay); ?></p>
     </div>
-    <a href="edit-profile.php" class="user-info">
+    <a href="profile.php" class="user-info">
       <span><?= htmlspecialchars($adminSession['name']); ?></span>
       <img src="https://i.pravatar.cc/80" alt="<?= htmlspecialchars($adminSession['name']); ?> avatar">
     </a>

@@ -6,15 +6,16 @@ require_once '../PHP/user_functions.php';
 $activePage = 'settings';
 $pageTitle = "Settings - Cindy's Bakeshop";
 $message = '';
+$userSettings = null;
+$userId = isset($adminSession['id']) ? (int) $adminSession['id'] : 0;
 
-if ($pdo) {
+if ($pdo instanceof PDO && $userId > 0) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $language = filter_input(INPUT_POST, 'language', FILTER_SANITIZE_SPECIAL_CHARS) ?: 'English';
         $theme = filter_input(INPUT_POST, 'theme', FILTER_SANITIZE_SPECIAL_CHARS) ?: 'Light';
         $notifyOrder = isset($_POST['notify_order']) ? 1 : 0;
         $notifyPromo = isset($_POST['notify_promo']) ? 1 : 0;
         $notifyFeedback = isset($_POST['notify_feedback']) ? 1 : 0;
-        $userId = (int)($_POST['user_id'] ?? 0);
 
         $stmt = $pdo->prepare("UPDATE user SET Language = :language, Theme = :theme, Notify_Order_Status = :order_status, Notify_Promotions = :promo, Notify_Feedback = :feedback WHERE User_ID = :id");
         $success = $stmt->execute([
@@ -28,10 +29,9 @@ if ($pdo) {
         $message = $success ? 'Settings updated successfully.' : 'Failed to update settings.';
     }
 
-    $stmt = $pdo->query("SELECT User_ID, Name, Email, Language, Theme, Notify_Order_Status, Notify_Promotions, Notify_Feedback FROM user ORDER BY User_ID ASC LIMIT 1");
-    $userSettings = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : null;
-} else {
-    $userSettings = null;
+    $stmt = $pdo->prepare("SELECT User_ID, Name, Email, Language, Theme, Notify_Order_Status, Notify_Promotions, Notify_Feedback FROM user WHERE User_ID = :id LIMIT 1");
+    $stmt->execute([':id' => $userId]);
+    $userSettings = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
 include 'includes/header.php';
@@ -41,7 +41,7 @@ include 'includes/sidebar.php';
 <div class="main">
   <div class="header">
     <h1>Account Settings</h1>
-    <a href="edit-profile.php" class="user-info">
+    <a href="profile.php" class="user-info">
       <?php $settingsName = $userSettings['Name'] ?? $adminSession['name']; ?>
       <span><?= htmlspecialchars($settingsName); ?></span>
       <img src="https://i.pravatar.cc/80" alt="<?= htmlspecialchars($settingsName); ?> avatar">

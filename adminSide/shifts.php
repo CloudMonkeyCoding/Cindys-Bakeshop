@@ -212,7 +212,7 @@ include 'includes/sidebar.php';
 <div class="main">
   <div class="page-header">
     <h1>Shift Management</h1>
-    <a href="edit-profile.php" class="user-info">
+    <a href="profile.php" class="user-info">
       <span><?= htmlspecialchars($adminSession['name']); ?></span>
       <img src="https://i.pravatar.cc/80" alt="<?= htmlspecialchars($adminSession['name']); ?> avatar">
     </a>
