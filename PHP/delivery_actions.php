@@ -1,41 +1,25 @@
 <?php
-session_start();
-header('Content-Type: application/json');
+require_once __DIR__ . '/action_helpers.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Invalid request method']);
-    exit;
-}
+startJsonResponse(true);
+requirePostRequest();
 
 require_once __DIR__ . '/db_connect.php';
 require_once __DIR__ . '/delivery_functions.php';
 
-if (!$pdo) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
-    exit;
-}
+requireDatabaseConnection($pdo);
 
 $token = $_POST['csrf_token'] ?? '';
-if (!hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid CSRF token']);
-    exit;
-}
+requireCsrfToken($token);
 
 $action = $_POST['action'] ?? '';
 if ($action !== 'update') {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Unknown action']);
-    exit;
+    sendJsonResponse(['success' => false, 'message' => 'Unknown action'], 400);
 }
 
 $deliveryId = filter_input(INPUT_POST, 'delivery_id', FILTER_VALIDATE_INT);
 if (!$deliveryId) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid delivery ID']);
-    exit;
+    sendJsonResponse(['success' => false, 'message' => 'Invalid delivery ID'], 400);
 }
 
 $status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_SPECIAL_CHARS) ?: 'Pending';
@@ -45,4 +29,4 @@ $personnel = filter_input(INPUT_POST, 'delivery_personnel', FILTER_SANITIZE_SPEC
 updateDelivery($pdo, $deliveryId, $status, $date, $personnel);
 $updated = getDeliveryById($pdo, $deliveryId);
 
-echo json_encode(['success' => true, 'delivery' => $updated]);
+sendJsonResponse(['success' => true, 'delivery' => $updated]);
