@@ -155,6 +155,7 @@ $_SESSION['admin_user_id'] = (int) $user['User_ID'];
 $_SESSION['admin_name'] = $user['Name'] ?? 'Admin';
 $_SESSION['admin_email'] = $user['Email'] ?? $firebaseResult['email'];
 $_SESSION['admin_firebase_local_id'] = $firebaseResult['localId'] ?? null;
+$_SESSION['admin_last_activity'] = time();
 
 sendJsonResponse([
     'success' => true,

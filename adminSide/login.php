@@ -7,6 +7,11 @@ if (!empty($_SESSION['admin_logged_in'])) {
     header('Location: dashboard.php');
     exit;
 }
+
+$timeoutMessage = $_SESSION['admin_timeout_message'] ?? '';
+if ($timeoutMessage !== '') {
+    unset($_SESSION['admin_timeout_message']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -271,6 +276,17 @@ if (!empty($_SESSION['admin_logged_in'])) {
       font-weight: 500;
     }
 
+    .timeout-alert {
+      background: linear-gradient(135deg, #fde68a 0%, #fcd34d 100%);
+      color: #92400e;
+      padding: 16px 20px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      border: 1px solid #fbbf24;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
     .error-alert {
       background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
       color: #991b1b;
@@ -367,6 +383,9 @@ if (!empty($_SESSION['admin_logged_in'])) {
     </div>
 
     <div class="form-section">
+      <?php if ($timeoutMessage !== ''): ?>
+        <div class="timeout-alert"><?php echo htmlspecialchars($timeoutMessage, ENT_QUOTES, 'UTF-8'); ?></div>
+      <?php endif; ?>
       <div class="success-message" id="successMessage"></div>
       <div class="error-alert" id="errorAlert"></div>
 
