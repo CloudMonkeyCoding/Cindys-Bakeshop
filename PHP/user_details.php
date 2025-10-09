@@ -81,6 +81,7 @@ $response = [
         'warning_count' => isset($user['Warning_Count']) ? (int)$user['Warning_Count'] : 0,
         'face_image_path' => normalizeFacePath($user['Face_Image_Path'] ?? null),
         'is_employee' => $staffRecord ? true : false,
+        'is_super_admin' => $staffRecord && !empty($staffRecord['Is_Super_Admin']) && (int)$staffRecord['Is_Super_Admin'] === 1,
     ],
     'orders' => $normalizedOrders,
     'summary' => [

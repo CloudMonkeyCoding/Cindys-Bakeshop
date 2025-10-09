@@ -13,16 +13,26 @@ if ($pdo) {
     $stmt = $pdo->query("SELECT User_ID, Name, Email FROM user");
     $allUsers = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
 
-    $staffStmt = $pdo->query("SELECT User_ID FROM store_staff");
-    $staffIds = $staffStmt ? $staffStmt->fetchAll(PDO::FETCH_COLUMN, 0) : [];
+    $staffStmt = $pdo->query("SELECT User_ID, Is_Super_Admin FROM store_staff");
+    $staffRows = $staffStmt ? $staffStmt->fetchAll(PDO::FETCH_ASSOC) : [];
     $staffLookup = [];
-    foreach ($staffIds as $staffUserId) {
-        $staffLookup[(int)$staffUserId] = true;
+    foreach ($staffRows as $staffRow) {
+        $staffUserId = isset($staffRow['User_ID']) ? (int)$staffRow['User_ID'] : 0;
+        if (!$staffUserId) {
+            continue;
+        }
+        $isSuperAdmin = !empty($staffRow['Is_Super_Admin']) && (int)$staffRow['Is_Super_Admin'] === 1;
+        $staffLookup[$staffUserId] = [
+            'is_employee' => true,
+            'is_super_admin' => $isSuperAdmin,
+        ];
     }
 
     foreach ($allUsers as &$user) {
         $userId = isset($user['User_ID']) ? (int)$user['User_ID'] : 0;
-        $user['Is_Employee'] = isset($staffLookup[$userId]) ? 1 : 0;
+        $lookup = $staffLookup[$userId] ?? ['is_employee' => false, 'is_super_admin' => false];
+        $user['Is_Employee'] = $lookup['is_employee'] ? 1 : 0;
+        $user['Is_Super_Admin'] = $lookup['is_super_admin'] ? 1 : 0;
     }
     unset($user);
 
@@ -39,7 +49,11 @@ include 'includes/header.php';
 include 'includes/sidebar.php';
 ?>
 
-<div class="main">
+<?php
+$currentAdminId = isset($adminSession['id']) ? (int)$adminSession['id'] : 0;
+$currentAdminIsSuper = !empty($adminSession['is_super_admin']);
+?>
+<div class="main" data-admin-id="<?= $currentAdminId; ?>" data-admin-super="<?= $currentAdminIsSuper ? '1' : '0'; ?>">
   <div class="header">
     <h1>Users</h1>
     <a href="edit-profile.php" class="user-info">
@@ -74,10 +88,19 @@ include 'includes/sidebar.php';
             <?php
               $userId = isset($user['User_ID']) ? (int)$user['User_ID'] : 0;
               $isEmployee = isset($user['Is_Employee']) && (int)$user['Is_Employee'] === 1;
+              $isSuperAdmin = isset($user['Is_Super_Admin']) && (int)$user['Is_Super_Admin'] === 1;
               $userNameSafe = htmlspecialchars($user['Name'] ?? '', ENT_QUOTES, 'UTF-8');
               $userEmailSafe = htmlspecialchars($user['Email'] ?? '', ENT_QUOTES, 'UTF-8');
+              $isSelf = $currentAdminId === $userId;
+              $canPromoteSuper = $currentAdminIsSuper && !$isSuperAdmin;
+              $canDemoteSuper = $currentAdminIsSuper && $isSuperAdmin && !$isSelf;
             ?>
-            <tr data-user-id="<?= $userId; ?>" data-is-employee="<?= $isEmployee ? '1' : '0'; ?>">
+            <tr
+              data-user-id="<?= $userId; ?>"
+              data-is-employee="<?= $isEmployee ? '1' : '0'; ?>"
+              data-is-super-admin="<?= $isSuperAdmin ? '1' : '0'; ?>"
+              data-is-self="<?= $isSelf ? '1' : '0'; ?>"
+            >
               <td><?= $userNameSafe; ?></td>
               <td><?= $userEmailSafe; ?></td>
               <td>
@@ -85,6 +108,11 @@ include 'includes/sidebar.php';
                   <button type="button" class="btn btn-primary btn-view-user" data-user="<?= $userId; ?>">
                     View Details
                   </button>
+                  <?php if ($isSuperAdmin): ?>
+                    <span class="badge badge-warning super-admin-badge" data-super-admin-badge role="status" aria-hidden="false">
+                      Super Admin
+                    </span>
+                  <?php endif; ?>
                   <?php if ($isEmployee): ?>
                     <span class="badge badge-success employee-badge" role="status" data-role-badge aria-hidden="false">
                       Employee
@@ -108,6 +136,26 @@ include 'includes/sidebar.php';
                   >
                     Remove Employee
                   </button>
+                  <?php if ($currentAdminIsSuper): ?>
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-promote-super-admin"<?= $canPromoteSuper ? '' : ' hidden'; ?>
+                      data-user-id="<?= $userId; ?>"
+                      data-user-name="<?= $userNameSafe; ?>"
+                      data-action="promote_super_admin"
+                    >
+                      Make Super Admin
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-muted btn-demote-super-admin"<?= $canDemoteSuper ? '' : ' hidden'; ?>
+                      data-user-id="<?= $userId; ?>"
+                      data-user-name="<?= $userNameSafe; ?>"
+                      data-action="demote_super_admin"
+                    >
+                      Remove Super Admin
+                    </button>
+                  <?php endif; ?>
                 </div>
               </td>
             </tr>
@@ -168,6 +216,7 @@ include 'includes/sidebar.php';
         <div class="user-profile-meta">
           <h2 id="userDetailsName">Select a user</h2>
           <span class="badge badge-success employee-badge" id="userDetailsEmployeeBadge" role="status" hidden aria-hidden="true">Employee</span>
+          <span class="badge badge-warning super-admin-badge" id="userDetailsSuperAdminBadge" role="status" hidden aria-hidden="true">Super Admin</span>
           <p class="user-contact"><a id="userDetailsEmail" href="#">—</a></p>
           <p class="user-contact muted" id="userDetailsAddress">—</p>
           <div class="user-warning" id="userDetailsWarnings" aria-live="polite">Warnings: 0</div>
@@ -236,6 +285,10 @@ $extraScripts = <<<'JS'
   const searchInput = document.getElementById('userSearch');
   const noMatchRow = document.querySelector('#allUsersTable tr[data-empty-state="no-match"]');
   let currentView = 'all';
+
+  const adminContainer = document.querySelector('.main');
+  const adminIsSuperAdmin = adminContainer?.dataset.adminSuper === '1';
+  const adminUserId = Number.parseInt(adminContainer?.dataset.adminId || '0', 10) || 0;
 
   function searchUsers() {
     const query = (searchInput?.value || '').toLowerCase();
@@ -329,6 +382,7 @@ $extraScripts = <<<'JS'
   const userDetailsAddress = document.getElementById('userDetailsAddress');
   const userDetailsWarnings = document.getElementById('userDetailsWarnings');
   const userDetailsEmployeeBadge = document.getElementById('userDetailsEmployeeBadge');
+  const userDetailsSuperAdminBadge = document.getElementById('userDetailsSuperAdminBadge');
   const userDetailsAvatar = document.getElementById('userDetailsAvatar');
   const userDetailsAvatarFallback = document.getElementById('userDetailsAvatarFallback');
   const userDetailsTotalOrders = document.getElementById('userDetailsTotalOrders');
@@ -469,6 +523,11 @@ $extraScripts = <<<'JS'
       const isEmployee = Boolean(user?.is_employee);
       userDetailsEmployeeBadge.hidden = !isEmployee;
       userDetailsEmployeeBadge.setAttribute('aria-hidden', isEmployee ? 'false' : 'true');
+    }
+    if (userDetailsSuperAdminBadge) {
+      const isSuperAdmin = Boolean(user?.is_super_admin);
+      userDetailsSuperAdminBadge.hidden = !isSuperAdmin;
+      userDetailsSuperAdminBadge.setAttribute('aria-hidden', isSuperAdmin ? 'false' : 'true');
     }
   }
 
@@ -652,9 +711,11 @@ $extraScripts = <<<'JS'
 
   function updateEmployeeControls(row, isEmployee) {
     if (!row) return;
-    row.dataset.isEmployee = isEmployee ? '1' : '0';
+    const isSuperAdmin = row.dataset.isSuperAdmin === '1';
+    const shouldBeEmployee = isSuperAdmin ? true : Boolean(isEmployee);
+    row.dataset.isEmployee = shouldBeEmployee ? '1' : '0';
     let badge = row.querySelector('[data-role-badge]');
-    if (!badge && isEmployee) {
+    if (!badge && shouldBeEmployee) {
       badge = document.createElement('span');
       badge.className = 'badge badge-success employee-badge';
       badge.setAttribute('role', 'status');
@@ -669,7 +730,7 @@ $extraScripts = <<<'JS'
       }
     }
     if (badge) {
-      if (!isEmployee) {
+      if (!shouldBeEmployee) {
         badge.remove();
         badge = null;
       } else {
@@ -681,8 +742,8 @@ $extraScripts = <<<'JS'
 
     const markButton = row.querySelector('.btn-mark-employee');
     if (markButton) {
-      markButton.hidden = isEmployee;
-      if (isEmployee) {
+      markButton.hidden = shouldBeEmployee;
+      if (shouldBeEmployee) {
         markButton.setAttribute('hidden', '');
       } else {
         markButton.removeAttribute('hidden');
@@ -693,14 +754,76 @@ $extraScripts = <<<'JS'
 
     const removeButton = row.querySelector('.btn-remove-employee');
     if (removeButton) {
-      removeButton.hidden = !isEmployee;
-      if (!isEmployee) {
+      removeButton.hidden = !shouldBeEmployee;
+      if (!shouldBeEmployee) {
         removeButton.setAttribute('hidden', '');
       } else {
         removeButton.removeAttribute('hidden');
       }
-      removeButton.disabled = false;
+      const disableRemoval = isSuperAdmin;
+      removeButton.disabled = disableRemoval;
+      if (disableRemoval) {
+        removeButton.title = 'Remove super admin access first.';
+      } else {
+        removeButton.removeAttribute('title');
+      }
       removeButton.textContent = 'Remove Employee';
+    }
+  }
+
+  function updateSuperAdminControls(row, isSuperAdmin) {
+    if (!row) return;
+    row.dataset.isSuperAdmin = isSuperAdmin ? '1' : '0';
+
+    let badge = row.querySelector('[data-super-admin-badge]');
+    if (isSuperAdmin) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'badge badge-warning super-admin-badge';
+        badge.setAttribute('role', 'status');
+        badge.setAttribute('data-super-admin-badge', '');
+        badge.textContent = 'Super Admin';
+        const container = row.querySelector('.table-action-list');
+        if (container) {
+          container.insertBefore(badge, container.firstChild);
+        } else {
+          row.append(badge);
+        }
+      } else {
+        badge.hidden = false;
+        badge.removeAttribute('hidden');
+      }
+      badge.setAttribute('aria-hidden', 'false');
+    } else if (badge) {
+      badge.remove();
+      badge = null;
+    }
+
+    const promoteButton = row.querySelector('.btn-promote-super-admin');
+    if (promoteButton) {
+      const shouldShow = adminIsSuperAdmin && !isSuperAdmin;
+      promoteButton.hidden = !shouldShow;
+      if (shouldShow) {
+        promoteButton.removeAttribute('hidden');
+      } else {
+        promoteButton.setAttribute('hidden', '');
+      }
+      promoteButton.disabled = false;
+      promoteButton.textContent = 'Make Super Admin';
+    }
+
+    const demoteButton = row.querySelector('.btn-demote-super-admin');
+    if (demoteButton) {
+      const isSelf = row.dataset.isSelf === '1' || Number.parseInt(row.dataset.userId || '0', 10) === adminUserId;
+      const shouldShow = adminIsSuperAdmin && isSuperAdmin && !isSelf;
+      demoteButton.hidden = !shouldShow;
+      if (shouldShow) {
+        demoteButton.removeAttribute('hidden');
+      } else {
+        demoteButton.setAttribute('hidden', '');
+      }
+      demoteButton.disabled = false;
+      demoteButton.textContent = 'Remove Super Admin';
     }
   }
 
@@ -712,6 +835,12 @@ $extraScripts = <<<'JS'
     } else {
       userDetailsEmployeeBadge.setAttribute('aria-hidden', 'false');
     }
+  }
+
+  function updateModalSuperAdminBadge(isSuperAdmin) {
+    if (!userDetailsSuperAdminBadge) return;
+    userDetailsSuperAdminBadge.hidden = !isSuperAdmin;
+    userDetailsSuperAdminBadge.setAttribute('aria-hidden', isSuperAdmin ? 'false' : 'true');
   }
 
   async function handleEmployeeAction(event) {
@@ -752,14 +881,18 @@ $extraScripts = <<<'JS'
       const numericUserId = Number.parseInt(userId, 10);
       const row = button.closest('tr');
       const isEmployee = action === 'mark_employee';
+      let rowIsSuperAdmin = false;
       if (row) {
+        rowIsSuperAdmin = row.dataset.isSuperAdmin === '1';
         updateEmployeeControls(row, isEmployee);
+        updateSuperAdminControls(row, rowIsSuperAdmin);
       }
 
       searchUsers();
 
       if (activeUserId !== null && !Number.isNaN(numericUserId) && numericUserId === activeUserId) {
         updateModalEmployeeBadge(isEmployee);
+        updateModalSuperAdminBadge(rowIsSuperAdmin);
       }
 
       alert(result?.message || (isEmployee
@@ -770,6 +903,87 @@ $extraScripts = <<<'JS'
       button.disabled = false;
       button.textContent = previousText;
     }
+  }
+
+  async function handleSuperAdminAction(event) {
+    const button = event.currentTarget;
+    const action = button.dataset.action;
+    const userId = button.dataset.userId;
+    const userName = (button.dataset.userName || 'this user').trim() || 'this user';
+    if (!userId || !action) {
+      alert('Missing user information.');
+      return;
+    }
+
+    const isPromote = action === 'promote_super_admin';
+    const confirmMessage = isPromote
+      ? `Make ${userName} the super admin? This will replace the current super admin.`
+      : `Remove ${userName}'s super admin access?`;
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    const previousText = button.textContent;
+    button.disabled = true;
+    button.textContent = isPromote ? 'Updating...' : 'Removing...';
+
+    const formData = new FormData();
+    formData.append('action', action);
+    formData.append('user_id', userId);
+
+    try {
+      const response = await fetch('../PHP/user_staff_actions.php', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await response.json();
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || 'Failed to update super admin access.');
+      }
+
+      const numericUserId = Number.parseInt(userId, 10);
+      const row = button.closest('tr');
+
+      if (isPromote) {
+        document.querySelectorAll('#allUsersTable tbody tr[data-is-super-admin="1"]').forEach(existingRow => {
+          const existingId = Number.parseInt(existingRow.dataset.userId || '0', 10);
+          const isTarget = !Number.isNaN(existingId) && existingId === numericUserId;
+          updateSuperAdminControls(existingRow, isTarget);
+          updateEmployeeControls(existingRow, existingRow.dataset.isEmployee === '1');
+        });
+        if (row) {
+          updateSuperAdminControls(row, true);
+          updateEmployeeControls(row, true);
+        }
+        if (activeUserId !== null && !Number.isNaN(numericUserId)) {
+          const isActiveUser = numericUserId === activeUserId;
+          updateModalSuperAdminBadge(isActiveUser);
+          if (isActiveUser) {
+            updateModalEmployeeBadge(true);
+          }
+        }
+      } else {
+        if (row) {
+          updateSuperAdminControls(row, false);
+          updateEmployeeControls(row, row.dataset.isEmployee === '1');
+        }
+        if (activeUserId !== null && !Number.isNaN(numericUserId) && numericUserId === activeUserId) {
+          updateModalSuperAdminBadge(false);
+        }
+      }
+
+      searchUsers();
+
+      alert(result?.message || 'Super admin updated successfully.');
+    } catch (error) {
+      alert(error.message);
+      button.disabled = false;
+      button.textContent = previousText;
+      return;
+    }
+
+    button.disabled = false;
+    button.textContent = previousText;
   }
 
   function attachViewUserListeners() {
@@ -790,8 +1004,18 @@ $extraScripts = <<<'JS'
     });
   }
 
+  function attachSuperAdminActionListeners() {
+    document.querySelectorAll('.btn-promote-super-admin, .btn-demote-super-admin').forEach(button => {
+      if (!button.dataset.initialized) {
+        button.addEventListener('click', handleSuperAdminAction);
+        button.dataset.initialized = 'true';
+      }
+    });
+  }
+
   attachViewUserListeners();
   attachEmployeeActionListeners();
+  attachSuperAdminActionListeners();
 
   document.querySelectorAll('.btn-unblock').forEach(button => {
     button.addEventListener('click', async () => {

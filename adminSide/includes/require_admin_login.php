@@ -26,5 +26,6 @@ if (!empty($_SESSION['admin_logged_in'])) {
 $adminSession = [
     'id' => $_SESSION['admin_user_id'] ?? null,
     'name' => $_SESSION['admin_name'] ?? 'Admin',
-    'email' => $_SESSION['admin_email'] ?? ''
+    'email' => $_SESSION['admin_email'] ?? '',
+    'is_super_admin' => !empty($_SESSION['admin_is_super_admin'])
 ];

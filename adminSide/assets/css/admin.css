@@ -403,6 +403,10 @@ table td {
   margin-top: 4px;
 }
 
+.table-action-list .super-admin-badge {
+  margin-top: 4px;
+}
+
 table tbody tr:hover {
   background: rgba(241, 196, 15, 0.12);
   transition: background 0.3s ease;

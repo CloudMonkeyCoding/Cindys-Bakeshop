@@ -156,6 +156,7 @@ $_SESSION['admin_name'] = $user['Name'] ?? 'Admin';
 $_SESSION['admin_email'] = $user['Email'] ?? $firebaseResult['email'];
 $_SESSION['admin_firebase_local_id'] = $firebaseResult['localId'] ?? null;
 $_SESSION['admin_last_activity'] = time();
+$_SESSION['admin_is_super_admin'] = !empty($staffRecord['Is_Super_Admin']) && (int) $staffRecord['Is_Super_Admin'] === 1;
 
 sendJsonResponse([
     'success' => true,
