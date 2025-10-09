@@ -50,6 +50,10 @@ if ($action === 'demote_super_admin' && $userId === $currentAdminId) {
     sendJsonResponse(['success' => false, 'message' => 'You cannot remove your own super admin access.'], 400);
 }
 
+if ($action === 'mark_employee' && !$currentIsSuperAdmin) {
+    sendJsonResponse(['success' => false, 'message' => 'Only the super admin can mark users as employees.'], 403);
+}
+
 try {
     if ($action === 'mark_employee') {
         if ($existingStaff) {

@@ -118,15 +118,17 @@ $currentAdminIsSuper = !empty($adminSession['is_super_admin']);
                       Employee
                     </span>
                   <?php endif; ?>
-                  <button
-                    type="button"
-                    class="btn btn-secondary btn-mark-employee"<?= $isEmployee ? ' hidden' : ''; ?>
-                    data-user-id="<?= $userId; ?>"
-                    data-user-name="<?= $userNameSafe; ?>"
-                    data-action="mark_employee"
-                  >
-                    Mark as Employee
-                  </button>
+                  <?php if ($currentAdminIsSuper): ?>
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-mark-employee"<?= $isEmployee ? ' hidden' : ''; ?>
+                      data-user-id="<?= $userId; ?>"
+                      data-user-name="<?= $userNameSafe; ?>"
+                      data-action="mark_employee"
+                    >
+                      Mark as Employee
+                    </button>
+                  <?php endif; ?>
                   <button
                     type="button"
                     class="btn btn-muted btn-remove-employee"<?= $isEmployee ? '' : ' hidden'; ?>
@@ -848,6 +850,10 @@ $extraScripts = <<<'JS'
     const action = button.dataset.action;
     const userId = button.dataset.userId;
     const userName = (button.dataset.userName || 'this user').trim() || 'this user';
+    if (action === 'mark_employee' && !adminIsSuperAdmin) {
+      alert('Only the super admin can mark other users as employees.');
+      return;
+    }
     if (!userId || !action) {
       alert('Missing user information.');
       return;
