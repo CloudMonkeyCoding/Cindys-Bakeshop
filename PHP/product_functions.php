@@ -27,6 +27,11 @@ function getAllProducts($pdo) {
     return $stmt->fetchAll();
 }
 
+function getArchivedProducts($pdo) {
+    $stmt = $pdo->query("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path, IFNULL(Is_Archived, 0) AS Is_Archived FROM product WHERE IFNULL(Is_Archived, 0) = 1");
+    return $stmt->fetchAll();
+}
+
 // 2a) Get products by category
 function getProductsByCategory($pdo, $category) {
     $stmt = $pdo->prepare("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path, IFNULL(Is_Archived, 0) AS Is_Archived FROM product WHERE Category = :category AND IFNULL(Is_Archived, 0) = 0");
@@ -256,6 +261,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         case 'getAll':
             $products = getAllProducts($pdo);
+            $products = array_map(static function ($product) {
+                $product['Image_Url'] = getProductImageUrl($product, '../');
+                return $product;
+            }, $products);
+            echo json_encode($products);
+            break;
+
+        case 'getArchived':
+            $products = getArchivedProducts($pdo);
             $products = array_map(static function ($product) {
                 $product['Image_Url'] = getProductImageUrl($product, '../');
                 return $product;

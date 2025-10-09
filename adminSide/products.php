@@ -19,7 +19,7 @@ include 'includes/sidebar.php';
 
 <div class="main">
   <div class="header">
-    <h1>Products</h1>
+    <h1 id="productsHeading">Products</h1>
     <a href="edit-profile.php" class="user-info">
       <span>Admin</span>
       <img src="https://i.pravatar.cc/80" alt="Admin avatar">
@@ -29,6 +29,7 @@ include 'includes/sidebar.php';
   <div class="table-container">
     <div class="table-actions">
       <button class="btn btn-primary" id="openModal"><i class="fa fa-plus"></i> Add New Product</button>
+      <button class="btn btn-muted" id="toggleArchived"><i class="fa fa-archive"></i> View Archived</button>
       <input type="text" id="searchProduct" placeholder="🔍 Search product...">
       <select id="filterCategory">
         <option value="all">All Categories</option>
@@ -142,7 +143,7 @@ $productsJson = json_encode(array_map(static function ($product) {
 }, $products));
 $extraScripts = <<<JS
 <script>
-  let products = $productsJson;
+  const initialProductsRaw = $productsJson;
   const modal = document.getElementById('productModal');
   const openModalBtn = document.getElementById('openModal');
   const closeModalBtn = document.getElementById('closeModal');
@@ -168,16 +169,81 @@ $extraScripts = <<<JS
   const searchBox = document.getElementById('searchProduct');
   const filterCategory = document.getElementById('filterCategory');
   const productTableBody = document.querySelector('#productTable tbody');
+  const toggleArchivedBtn = document.getElementById('toggleArchived');
+  const productsHeading = document.getElementById('productsHeading');
 
-  if (Array.isArray(products)) {
-    products = products.map(product => ({
-      ...product,
-      image: product.image || defaultImagePreview,
-      imagePath: product.imagePath || ''
-    }));
-  } else {
-    products = [];
+  let archivedProductsLoaded = false;
+  let showingArchived = false;
+
+  function normalizeProduct(product) {
+    const imagePath = typeof product.imagePath === 'string' && product.imagePath
+      ? product.imagePath
+      : (product.Image_Path || '');
+    const fallbackImage = imagePath ? `../adminSide/products/uploads/\${imagePath}` : '';
+    const resolvedImage = product.image || product.Image_Url || fallbackImage || defaultImagePreview;
+
+    return {
+      id: Number(product.id ?? product.Product_ID ?? 0),
+      name: product.name ?? product.Name ?? '',
+      description: product.description ?? product.Description ?? '',
+      price: Number(product.price ?? product.Price ?? 0),
+      stock: Number(product.stock ?? product.Stock_Quantity ?? 0),
+      category: product.category ?? product.Category ?? '',
+      image: resolvedImage || defaultImagePreview,
+      imagePath: imagePath
+    };
   }
+
+  function normalizeList(list) {
+    if (!Array.isArray(list)) {
+      return [];
+    }
+    return list.map(normalizeProduct);
+  }
+
+  let activeProducts = normalizeList(initialProductsRaw);
+  let archivedProducts = [];
+  let products = activeProducts;
+
+  async function fetchProductsList(action, { errorMessage, silent } = {}) {
+    try {
+      const formData = new FormData();
+      formData.append('action', action);
+      const response = await fetch('../PHP/product_functions.php', { method: 'POST', body: formData });
+      if (!response.ok) {
+        throw new Error(`Request failed: \${response.status}`);
+      }
+      const data = await response.json();
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid response format');
+      }
+      return { list: normalizeList(data), success: true };
+    } catch (error) {
+      console.error(`Failed to load \${action} products`, error);
+      if (!silent && errorMessage) {
+        alert(errorMessage);
+      }
+      return { list: [], success: false };
+    }
+  }
+
+  async function loadArchivedProducts({ force = false, silent = false } = {}) {
+    if (!archivedProductsLoaded || force) {
+      const { list, success } = await fetchProductsList('getArchived', {
+        errorMessage: 'Failed to load archived products. Please refresh and try again.',
+        silent,
+      });
+      if (success) {
+        archivedProducts = list;
+        archivedProductsLoaded = true;
+      } else if (force) {
+        archivedProductsLoaded = false;
+      }
+      return success;
+    }
+    return true;
+  }
+
 
   function updateImagePreview(src) {
     if (!imagePreview) return;
@@ -221,7 +287,7 @@ $extraScripts = <<<JS
       const cell = document.createElement('td');
       cell.colSpan = 7;
       cell.className = 'table-empty';
-      cell.textContent = 'No products available.';
+      cell.textContent = showingArchived ? 'No archived products available.' : 'No products available.';
       row.appendChild(cell);
       productTableBody.appendChild(row);
       return;
@@ -231,6 +297,9 @@ $extraScripts = <<<JS
       const row = document.createElement('tr');
       row.dataset.productId = product.id;
       row.dataset.category = product.category || '';
+      const actionContent = showingArchived
+        ? '<span class="btn btn-muted" style="cursor:default;pointer-events:none;">Archived</span>'
+        : `<button class="btn btn-muted btn-archive" data-id="\${product.id}">Archive</button>`;
       row.innerHTML = `
         <td>\${index + 1}</td>
         <td><img src="\${product.image || defaultImagePreview}" alt="\${product.name}" style="width:60px;height:60px;border-radius:8px;object-fit:cover;"></td>
@@ -240,7 +309,7 @@ $extraScripts = <<<JS
         <td>\${product.category || ''}</td>
         <td style="display:flex;gap:10px;flex-wrap:wrap;">
           <button class="btn btn-secondary btn-edit" data-id="\${product.id}">Edit</button>
-          <button class="btn btn-muted btn-archive" data-id="\${product.id}">Archive</button>
+          \${actionContent}
         </td>
       `;
       productTableBody.appendChild(row);
@@ -410,26 +479,25 @@ $extraScripts = <<<JS
           alert('Failed to archive product');
           return;
         }
-        await reloadProducts();
+        await reloadProducts({ includeArchived: true, silent: true });
       });
     });
   }
 
-  async function reloadProducts() {
-    const formData = new FormData();
-    formData.append('action', 'getAll');
-    const response = await fetch('../PHP/product_functions.php', { method: 'POST', body: formData });
-    const list = await response.json();
-    products = list.map(item => ({
-      id: Number(item.Product_ID),
-      name: item.Name,
-      description: item.Description,
-      price: Number(item.Price),
-      stock: Number(item.Stock_Quantity),
-      category: item.Category,
-      image: item.Image_Url || (item.Image_Path ? '../adminSide/products/uploads/' + item.Image_Path : defaultImagePreview),
-      imagePath: item.Image_Path || ''
-    }));
+  async function reloadProducts({ includeArchived = false, silent = false } = {}) {
+    const { list: activeList, success: activeSuccess } = await fetchProductsList('getAll', {
+      errorMessage: 'Failed to load products. Please refresh and try again.',
+      silent,
+    });
+    if (activeSuccess) {
+      activeProducts = activeList;
+    }
+
+    if (includeArchived || showingArchived) {
+      const archivedSilent = showingArchived ? silent : true;
+      await loadArchivedProducts({ force: includeArchived || showingArchived, silent: archivedSilent });
+    }
+
     applyFilters();
   }
 
@@ -450,19 +518,48 @@ $extraScripts = <<<JS
       alert('Unable to save product. Please check your inputs.');
       return;
     }
-    await reloadProducts();
+    await reloadProducts({ includeArchived: showingArchived });
     closeModal();
   });
 
   function applyFilters() {
     const query = searchBox.value.toLowerCase();
     const category = filterCategory.value;
+    products = showingArchived ? archivedProducts : activeProducts;
     const filtered = products.filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(query) || (product.description || '').toLowerCase().includes(query);
       const matchesCategory = category === 'all' || product.category === category;
       return matchesSearch && matchesCategory;
     });
     renderProducts(filtered);
+    if (productsHeading) {
+      productsHeading.textContent = showingArchived ? 'Archived Products' : 'Products';
+    }
+  }
+
+  if (toggleArchivedBtn) {
+    toggleArchivedBtn.addEventListener('click', async () => {
+      const targetState = !showingArchived;
+      if (targetState) {
+        const loaded = await loadArchivedProducts({ silent: false });
+        if (!loaded) {
+          showingArchived = false;
+          if (toggleArchivedBtn) {
+            toggleArchivedBtn.innerHTML = '<i class="fa fa-archive"></i> View Archived';
+          }
+          applyFilters();
+          return;
+        }
+      }
+
+      showingArchived = targetState;
+      if (toggleArchivedBtn) {
+        toggleArchivedBtn.innerHTML = showingArchived
+          ? '<i class="fa fa-list"></i> View Active'
+          : '<i class="fa fa-archive"></i> View Archived';
+      }
+      applyFilters();
+    });
   }
 
   searchBox.addEventListener('input', applyFilters);
