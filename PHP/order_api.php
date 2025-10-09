@@ -1,34 +1,25 @@
 <?php
-require_once 'db_connect.php';
-require_once 'order_functions.php';
-require_once 'order_item_functions.php';
-require_once 'transaction_functions.php';
-require_once 'user_functions.php';
-require_once 'inventory_functions.php';
-require_once 'product_functions.php';
-require_once 'cart_functions.php';
-require_once 'cart_item_functions.php';
-require_once 'email_functions.php';
-require_once 'notification_functions.php';
+require_once __DIR__ . '/db_connect.php';
+require_once __DIR__ . '/order_functions.php';
+require_once __DIR__ . '/order_item_functions.php';
+require_once __DIR__ . '/transaction_functions.php';
+require_once __DIR__ . '/inventory_functions.php';
+require_once __DIR__ . '/product_functions.php';
+require_once __DIR__ . '/cart_functions.php';
+require_once __DIR__ . '/cart_item_functions.php';
+require_once __DIR__ . '/email_functions.php';
+require_once __DIR__ . '/notification_functions.php';
+require_once __DIR__ . '/user_request_helpers.php';
 
-header('Content-Type: application/json');
+startJsonResponse();
+requireDatabaseConnection($pdo);
+
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 switch ($action) {
     case 'list':
-        $email = $_GET['email'] ?? '';
-        if ($email) {
-            $user = getUserByEmail($pdo, $email);
-            if (!$user) {
-                http_response_code(404);
-                echo json_encode(['error' => 'User not found']);
-                break;
-            }
-            $userId = (int)$user['User_ID'];
-        } else {
-            $userId = (int)($_GET['user_id'] ?? 0);
-        }
-        $orders = getOrdersByUserId($pdo, $userId) ?: [];
+        [$userId] = resolveUserContext($pdo, $_GET, ['allowMissing' => true]);
+        $orders = $userId > 0 ? getOrdersByUserId($pdo, $userId) : [];
         $orders = array_map(static function ($order) {
             $imageMeta = [
                 'Image_Path' => $order['Image_Path'] ?? '',
@@ -37,77 +28,76 @@ switch ($action) {
             $order['Image_Url'] = getProductImageUrl($imageMeta, '/');
             return $order;
         }, $orders);
-        echo json_encode($orders);
-        break;
+
+        sendJsonResponse($orders);
+
     case 'create':
-        $email = $_POST['email'] ?? '';
-        if ($email) {
-            $user = getUserByEmail($pdo, $email);
-            if (!$user) {
-                http_response_code(404);
-                echo json_encode(['error' => 'User not found']);
-                break;
-            }
-            $userId = (int)$user['User_ID'];
-        } else {
-            $userId = (int)($_POST['user_id'] ?? 0);
-            $user = getUserById($pdo, $userId);
-        }
+        [$userId, $user] = resolveUserContext($pdo, $_POST, ['includeUser' => true]);
         $items = json_decode($_POST['items'] ?? '[]', true);
-        $orderTypeInput = isset($_POST['order_type']) ? trim($_POST['order_type']) : '';
+        if (!is_array($items)) {
+            $items = [];
+        }
+
+        $orderTypeInput = isset($_POST['order_type']) ? trim((string)$_POST['order_type']) : '';
         $orderType = in_array($orderTypeInput, ['Delivery', 'Pick up'], true) ? $orderTypeInput : 'Delivery';
-        $mop   = $_POST['mop'] ?? '';
+        $mop = $_POST['mop'] ?? '';
 
         foreach ($items as $it) {
-            $inventory = getInventoryByProductId($pdo, $it['product_id']);
-            if (!$inventory || $inventory['Stock_Quantity'] < $it['quantity']) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Insufficient stock for product ID ' . $it['product_id']]);
-                exit;
+            $productId = (int)($it['product_id'] ?? 0);
+            $quantity = (int)($it['quantity'] ?? 0);
+            $inventory = getInventoryByProductId($pdo, $productId);
+            if (!$inventory || $inventory['Stock_Quantity'] < $quantity) {
+                sendJsonResponse(['error' => 'Insufficient stock for product ID ' . $productId], 400);
             }
         }
 
         $orderId = addOrder($pdo, $userId, date('Y-m-d'), 'Pending', 'online', $orderType);
         $total = 0;
         foreach ($items as $it) {
+            $productId = (int)$it['product_id'];
+            $quantity = (int)$it['quantity'];
             $stmt = $pdo->prepare('SELECT Price FROM product WHERE Product_ID = :id');
-            $stmt->execute([':id' => $it['product_id']]);
-            $price = $stmt->fetchColumn();
-            $subtotal = $price * $it['quantity'];
+            $stmt->execute([':id' => $productId]);
+            $price = (float)$stmt->fetchColumn();
+            $subtotal = $price * $quantity;
             $total += $subtotal;
-            addOrderItem($pdo, $orderId, $it['product_id'], $it['quantity'], $subtotal);
-            adjustInventoryStock($pdo, $it['product_id'], -$it['quantity']);
-            adjustProductStock($pdo, $it['product_id'], -$it['quantity']);
+            addOrderItem($pdo, $orderId, $productId, $quantity, $subtotal);
+            adjustInventoryStock($pdo, $productId, -$quantity);
+            adjustProductStock($pdo, $productId, -$quantity);
 
-            $inventory = getInventoryByProductId($pdo, $it['product_id']);
+            $inventory = getInventoryByProductId($pdo, $productId);
             if ($inventory && $inventory['Stock_Quantity'] < 20) {
-                $product = getProductById($pdo, $it['product_id']);
+                $product = getProductById($pdo, $productId);
                 sendLowStockEmail($product['Name'], (int)$inventory['Stock_Quantity']);
                 addNotification(
                     $pdo,
                     'low_stock',
-                    (int)$it['product_id'],
+                    $productId,
                     "Stock for {$product['Name']} is low. Current level: {$inventory['Stock_Quantity']}."
                 );
             }
         }
+
         addTransaction($pdo, $orderId, $mop, 'Pending', date('Y-m-d'), $total, null);
         $cart = getCartByUserId($pdo, $userId);
         if ($cart) {
             deleteCartItemsByCartId($pdo, $cart['Cart_ID']);
         }
+
         sendOrderNotificationEmail($orderId, $userId, $total);
         if ($user && isset($user['Email'])) {
             sendOrderConfirmationEmail($user['Email'], $orderId, $total);
         }
+
         addNotification(
             $pdo,
             'order',
             $orderId,
             "Order #{$orderId} has been placed by user ID {$userId}. Total amount: {$total}."
         );
-        echo json_encode(['order_id' => $orderId]);
-        break;
+
+        sendJsonResponse(['order_id' => $orderId]);
+
     case 'view':
         $orderId = (int)($_GET['order_id'] ?? 0);
         $order = getOrderById($pdo, $orderId);
@@ -118,10 +108,10 @@ switch ($action) {
         $stmt = $pdo->prepare('SELECT Payment_Method, Payment_Status, Amount_Paid, Reference_Number FROM transaction WHERE Order_ID = :order_id');
         $stmt->execute([':order_id' => $orderId]);
         $transaction = $stmt->fetch(PDO::FETCH_ASSOC);
-        echo json_encode(['order' => $order, 'user' => $user, 'items' => $items, 'transaction' => $transaction]);
-        break;
+
+        sendJsonResponse(['order' => $order, 'user' => $user, 'items' => $items, 'transaction' => $transaction]);
+
     default:
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid action']);
+        sendJsonResponse(['error' => 'Invalid action'], 400);
 }
 ?>

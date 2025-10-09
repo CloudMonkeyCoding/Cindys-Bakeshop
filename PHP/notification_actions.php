@@ -1,33 +1,24 @@
 <?php
-header('Content-Type: application/json');
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Invalid request method']);
-    exit;
-}
+require_once __DIR__ . '/action_helpers.php';
+
+startJsonResponse();
+requirePostRequest();
 
 $input = json_decode(file_get_contents('php://input'), true);
 $action = $input['action'] ?? '';
 if ($action !== 'mark_read') {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Unknown action']);
-    exit;
+    sendJsonResponse(['success' => false, 'message' => 'Unknown action'], 400);
 }
 
 $ids = isset($input['ids']) && is_array($input['ids']) ? array_map('intval', $input['ids']) : [];
 if (!$ids) {
-    echo json_encode(['success' => true]);
-    exit;
+    sendJsonResponse(['success' => true]);
 }
 
 require_once __DIR__ . '/db_connect.php';
 require_once __DIR__ . '/notification_functions.php';
 
-if (!$pdo) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
-    exit;
-}
+requireDatabaseConnection($pdo);
 
 markNotificationsAsRead($pdo, $ids);
-echo json_encode(['success' => true]);
+sendJsonResponse(['success' => true]);

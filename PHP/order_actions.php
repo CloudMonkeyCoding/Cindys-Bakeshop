@@ -1,30 +1,18 @@
 <?php
-session_start();
-header('Content-Type: application/json');
+require_once __DIR__ . '/action_helpers.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Invalid request method']);
-    exit;
-}
+startJsonResponse(true);
+requirePostRequest();
 
 require_once __DIR__ . '/db_connect.php';
 require_once __DIR__ . '/order_functions.php';
 
-if (!$pdo) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
-    exit;
-}
+requireDatabaseConnection($pdo);
 
 $action = filter_input(INPUT_POST, 'action', FILTER_SANITIZE_SPECIAL_CHARS) ?: '';
 $token = filter_input(INPUT_POST, 'csrf_token', FILTER_SANITIZE_SPECIAL_CHARS) ?: '';
 
-if (!hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid CSRF token']);
-    exit;
-}
+requireCsrfToken($token);
 
 switch ($action) {
     case 'update_status':
@@ -32,20 +20,14 @@ switch ($action) {
         $status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_SPECIAL_CHARS) ?: 'Pending';
         $allowedStatuses = ['Pending', 'Confirmed', 'Shipped', 'Delivered'];
         if (!$orderId) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Invalid order ID']);
-            exit;
+            sendJsonResponse(['success' => false, 'message' => 'Invalid order ID'], 400);
         }
         if (!in_array($status, $allowedStatuses, true)) {
-            http_response_code(422);
-            echo json_encode(['success' => false, 'message' => 'Unsupported status value']);
-            exit;
+            sendJsonResponse(['success' => false, 'message' => 'Unsupported status value'], 422);
         }
         updateOrderStatus($pdo, $orderId, $status);
-        echo json_encode(['success' => true, 'status' => $status]);
-        break;
+        sendJsonResponse(['success' => true, 'status' => $status]);
 
     default:
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Unknown action']);
+        sendJsonResponse(['success' => false, 'message' => 'Unknown action'], 400);
 }
