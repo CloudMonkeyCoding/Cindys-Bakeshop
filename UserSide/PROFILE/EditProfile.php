@@ -293,7 +293,7 @@
         if (accountLink) {
           accountLink.href = `Settings.php?email=${encodeURIComponent(user.email)}`;
         }
-        fetch(`../../../PHP/user_api.php?action=get_profile&email=${encodeURIComponent(user.email)}`)
+        fetch(`../../PHP/user_api.php?action=get_profile&email=${encodeURIComponent(user.email)}`)
           .then(res => res.json())
           .then(data => {
             if (data.first_name) {
@@ -333,7 +333,7 @@
         formData.append('profile_picture', profilePicFile);
       }
 
-      fetch('../../../PHP/user_api.php?action=update_profile', {
+      fetch('../../PHP/user_api.php?action=update_profile', {
         method: 'POST',
         body: formData
       })

@@ -296,7 +296,7 @@
     }
 
     function fetchOrders(email) {
-      return fetch(`../../../PHP/order_api.php?action=list&email=${encodeURIComponent(email)}`)
+      return fetch(`../../PHP/order_api.php?action=list&email=${encodeURIComponent(email)}`)
         .then(res => res.json())
         .then(data => {
           if (data.error) {
