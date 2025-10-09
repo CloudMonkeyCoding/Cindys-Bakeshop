@@ -12,6 +12,11 @@ $timeoutMessage = $_SESSION['admin_timeout_message'] ?? '';
 if ($timeoutMessage !== '') {
     unset($_SESSION['admin_timeout_message']);
 }
+
+$errorMessage = $_SESSION['admin_error_message'] ?? '';
+if ($errorMessage !== '') {
+    unset($_SESSION['admin_error_message']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -276,17 +281,6 @@ if ($timeoutMessage !== '') {
       font-weight: 500;
     }
 
-    .timeout-alert {
-      background: linear-gradient(135deg, #fde68a 0%, #fcd34d 100%);
-      color: #92400e;
-      padding: 16px 20px;
-      border-radius: 12px;
-      margin-bottom: 24px;
-      border: 1px solid #fbbf24;
-      font-size: 14px;
-      font-weight: 600;
-    }
-
     .error-alert {
       background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
       color: #991b1b;
@@ -383,11 +377,24 @@ if ($timeoutMessage !== '') {
     </div>
 
     <div class="form-section">
-      <?php if ($timeoutMessage !== ''): ?>
-        <div class="timeout-alert"><?php echo htmlspecialchars($timeoutMessage, ENT_QUOTES, 'UTF-8'); ?></div>
-      <?php endif; ?>
-      <div class="success-message" id="successMessage"></div>
-      <div class="error-alert" id="errorAlert"></div>
+      <div
+        class="success-message"
+        id="successMessage"
+        <?php if ($timeoutMessage !== ''): ?>style="display: block;"<?php endif; ?>
+      >
+        <?php if ($timeoutMessage !== ''): ?>
+          <?= htmlspecialchars($timeoutMessage, ENT_QUOTES, 'UTF-8'); ?>
+        <?php endif; ?>
+      </div>
+      <div
+        class="error-alert"
+        id="errorAlert"
+        <?php if ($errorMessage !== ''): ?>style="display: block;"<?php endif; ?>
+      >
+        <?php if ($errorMessage !== ''): ?>
+          <?= htmlspecialchars($errorMessage, ENT_QUOTES, 'UTF-8'); ?>
+        <?php endif; ?>
+      </div>
 
       <form id="adminLoginForm">
         <div class="form-group">

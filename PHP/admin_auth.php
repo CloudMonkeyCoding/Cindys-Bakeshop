@@ -145,9 +145,13 @@ $staffRecord = getStoreStaffByUserId($pdo, (int) $user['User_ID']);
 if (!$staffRecord) {
     sendJsonResponse([
         'success' => false,
-        'message' => 'You do not have permission to access the admin portal.'
+        'message' => 'You must be marked as an employee or super admin to access the admin portal.'
     ], 403);
 }
+
+$isSuperAdmin = !empty($staffRecord['Is_Super_Admin']) && (int) $staffRecord['Is_Super_Admin'] === 1;
+$isEmployee = !$isSuperAdmin;
+$storeStaffId = isset($staffRecord['Store_Staff_ID']) ? (int) $staffRecord['Store_Staff_ID'] : null;
 
 session_regenerate_id(true);
 $_SESSION['admin_logged_in'] = true;
@@ -156,7 +160,12 @@ $_SESSION['admin_name'] = $user['Name'] ?? 'Admin';
 $_SESSION['admin_email'] = $user['Email'] ?? $firebaseResult['email'];
 $_SESSION['admin_firebase_local_id'] = $firebaseResult['localId'] ?? null;
 $_SESSION['admin_last_activity'] = time();
-$_SESSION['admin_is_super_admin'] = !empty($staffRecord['Is_Super_Admin']) && (int) $staffRecord['Is_Super_Admin'] === 1;
+$_SESSION['admin_is_super_admin'] = $isSuperAdmin;
+$_SESSION['admin_is_employee'] = $isEmployee;
+$_SESSION['admin_has_staff_access'] = true;
+if ($storeStaffId) {
+    $_SESSION['admin_store_staff_id'] = $storeStaffId;
+}
 
 sendJsonResponse([
     'success' => true,
