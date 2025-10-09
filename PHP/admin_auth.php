@@ -22,6 +22,31 @@ function readJsonBody(): array
     return (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) ? $decoded : [];
 }
 
+if (!function_exists('normalizeFaceImagePath')) {
+    function normalizeFaceImagePath(?string $path): ?string
+    {
+        if ($path === null) {
+            return null;
+        }
+
+        $trimmed = trim((string) $path);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        if (preg_match('/^https?:\/\//i', $trimmed)) {
+            return $trimmed;
+        }
+
+        $normalized = str_replace('\\', '/', $trimmed);
+        if ($normalized === '') {
+            return null;
+        }
+
+        return $normalized[0] === '/' ? $normalized : '/' . ltrim($normalized, '/');
+    }
+}
+
 function firebaseSignIn(string $apiKey, string $email, string $password): array
 {
     $endpoint = 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' . urlencode($apiKey);
@@ -218,6 +243,13 @@ $_SESSION['admin_is_employee'] = $isEmployee;
 $_SESSION['admin_has_staff_access'] = true;
 if ($storeStaffId) {
     $_SESSION['admin_store_staff_id'] = $storeStaffId;
+}
+
+$faceImagePath = normalizeFaceImagePath($user['Face_Image_Path'] ?? null);
+if ($faceImagePath) {
+    $_SESSION['admin_face_image_path'] = $faceImagePath;
+} else {
+    unset($_SESSION['admin_face_image_path']);
 }
 
 logAdminAuthEvent($pdo, 'admin_login_success', 'Admin login successful.', [

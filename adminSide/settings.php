@@ -44,7 +44,7 @@ include 'includes/sidebar.php';
     <a href="profile.php" class="user-info">
       <?php $settingsName = $userSettings['Name'] ?? $adminSession['name']; ?>
       <span><?= htmlspecialchars($settingsName); ?></span>
-      <img src="https://i.pravatar.cc/80" alt="<?= htmlspecialchars($settingsName); ?> avatar">
+      <img src="<?= htmlspecialchars($adminSession['avatar_url']); ?>" alt="<?= htmlspecialchars($settingsName); ?> avatar">
     </a>
   </div>
 
