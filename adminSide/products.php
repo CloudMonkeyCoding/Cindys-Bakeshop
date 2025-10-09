@@ -298,7 +298,7 @@ $extraScripts = <<<JS
       row.dataset.productId = product.id;
       row.dataset.category = product.category || '';
       const actionContent = showingArchived
-        ? '<span class="btn btn-muted" style="cursor:default;pointer-events:none;">Archived</span>'
+        ? `<button class="btn btn-secondary btn-restore" data-id="\${product.id}">Unarchive</button>`
         : `<button class="btn btn-muted btn-archive" data-id="\${product.id}">Archive</button>`;
       row.innerHTML = `
         <td>\${index + 1}</td>
@@ -477,6 +477,23 @@ $extraScripts = <<<JS
         const result = await response.json();
         if (!result.success) {
           alert('Failed to archive product');
+          return;
+        }
+        await reloadProducts({ includeArchived: true, silent: true });
+      });
+    });
+
+    document.querySelectorAll('.btn-restore').forEach(button => {
+      button.addEventListener('click', async () => {
+        const id = Number(button.dataset.id);
+        if (!confirm('Restore this product?')) return;
+        const formData = new FormData();
+        formData.append('action', 'unarchive');
+        formData.append('product_id', id);
+        const response = await fetch('../PHP/product_functions.php', { method: 'POST', body: formData });
+        const result = await response.json();
+        if (!result.success) {
+          alert('Failed to restore product');
           return;
         }
         await reloadProducts({ includeArchived: true, silent: true });

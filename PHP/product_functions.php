@@ -170,6 +170,12 @@ function archiveProductById($pdo, $productId) {
     return $stmt->rowCount();
 }
 
+function restoreProductById($pdo, $productId) {
+    $stmt = $pdo->prepare("UPDATE product SET Is_Archived = 0 WHERE Product_ID = :product_id");
+    $stmt->execute([':product_id' => $productId]);
+    return $stmt->rowCount();
+}
+
 // Backwards compatibility helper for any legacy delete calls
 function deleteProductById($pdo, $productId) {
     return archiveProductById($pdo, $productId);
@@ -256,6 +262,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         case 'delete':
             $id = filter_input(INPUT_POST, 'product_id', FILTER_VALIDATE_INT) ?? 0;
             $success = archiveProductById($pdo, $id) > 0;
+            echo json_encode(['success' => $success]);
+            break;
+
+        case 'unarchive':
+            $id = filter_input(INPUT_POST, 'product_id', FILTER_VALIDATE_INT) ?? 0;
+            $success = restoreProductById($pdo, $id) > 0;
             echo json_encode(['success' => $success]);
             break;
 
