@@ -1,31 +1,21 @@
 <?php
-require_once 'db_connect.php';
-require_once 'cart_functions.php';
-require_once 'cart_item_functions.php';
-require_once 'user_functions.php';
-require_once 'product_functions.php';
-require_once 'inventory_functions.php';
+require_once __DIR__ . '/db_connect.php';
+require_once __DIR__ . '/cart_functions.php';
+require_once __DIR__ . '/cart_item_functions.php';
+require_once __DIR__ . '/product_functions.php';
+require_once __DIR__ . '/inventory_functions.php';
+require_once __DIR__ . '/user_request_helpers.php';
 
-header('Content-Type: application/json');
+startJsonResponse();
+requireDatabaseConnection($pdo);
+
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 switch ($action) {
     case 'list':
-        $email = $_GET['email'] ?? '';
-        if ($email) {
-            $user = getUserByEmail($pdo, $email);
-            if (!$user) {
-                http_response_code(404);
-                echo json_encode(['error' => 'User not found']);
-                break;
-            }
-            $userId = (int)$user['User_ID'];
-        } else {
-            $userId = (int)($_GET['user_id'] ?? 0);
-        }
+        [$userId] = resolveUserContext($pdo, $_GET, ['allowMissing' => true]);
         if ($userId <= 0) {
-            echo json_encode(['cart_id' => 0, 'items' => []]);
-            break;
+            sendJsonResponse(['cart_id' => 0, 'items' => []]);
         }
 
         $cart = getCartByUserId($pdo, $userId);
@@ -34,55 +24,43 @@ switch ($action) {
             $items = [];
         } else {
             $cartId = $cart['Cart_ID'];
-            $stmt = $pdo->prepare("SELECT ci.Cart_Item_ID, ci.Product_ID, ci.Quantity, p.Name, p.Price, p.Stock_Quantity, p.Image_Path, p.Category FROM cart_item ci JOIN product p ON ci.Product_ID = p.Product_ID WHERE ci.Cart_ID = :cart_id");
+            $stmt = $pdo->prepare(
+                'SELECT ci.Cart_Item_ID, ci.Product_ID, ci.Quantity, p.Name, p.Price, p.Stock_Quantity, p.Image_Path, p.Category '
+                . 'FROM cart_item ci JOIN product p ON ci.Product_ID = p.Product_ID WHERE ci.Cart_ID = :cart_id'
+            );
             $stmt->execute([':cart_id' => $cartId]);
             $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
-        echo json_encode(['cart_id' => $cartId, 'items' => $items]);
-        break;
+
+        sendJsonResponse(['cart_id' => $cartId, 'items' => $items]);
+
     case 'add':
         $cartId = (int)($_POST['cart_id'] ?? 0);
         $productId = (int)($_POST['product_id'] ?? 0);
         $qty = (int)($_POST['quantity'] ?? 1);
-        $userId = (int)($_POST['user_id'] ?? 0);
-        $email = $_POST['email'] ?? '';
+        [$userId] = resolveUserContext($pdo, $_POST, ['allowMissing' => true, 'emailOptional' => true]);
 
         if ($qty <= 0) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Quantity must be greater than zero']);
-            break;
+            sendJsonResponse(['error' => 'Quantity must be greater than zero'], 400);
         }
 
         $product = getProductById($pdo, $productId);
         if (!$product) {
-            http_response_code(404);
-            echo json_encode(['error' => 'Product not found']);
-            break;
+            sendJsonResponse(['error' => 'Product not found'], 404);
         }
 
         $inventory = getInventoryByProductId($pdo, $productId);
         $available = $inventory ? (int)$inventory['Stock_Quantity'] : (int)($product['Stock_Quantity'] ?? 0);
         if ($available <= 0) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Product out of stock']);
-            break;
+            sendJsonResponse(['error' => 'Product out of stock'], 400);
         }
 
-        if ($userId <= 0 && $email) {
-            $user = getUserByEmail($pdo, $email);
-            if ($user) {
-                $userId = (int)$user['User_ID'];
-            }
-        }
-
-        // Ensure the cart exists; if not, create or fetch using user ID
         $cartExists = $cartId > 0 ? getCartById($pdo, $cartId) : null;
         if (!$cartExists) {
             if ($userId <= 0) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Invalid or missing cart_id']);
-                break;
+                sendJsonResponse(['error' => 'Invalid or missing cart_id'], 400);
             }
+
             $cart = getCartByUserId($pdo, $userId);
             $cartId = $cart ? $cart['Cart_ID'] : createCart($pdo, $userId);
         }
@@ -91,10 +69,9 @@ switch ($action) {
         $existingQty = $existing ? (int)$existing['Quantity'] : 0;
         $maxAdd = $available - $existingQty;
         if ($maxAdd <= 0) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Requested quantity exceeds available stock']);
-            break;
+            sendJsonResponse(['error' => 'Requested quantity exceeds available stock'], 400);
         }
+
         $capped = false;
         if ($qty > $maxAdd) {
             $qty = $maxAdd;
@@ -104,47 +81,46 @@ switch ($action) {
         if ($existing) {
             $newQty = $existingQty + $qty;
             $updated = updateCartItemQuantity($pdo, $existing['Cart_Item_ID'], $newQty);
-            $response = ['cart_item_id' => $existing['Cart_Item_ID'], 'cart_id' => $cartId, 'updated' => $updated, 'quantity' => $newQty];
+            $response = [
+                'cart_item_id' => $existing['Cart_Item_ID'],
+                'cart_id' => $cartId,
+                'updated' => $updated,
+                'quantity' => $newQty,
+            ];
         } else {
             $id = addCartItem($pdo, $cartId, $productId, $qty);
             $response = ['cart_item_id' => $id, 'cart_id' => $cartId, 'quantity' => $qty];
         }
+
         if ($capped) {
             $response['capped'] = true;
         }
-        echo json_encode($response);
-        break;
+
+        sendJsonResponse($response);
+
     case 'update':
         $cartItemId = (int)($_POST['cart_item_id'] ?? 0);
         $qty = (int)($_POST['quantity'] ?? 1);
 
         if ($qty <= 0) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Quantity must be greater than zero']);
-            break;
+            sendJsonResponse(['error' => 'Quantity must be greater than zero'], 400);
         }
 
         $cartItem = getCartItemById($pdo, $cartItemId);
         if (!$cartItem) {
-            http_response_code(404);
-            echo json_encode(['error' => 'Cart item not found']);
-            break;
+            sendJsonResponse(['error' => 'Cart item not found'], 404);
         }
 
         $productId = (int)$cartItem['Product_ID'];
         $product = getProductById($pdo, $productId);
         if (!$product) {
-            http_response_code(404);
-            echo json_encode(['error' => 'Product not found']);
-            break;
+            sendJsonResponse(['error' => 'Product not found'], 404);
         }
 
         $inventory = getInventoryByProductId($pdo, $productId);
         $available = $inventory ? (int)$inventory['Stock_Quantity'] : (int)($product['Stock_Quantity'] ?? 0);
         if ($available <= 0) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Product out of stock']);
-            break;
+            sendJsonResponse(['error' => 'Product out of stock'], 400);
         }
 
         $capped = false;
@@ -158,15 +134,15 @@ switch ($action) {
         if ($capped) {
             $response['capped'] = true;
         }
-        echo json_encode($response);
-        break;
+
+        sendJsonResponse($response);
+
     case 'remove':
         $cartItemId = (int)($_POST['cart_item_id'] ?? 0);
         $deleted = deleteCartItemById($pdo, $cartItemId);
-        echo json_encode(['deleted' => $deleted]);
-        break;
+        sendJsonResponse(['deleted' => $deleted]);
+
     default:
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid action']);
+        sendJsonResponse(['error' => 'Invalid action'], 400);
 }
 ?>
