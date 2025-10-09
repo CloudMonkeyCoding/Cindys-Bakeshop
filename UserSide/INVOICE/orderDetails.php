@@ -223,7 +223,7 @@
     }
 
     if (orderId) {
-      fetch(`../../../PHP/order_api.php?action=view&order_id=${encodeURIComponent(orderId)}`)
+      fetch(`../../PHP/order_api.php?action=view&order_id=${encodeURIComponent(orderId)}`)
         .then(res => res.json())
         .then(data => {
           if (!data.order) {
