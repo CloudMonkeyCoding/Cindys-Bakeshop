@@ -727,7 +727,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       </div>
     </div>
 
-    <section class="best-sellers" aria-labelledby="best-sellers-title">
+    <section class="best-sellers" aria-labelledby="best-sellers-title" id="bestSellersSection">
       <h2 id="best-sellers-title">⭐ Best Sellers</h2>
       <div class="best-seller-list" id="bestSellerList"></div>
     </section>
@@ -795,6 +795,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     const prevPageButton = document.getElementById('prevPage');
     const nextPageButton = document.getElementById('nextPage');
     const bestSellerList = document.getElementById('bestSellerList');
+    const bestSellersSection = document.getElementById('bestSellersSection');
     const preorderSection = document.getElementById('preorderSection');
     const preorderList = document.getElementById('preorderList');
     const categoryPills = document.getElementById('categoryPills');
@@ -1101,6 +1102,11 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     function refreshMenu({ resetPage = false } = {}) {
       if (!menuGrid) return;
       const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+      if (bestSellersSection) {
+        const shouldShowBestSellers = activeCategory === 'all' && !query;
+        bestSellersSection.hidden = !shouldShowBestSellers;
+      }
 
       filteredProducts = products.filter(product => {
         const matchesCategory = activeCategory === 'all' || product.category === activeCategory;
