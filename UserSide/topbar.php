@@ -1,37 +1,49 @@
 <?php
-$trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1);
-$callerFile = isset($trace[0]['file']) ? $trace[0]['file'] : __FILE__;
-$callerDir = str_replace('\\', '/', dirname($callerFile));
-$baseDir = str_replace('\\', '/', __DIR__);
-$projectRoot = str_replace('\\', '/', dirname($baseDir, 2));
-$depth = 0;
-$userPrefix = '';
 $rootPrefix = '';
+$userPrefix = '';
+$apiBase = '';
+$imagesBase = '';
 
-if (strpos($callerDir, $baseDir) === 0) {
-    $relative = trim(substr($callerDir, strlen($baseDir)), '/');
-    $depth = $relative === '' ? 0 : substr_count($relative, '/') + 1;
-    $userPrefix = str_repeat('../', $depth);
-    $rootPrefix = str_repeat('../', $depth + 2);
+if (isset($topbarContext) && is_array($topbarContext)) {
+    $rootPrefix = isset($topbarContext['rootPrefix']) ? (string) $topbarContext['rootPrefix'] : '';
+    $userPrefix = isset($topbarContext['userPrefix']) ? (string) $topbarContext['userPrefix'] : '';
+    $imagesBase = isset($topbarContext['imagesBase']) ? (string) $topbarContext['imagesBase'] : ($rootPrefix . 'Images/');
+    $apiBase = isset($topbarContext['apiBase']) ? (string) $topbarContext['apiBase'] : ($rootPrefix . 'PHP/');
 } else {
-    $relativeToRoot = '';
-    if (strpos($callerDir, $projectRoot) === 0) {
-        $relativeToRoot = trim(substr($callerDir, strlen($projectRoot)), '/');
+    $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1);
+    $callerFile = isset($trace[0]['file']) ? $trace[0]['file'] : __FILE__;
+    $callerDir = str_replace('\\', '/', dirname($callerFile));
+    $baseDir = str_replace('\\', '/', __DIR__);
+    $projectRoot = str_replace('\\', '/', dirname($baseDir, 2));
+    $depth = 0;
+
+    if (strpos($callerDir, $baseDir) === 0) {
+        $relative = trim(substr($callerDir, strlen($baseDir)), '/');
+        $depth = $relative === '' ? 0 : substr_count($relative, '/') + 1;
+        $userPrefix = str_repeat('../', $depth);
+        $rootPrefix = str_repeat('../', $depth + 2);
+    } else {
+        $relativeToRoot = '';
+        if (strpos($callerDir, $projectRoot) === 0) {
+            $relativeToRoot = trim(substr($callerDir, strlen($projectRoot)), '/');
+        }
+        $depth = $relativeToRoot === '' ? 0 : substr_count($relativeToRoot, '/') + 1;
+        $rootPrefix = $depth === 0 ? '' : str_repeat('../', $depth);
+        $userPathFromRoot = trim(str_replace($projectRoot, '', $baseDir), '/');
+        $userPrefix = $rootPrefix . $userPathFromRoot . '/';
     }
-    $depth = $relativeToRoot === '' ? 0 : substr_count($relativeToRoot, '/') + 1;
-    $rootPrefix = $depth === 0 ? '' : str_repeat('../', $depth);
-    $userPathFromRoot = trim(str_replace($projectRoot, '', $baseDir), '/');
-    $userPrefix = $rootPrefix . $userPathFromRoot . '/';
+
+    $apiBase = $rootPrefix . 'PHP/';
+    $imagesBase = $rootPrefix . 'Images/';
 }
+
+unset($topbarContext);
 $currentScript = basename($_SERVER['SCRIPT_NAME'] ?? '');
 
 $menuScripts = array('MENU.php', 'bread.php', 'cakes.php', 'pastry.php', 'product.php');
 $favoriteScripts = array('my favorite.php');
 $profileScripts = array('EditProfile.php', 'Settings.php');
 $purchasesScripts = array('MyPurchase.php');
-
-$apiBase = $rootPrefix . 'PHP/';
-$imagesBase = $rootPrefix . 'Images/';
 
 $navItems = [
     [

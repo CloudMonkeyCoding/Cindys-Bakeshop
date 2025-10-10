@@ -958,7 +958,15 @@ $productBase = $userPrefix . 'PRODUCT/';
     </style>
   </head>
   <body>
-    <?php include __DIR__ . '/UserSide/topbar.php'; ?>
+    <?php
+    $topbarContext = [
+        'rootPrefix' => $rootPrefix,
+        'userPrefix' => $userPrefix,
+        'imagesBase' => $imagesBase,
+        'apiBase' => $rootPrefix . 'PHP/',
+    ];
+    include __DIR__ . '/UserSide/topbar.php';
+    ?>
 
     <main>
     <!-- Hero Section -->
