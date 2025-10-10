@@ -1,13 +1,42 @@
 <?php
-$trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1);
-$callerFile = $trace[0]['file'] ?? __FILE__;
-$callerDir = str_replace('\\', '/', dirname($callerFile));
-$baseDir = str_replace('\\', '/', __DIR__);
-$depth = 0;
-if (strpos($callerDir, $baseDir) === 0) {
-    $relative = trim(substr($callerDir, strlen($baseDir)), '/');
-    $depth = $relative === '' ? 0 : substr_count($relative, '/') + 1;
+$baseDir = str_replace('\\', '/', realpath(__DIR__) ?: __DIR__);
+
+$scriptPath = '';
+if (isset($_SERVER['SCRIPT_FILENAME']) && is_string($_SERVER['SCRIPT_FILENAME'])) {
+    $scriptPath = $_SERVER['SCRIPT_FILENAME'];
+} else {
+    $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+    foreach ($trace as $frame) {
+        if (!empty($frame['file']) && is_string($frame['file'])) {
+            $scriptPath = $frame['file'];
+            break;
+        }
+    }
 }
+
+if ($scriptPath === '') {
+    $scriptPath = __FILE__;
+}
+
+$scriptPath = str_replace('\\', '/', realpath($scriptPath) ?: $scriptPath);
+$scriptDir = str_replace('\\', '/', dirname($scriptPath));
+$scriptDir = $scriptDir !== '' ? $scriptDir : $baseDir;
+
+$depth = 0;
+if (strpos($scriptDir, $baseDir) === 0) {
+    $relative = trim(substr($scriptDir, strlen($baseDir)), '/');
+    $depth = $relative === '' ? 0 : substr_count($relative, '/') + 1;
+} else {
+    $baseParts = explode('/', trim($baseDir, '/'));
+    $scriptParts = explode('/', trim($scriptDir, '/'));
+    $maxCommon = min(count($baseParts), count($scriptParts));
+    $common = 0;
+    while ($common < $maxCommon && $baseParts[$common] === $scriptParts[$common]) {
+        $common++;
+    }
+    $depth = count($scriptParts) - $common;
+}
+
 $rootPrefix = $depth === 0 ? '' : str_repeat('../', $depth);
 $userPrefix = $rootPrefix . 'UserSide/';
 $imagesBase = $rootPrefix . 'Images/';
