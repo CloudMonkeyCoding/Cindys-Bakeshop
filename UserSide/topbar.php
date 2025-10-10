@@ -80,7 +80,7 @@ $navItems = [
     [
         'label' => 'Home',
         'href' => $rootPrefix . 'index.php',
-        'match' => ['home.php', 'index.php']
+        'match' => ['index.php']
     ],
     [
         'label' => 'Menu',
