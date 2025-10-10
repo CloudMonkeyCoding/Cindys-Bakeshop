@@ -9,11 +9,13 @@ require_once __DIR__ . '/user_request_helpers.php';
 startJsonResponse();
 requireDatabaseConnection($pdo);
 
-$action = $_GET['action'] ?? $_POST['action'] ?? '';
+$request = getRequestPayload();
+$action = $_GET['action'] ?? $request['action'] ?? '';
 
 switch ($action) {
     case 'list':
-        [$userId] = resolveUserContext($pdo, $_GET, ['allowMissing' => true]);
+        $userContext = array_merge($_GET, $request);
+        [$userId] = resolveUserContext($pdo, $userContext, ['allowMissing' => true]);
         if ($userId <= 0) {
             sendJsonResponse(['cart_id' => 0, 'items' => []]);
         }
@@ -35,10 +37,10 @@ switch ($action) {
         sendJsonResponse(['cart_id' => $cartId, 'items' => $items]);
 
     case 'add':
-        $cartId = (int)($_POST['cart_id'] ?? 0);
-        $productId = (int)($_POST['product_id'] ?? 0);
-        $qty = (int)($_POST['quantity'] ?? 1);
-        [$userId] = resolveUserContext($pdo, $_POST, ['allowMissing' => true, 'emailOptional' => true]);
+        $cartId = isset($request['cart_id']) ? (int)$request['cart_id'] : 0;
+        $productId = isset($request['product_id']) ? (int)$request['product_id'] : 0;
+        $qty = isset($request['quantity']) ? (int)$request['quantity'] : 1;
+        [$userId] = resolveUserContext($pdo, $request, ['allowMissing' => true, 'emailOptional' => true]);
 
         if ($qty <= 0) {
             sendJsonResponse(['error' => 'Quantity must be greater than zero'], 400);
@@ -99,8 +101,8 @@ switch ($action) {
         sendJsonResponse($response);
 
     case 'update':
-        $cartItemId = (int)($_POST['cart_item_id'] ?? 0);
-        $qty = (int)($_POST['quantity'] ?? 1);
+        $cartItemId = isset($request['cart_item_id']) ? (int)$request['cart_item_id'] : 0;
+        $qty = isset($request['quantity']) ? (int)$request['quantity'] : 1;
 
         if ($qty <= 0) {
             sendJsonResponse(['error' => 'Quantity must be greater than zero'], 400);
@@ -138,7 +140,7 @@ switch ($action) {
         sendJsonResponse($response);
 
     case 'remove':
-        $cartItemId = (int)($_POST['cart_item_id'] ?? 0);
+        $cartItemId = isset($request['cart_item_id']) ? (int)$request['cart_item_id'] : 0;
         $deleted = deleteCartItemById($pdo, $cartItemId);
         sendJsonResponse(['deleted' => $deleted]);
 

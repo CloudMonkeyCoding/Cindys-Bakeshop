@@ -6,11 +6,13 @@ require_once __DIR__ . '/user_request_helpers.php';
 startJsonResponse();
 requireDatabaseConnection($pdo);
 
-$action = $_GET['action'] ?? $_POST['action'] ?? '';
+$request = getRequestPayload();
+$action = $_GET['action'] ?? $request['action'] ?? '';
 
 switch ($action) {
     case 'list':
-        [$userId] = resolveUserContext($pdo, $_GET, ['allowMissing' => true]);
+        $context = array_merge($_GET, $request);
+        [$userId] = resolveUserContext($pdo, $context, ['allowMissing' => true]);
         if ($userId <= 0) {
             sendJsonResponse([]);
         }
@@ -19,13 +21,13 @@ switch ($action) {
         sendJsonResponse($favorites);
 
     case 'add':
-        [$userId] = resolveUserContext($pdo, $_POST);
-        $productId = (int)($_POST['product_id'] ?? 0);
+        [$userId] = resolveUserContext($pdo, $request);
+        $productId = isset($request['product_id']) ? (int)$request['product_id'] : 0;
         $id = addFavorite($pdo, $userId, $productId);
         sendJsonResponse(['favorite_id' => $id]);
 
     case 'remove':
-        $favoriteId = (int)($_POST['favorite_id'] ?? 0);
+        $favoriteId = isset($request['favorite_id']) ? (int)$request['favorite_id'] : 0;
         $deleted = deleteFavorite($pdo, $favoriteId);
         sendJsonResponse(['deleted' => $deleted]);
 
