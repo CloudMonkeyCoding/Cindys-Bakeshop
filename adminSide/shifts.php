@@ -4,6 +4,9 @@ require_once __DIR__ . '/includes/require_admin_login.php';
 require_once '../PHP/db_connect.php';
 require_once '../PHP/shift_functions.php';
 
+$philippinesTz = 'Asia/Manila';
+date_default_timezone_set($philippinesTz);
+
 $activePage = 'shifts';
 $pageTitle = "Shift Management - Cindy's Bakeshop";
 
@@ -177,13 +180,16 @@ $shiftSchedules = [];
 
 if ($pdo) {
     try {
-        $pdo->exec('
+        $missedStmt = $pdo->prepare('
             UPDATE shift_schedule
             SET Status = "missed"
-            WHERE Shift_Date < CURRENT_DATE()
+            WHERE Shift_Date < :today
               AND Actual_Start IS NULL
               AND Status <> "missed"
         ');
+        $missedStmt->execute([
+            ':today' => getPhilippinesNow()->format('Y-m-d'),
+        ]);
     } catch (PDOException $e) {
         // Ignore if the table is not yet created.
     }
