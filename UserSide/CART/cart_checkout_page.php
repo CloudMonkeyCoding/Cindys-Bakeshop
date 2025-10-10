@@ -395,6 +395,7 @@
     const header = document.getElementById('mainHeader');
     const rootPrefix = header?.dataset.rootPrefix || '../../../';
     const imagesBase = header?.dataset.imagesBase || `${rootPrefix}Images/`;
+    const userPrefix = header?.dataset.userPrefix || `${rootPrefix}UserSide/`;
     const uploadsBase = `${rootPrefix}adminSide/products/uploads/`;
     const apiBase = header?.dataset.apiBase || `${rootPrefix}PHP/`;
     const fallbackImage = `${imagesBase}logo.png`;
@@ -810,8 +811,16 @@
           throw new Error((orderData && orderData.error) || 'Failed to place order.');
         }
 
-        document.getElementById('confirmationMsg').textContent = 'Order placed successfully!';
         loadCart();
+
+        const orderId = orderData.order_id;
+        if (orderId) {
+          const invoiceUrl = `${userPrefix}INVOICE/orderDetails.php?order_id=${encodeURIComponent(orderId)}`;
+          window.location.href = invoiceUrl;
+          return;
+        }
+
+        document.getElementById('confirmationMsg').textContent = 'Order placed successfully!';
         document.body.classList.remove('checkout-active');
         document.getElementById('checkout-section').style.display = 'none';
       } catch (error) {
