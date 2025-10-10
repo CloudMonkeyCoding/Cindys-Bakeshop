@@ -4,6 +4,14 @@
  */
 
 /**
+ * Get the current time in the Philippines.
+ */
+function getPhilippinesNow(): DateTimeImmutable
+{
+    return new DateTimeImmutable('now', new DateTimeZone('Asia/Manila'));
+}
+
+/**
  * Fetch shift schedules optionally filtered by user and date range.
  *
  * @param PDO      $pdo
@@ -80,11 +88,14 @@ function startShift(PDO $pdo, int $shiftId): bool
 {
     $stmt = $pdo->prepare('
         UPDATE shift_schedule
-        SET Actual_Start = NOW(), Status = "in_progress"
+        SET Actual_Start = :now, Status = "in_progress"
         WHERE Shift_ID = :shift_id AND Actual_Start IS NULL
     ');
 
-    $stmt->execute([':shift_id' => $shiftId]);
+    $stmt->execute([
+        ':shift_id' => $shiftId,
+        ':now' => getPhilippinesNow()->format('Y-m-d H:i:s'),
+    ]);
 
     return $stmt->rowCount() > 0;
 }
@@ -96,11 +107,14 @@ function endShift(PDO $pdo, int $shiftId): bool
 {
     $stmt = $pdo->prepare('
         UPDATE shift_schedule
-        SET Actual_End = NOW(), Status = "completed"
+        SET Actual_End = :now, Status = "completed"
         WHERE Shift_ID = :shift_id AND Actual_Start IS NOT NULL AND Actual_End IS NULL
     ');
 
-    $stmt->execute([':shift_id' => $shiftId]);
+    $stmt->execute([
+        ':shift_id' => $shiftId,
+        ':now' => getPhilippinesNow()->format('Y-m-d H:i:s'),
+    ]);
 
     return $stmt->rowCount() > 0;
 }
@@ -113,10 +127,13 @@ function markShiftMissed(PDO $pdo, int $shiftId): bool
     $stmt = $pdo->prepare('
         UPDATE shift_schedule
         SET Status = "missed"
-        WHERE Shift_ID = :shift_id AND Actual_Start IS NULL AND Shift_Date < CURRENT_DATE()
+        WHERE Shift_ID = :shift_id AND Actual_Start IS NULL AND Shift_Date < :today
     ');
 
-    $stmt->execute([':shift_id' => $shiftId]);
+    $stmt->execute([
+        ':shift_id' => $shiftId,
+        ':today' => getPhilippinesNow()->format('Y-m-d'),
+    ]);
 
     return $stmt->rowCount() > 0;
 }
