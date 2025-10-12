@@ -65,11 +65,52 @@ if ($pdo) {
     foreach ($logRows as $logRow) {
         $orderId = isset($logRow['Order_ID']) ? (int)$logRow['Order_ID'] : 0;
         $rawDate = $logRow['Created_At'] ?? null;
-        $formattedDate = null;
+        $logDateRaw = $logRow['Log_Date'] ?? null;
+        $normalizedLogDate = null;
+
+        if ($logDateRaw) {
+            $logDateTimestamp = strtotime((string)$logDateRaw);
+            if ($logDateTimestamp !== false) {
+                $normalizedLogDate = date('Y-m-d', $logDateTimestamp);
+            }
+        }
+
+        $rawDateTimestamp = false;
         if ($rawDate) {
-            $timestamp = strtotime($rawDate);
-            if ($timestamp !== false) {
-                $formattedDate = date('M j, Y g:i A', $timestamp);
+            $rawDateTimestamp = strtotime((string)$rawDate);
+            if ($rawDateTimestamp !== false && $normalizedLogDate === null) {
+                $normalizedLogDate = date('Y-m-d', $rawDateTimestamp);
+            }
+        }
+
+        if ($normalizedLogDate === null && !empty($logRow['Order_Date'])) {
+            $orderDateTimestamp = strtotime((string)$logRow['Order_Date']);
+            if ($orderDateTimestamp !== false) {
+                $normalizedLogDate = date('Y-m-d', $orderDateTimestamp);
+            }
+        }
+
+        if ($reportDate !== null && $normalizedLogDate !== $reportDate) {
+            continue;
+        }
+
+        if (($rawDate === null || $rawDate === '') && $normalizedLogDate !== null) {
+            $rawDate = $normalizedLogDate . ' 00:00:00';
+            $rawDateTimestamp = strtotime($rawDate);
+        }
+
+        if (($rawDate === null || $rawDate === '') && !empty($logRow['Order_Date'])) {
+            $rawDate = $logRow['Order_Date'] . ' 00:00:00';
+            $rawDateTimestamp = strtotime($rawDate);
+        }
+
+        $formattedDate = null;
+        if ($rawDateTimestamp !== false) {
+            $formattedDate = date('M j, Y g:i A', $rawDateTimestamp);
+        } elseif ($normalizedLogDate !== null) {
+            $dateOnlyTimestamp = strtotime($normalizedLogDate);
+            if ($dateOnlyTimestamp !== false) {
+                $formattedDate = date('M j, Y', $dateOnlyTimestamp);
             }
         }
 
@@ -117,6 +158,7 @@ if ($pdo) {
             'note' => $note,
             'reference_label' => $referenceLabel,
             'change_source' => $source,
+            'log_date' => $normalizedLogDate,
         ];
     }
 
@@ -1146,6 +1188,7 @@ document.addEventListener('DOMContentLoaded', () => {
       entry.productName,
       entry.createdAtFormatted,
       entry.createdAt,
+      entry.logDate,
       entry.customerName,
       entry.changeType,
       entry.changeSource,
@@ -1236,6 +1279,10 @@ document.addEventListener('DOMContentLoaded', () => {
         ?? entry?.order_date_formatted
         ?? entry?.Order_Date_Formatted
         ?? formatDateForDisplay(createdAt);
+      const logDateRaw = entry?.log_date
+        ?? entry?.Log_Date
+        ?? (createdAt ? String(createdAt).split(' ')[0] : '');
+      const logDate = sanitizeIsoDate(logDateRaw);
 
       return {
         id: logId,
@@ -1246,6 +1293,7 @@ document.addEventListener('DOMContentLoaded', () => {
         change: changeValue,
         createdAt,
         createdAtFormatted,
+        logDate,
         customerName: entry?.customer_name ?? entry?.Customer_Name ?? '',
         changeType: entry?.change_type ?? entry?.Change_Type ?? 'Stock Update',
         changeSource: entry?.change_source ?? entry?.Change_Source ?? '',
@@ -1582,6 +1630,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   inventoryData = normalizeInventoryData(<?= $inventoryJson; ?>);
   inventoryLogEntries = normalizeInventoryLog(<?= $inventoryLogJson; ?>);
+  const selectedLogDate = sanitizeIsoDate(
+    reportDateInput?.value
+      ?? logCalendarContainer?.dataset.selectedDate
+      ?? ''
+  );
+  if (selectedLogDate) {
+    inventoryLogEntries = inventoryLogEntries.filter((entry) => {
+      if (entry.logDate) {
+        return entry.logDate === selectedLogDate;
+      }
+      if (entry.createdAt) {
+        const entryDate = sanitizeIsoDate(String(entry.createdAt).split(' ')[0]);
+        return entryDate === selectedLogDate;
+      }
+      return false;
+    });
+  }
   logDateCountsByDate = normalizeLogDateCounts(<?= $inventoryLogDateCountsJson; ?>);
   renderInventoryUI();
   renderInventoryLogTable();

@@ -321,14 +321,15 @@ function getInventoryChangeLog($pdo, $startDate = null, $endDate = null) {
 
     $conditions = [];
     $params = [];
+    $dateExpression = "DATE(COALESCE(isl.Created_At, o.Order_Date))";
 
     if ($startDate !== null) {
-        $conditions[] = 'DATE(isl.Created_At) >= :start_date';
+        $conditions[] = $dateExpression . ' >= :start_date';
         $params[':start_date'] = $startDate;
     }
 
     if ($endDate !== null) {
-        $conditions[] = 'DATE(isl.Created_At) <= :end_date';
+        $conditions[] = $dateExpression . ' <= :end_date';
         $params[':end_date'] = $endDate;
     }
 
@@ -349,6 +350,7 @@ function getInventoryChangeLog($pdo, $startDate = null, $endDate = null) {
             isl.Reference_ID,
             isl.Note,
             isl.Created_At,
+            {$dateExpression} AS Log_Date,
             p.Name AS Product_Name,
             o.Order_ID,
             o.Order_Date,
@@ -371,16 +373,17 @@ function getInventoryLogDateCounts($pdo, $startDate = null, $endDate = null)
 {
     ensureOrderInventoryLogs($pdo, $startDate, $endDate);
 
-    $conditions = ['isl.Created_At IS NOT NULL'];
+    $conditions = ['COALESCE(isl.Created_At, o.Order_Date) IS NOT NULL'];
     $params = [];
+    $dateExpression = "DATE(COALESCE(isl.Created_At, o.Order_Date))";
 
     if ($startDate !== null) {
-        $conditions[] = 'DATE(isl.Created_At) >= :start_date';
+        $conditions[] = $dateExpression . ' >= :start_date';
         $params[':start_date'] = $startDate;
     }
 
     if ($endDate !== null) {
-        $conditions[] = 'DATE(isl.Created_At) <= :end_date';
+        $conditions[] = $dateExpression . ' <= :end_date';
         $params[':end_date'] = $endDate;
     }
 
@@ -391,11 +394,12 @@ function getInventoryLogDateCounts($pdo, $startDate = null, $endDate = null)
 
     $sql = "
         SELECT
-            DATE(isl.Created_At) AS Report_Date,
+            {$dateExpression} AS Report_Date,
             COUNT(*) AS Change_Count
         FROM inventory_stock_log isl
+        LEFT JOIN `order` o ON isl.Reference_Type = 'order' AND isl.Reference_ID = o.Order_ID
         {$whereClause}
-        GROUP BY DATE(isl.Created_At)
+        GROUP BY {$dateExpression}
         ORDER BY Report_Date DESC
     ";
 
