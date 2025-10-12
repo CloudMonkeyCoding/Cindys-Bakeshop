@@ -267,6 +267,17 @@
       grid-column: 1 / -1;
     }
 
+    .address-grid .readonly-field {
+      background: rgba(139, 69, 19, 0.08);
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+
+    .address-grid .readonly-field:focus {
+      box-shadow: none;
+      outline: none;
+    }
+
     .address-wrapper .done-btn {
       align-self: flex-end;
     }
@@ -409,8 +420,8 @@
               <div class="address-grid">
                 <input type="text" id="address-street" class="wide" placeholder="House No., Street" required readonly />
                 <input type="text" id="address-barangay" class="wide" placeholder="Barangay" required readonly />
-                <input type="text" id="address-city" placeholder="City / Municipality" required readonly />
-                <input type="text" id="address-province" placeholder="Province" required readonly />
+                <input type="text" id="address-city" class="readonly-field" placeholder="City / Municipality" required readonly />
+                <input type="text" id="address-province" class="readonly-field" placeholder="Province" required readonly />
               </div>
               <button type="button" id="done-address" class="done-btn">Done</button>
             </div>
