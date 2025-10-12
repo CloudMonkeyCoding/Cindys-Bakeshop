@@ -549,6 +549,14 @@ table tbody tr:hover {
   vertical-align: middle;
 }
 
+.inventory-date-card {
+  margin-bottom: 24px;
+}
+
+.inventory-date-card .inventory-log-header {
+  margin-bottom: 12px;
+}
+
 .inventory-log-header {
   display: flex;
   align-items: center;

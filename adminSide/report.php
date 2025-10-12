@@ -26,6 +26,9 @@ $reportRangeDescription = $reportDateLabel ? 'Showing changes for ' . $reportDat
 $inventorySnapshotDescription = $reportDateLabel
     ? 'Stock levels reflect end-of-day balances for ' . $reportDateLabel . '.'
     : 'Stock levels reflect current stock levels.';
+$inventoryCalendarDescription = $reportDateLabel
+    ? 'Currently viewing inventory activity for ' . $reportDateLabel . '.'
+    : 'Select a date to view daily inventory history.';
 
 if ($pdo) {
     $rows = getInventoryWithProducts($pdo, $reportDate);
@@ -160,6 +163,31 @@ include 'includes/sidebar.php';
     <h1>Inventory Report</h1>
   </div>
 
+  <div class="card inventory-date-card">
+    <div class="inventory-log-header">
+      <div class="inventory-log-heading">
+        <h2 style="margin:0;font-size:18px;font-weight:600;">Select Report Date</h2>
+        <p class="inventory-log-meta"><?= htmlspecialchars($inventoryCalendarDescription); ?></p>
+      </div>
+      <form method="get" action="report.php" class="inventory-log-filter" autocomplete="off">
+        <label for="reportDate">Report date</label>
+        <input type="date" id="reportDate" name="report_date" value="<?= htmlspecialchars($reportDate ?? ''); ?>">
+        <button type="submit" class="btn btn-primary">Apply</button>
+        <?php if ($reportDate !== null): ?>
+          <a href="report.php" class="btn btn-secondary">Clear</a>
+        <?php endif; ?>
+      </form>
+    </div>
+    <div class="inventory-calendar-wrapper">
+      <div id="inventoryCalendar" class="inventory-calendar" data-selected-date="<?= htmlspecialchars($reportDate ?? ''); ?>">
+        <div class="calendar-loading">Loading calendar…</div>
+      </div>
+      <noscript>
+        <p class="calendar-noscript">Enable JavaScript to browse daily inventory activity using the calendar. You can still pick a date using the field above.</p>
+      </noscript>
+    </div>
+  </div>
+
   <?php if ($inventorySnapshotDescription !== ''): ?>
     <p class="inventory-snapshot-note"><?= htmlspecialchars($inventorySnapshotDescription); ?></p>
   <?php endif; ?>
@@ -245,24 +273,8 @@ include 'includes/sidebar.php';
           <h2 style="margin:0;font-size:18px;font-weight:600;">Inventory Change Log</h2>
           <p class="inventory-log-meta"><?= htmlspecialchars($reportRangeDescription); ?></p>
         </div>
-        <form method="get" action="report.php" class="inventory-log-filter" autocomplete="off">
-          <label for="reportDate">Report date</label>
-          <input type="date" id="reportDate" name="report_date" value="<?= htmlspecialchars($reportDate ?? ''); ?>">
-          <button type="submit" class="btn btn-primary">Apply</button>
-          <?php if ($reportDate !== null): ?>
-            <a href="report.php" class="btn btn-secondary">Clear</a>
-          <?php endif; ?>
-        </form>
       </div>
       <input type="text" id="inventoryLogSearch" placeholder="🔍 Search change log...">
-    </div>
-    <div class="inventory-calendar-wrapper">
-      <div id="inventoryCalendar" class="inventory-calendar" data-selected-date="<?= htmlspecialchars($reportDate ?? ''); ?>">
-        <div class="calendar-loading">Loading calendar…</div>
-      </div>
-      <noscript>
-        <p class="calendar-noscript">Enable JavaScript to browse daily inventory activity using the calendar. You can still pick a date using the field above.</p>
-      </noscript>
     </div>
     <table class="inventory-log-table" id="inventoryLogTable">
       <thead>
