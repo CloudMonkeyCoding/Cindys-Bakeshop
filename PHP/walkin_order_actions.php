@@ -332,7 +332,12 @@ switch ($action) {
 
             foreach ($orderItems as $line) {
                 addOrderItem($pdo, $orderId, $line['product_id'], $line['quantity'], $line['subtotal']);
-                adjustInventoryStock($pdo, $line['product_id'], -$line['quantity']);
+                adjustInventoryStock($pdo, $line['product_id'], -$line['quantity'], [
+                    'change_source' => 'order',
+                    'reference_type' => 'order',
+                    'reference_id' => $orderId,
+                    'note' => 'Walk-in order deduction'
+                ]);
                 adjustProductStock($pdo, $line['product_id'], -$line['quantity']);
                 walkin_order_log('Processed order line', [
                     'order_id' => $orderId,

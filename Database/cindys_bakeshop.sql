@@ -76,6 +76,21 @@ CREATE TABLE `inventory` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `inventory_daily_snapshot`
+--
+
+CREATE TABLE `inventory_daily_snapshot` (
+  `Snapshot_ID` int(11) NOT NULL,
+  `Snapshot_Date` date NOT NULL,
+  `Product_ID` int(11) NOT NULL,
+  `Quantity` int(11) DEFAULT NULL,
+  `Created_At` datetime NOT NULL DEFAULT current_timestamp(),
+  `Updated_At` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `order`
 --
 
@@ -218,6 +233,14 @@ ALTER TABLE `inventory`
   ADD KEY `Product_ID` (`Product_ID`);
 
 --
+-- Indexes for table `inventory_daily_snapshot`
+--
+ALTER TABLE `inventory_daily_snapshot`
+  ADD PRIMARY KEY (`Snapshot_ID`),
+  ADD UNIQUE KEY `uq_inventory_snapshot_date_product` (`Snapshot_Date`,`Product_ID`),
+  ADD KEY `idx_inventory_snapshot_product` (`Product_ID`);
+
+--
 -- Indexes for table `order`
 --
 ALTER TABLE `order`
@@ -297,6 +320,12 @@ ALTER TABLE `inventory`
   MODIFY `Inventory_ID` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `inventory_daily_snapshot`
+--
+ALTER TABLE `inventory_daily_snapshot`
+  MODIFY `Snapshot_ID` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `order`
 --
 ALTER TABLE `order`
@@ -367,6 +396,12 @@ ALTER TABLE `delivery`
 --
 ALTER TABLE `inventory`
   ADD CONSTRAINT `inventory_ibfk_1` FOREIGN KEY (`Product_ID`) REFERENCES `product` (`Product_ID`);
+
+--
+-- Constraints for table `inventory_daily_snapshot`
+--
+ALTER TABLE `inventory_daily_snapshot`
+  ADD CONSTRAINT `inventory_daily_snapshot_product_fk` FOREIGN KEY (`Product_ID`) REFERENCES `product` (`Product_ID`);
 
 --
 -- Constraints for table `order`
