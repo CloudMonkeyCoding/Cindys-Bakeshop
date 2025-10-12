@@ -30,6 +30,9 @@ $inventoryCalendarDescription = $reportDateLabel
     ? 'Currently viewing inventory activity for ' . $reportDateLabel . '.'
     : 'Select a date to view daily inventory history.';
 
+$todayDate = date('Y-m-d');
+$inventoryEditingLocked = $reportDate !== null && $reportDate < $todayDate;
+
 if ($pdo) {
     $rows = getInventoryWithProducts($pdo, $reportDate);
     foreach ($rows as $row) {
@@ -264,7 +267,7 @@ include 'includes/sidebar.php';
     <div class="table-actions">
       <input type="text" id="inventorySearch" placeholder="🔍 Search inventory item...">
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
-        <button class="btn btn-secondary" type="button" id="toggleInventoryEdit" aria-pressed="false">Enable Editing</button>
+        <button class="btn btn-secondary" type="button" id="toggleInventoryEdit" aria-pressed="false" data-editing-locked="<?= $inventoryEditingLocked ? '1' : '0'; ?>"<?php if ($inventoryEditingLocked): ?> disabled aria-disabled="true" title="Editing historical inventory snapshots is disabled."<?php endif; ?>>Enable Editing</button>
         <button class="btn btn-primary" type="button" id="exportInventory">Export Inventory PDF</button>
       </div>
     </div>
@@ -356,6 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('inventorySearch');
   const exportBtn = document.getElementById('exportInventory');
   const editToggleBtn = document.getElementById('toggleInventoryEdit');
+  const editingLockedForDate = editToggleBtn?.dataset?.editingLocked === '1';
   const logSearchInput = document.getElementById('inventoryLogSearch');
   const logTableBody = document.getElementById('inventoryLogBody');
   const reportForm = document.querySelector('.inventory-log-filter');
@@ -398,7 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (inventoryContainer) {
     inventoryContainer.addEventListener('click', (event) => {
-      if (!inventoryEditingEnabled) {
+      if (!inventoryEditingEnabled || editingLockedForDate) {
         return;
       }
       const button = event.target.closest('.inventory-adjust-btn');
@@ -414,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     inventoryContainer.addEventListener('input', (event) => {
-      if (!inventoryEditingEnabled) {
+      if (!inventoryEditingEnabled || editingLockedForDate) {
         return;
       }
       const input = event.target.closest('.inventory-stock-input');
@@ -426,7 +430,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     inventoryContainer.addEventListener('change', (event) => {
-      if (!inventoryEditingEnabled) {
+      if (!inventoryEditingEnabled || editingLockedForDate) {
         return;
       }
       const input = event.target.closest('.inventory-stock-input');
@@ -438,7 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     inventoryContainer.addEventListener('keydown', (event) => {
-      if (!inventoryEditingEnabled) {
+      if (!inventoryEditingEnabled || editingLockedForDate) {
         return;
       }
       if (event.key === 'Enter') {
@@ -477,19 +481,26 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (editToggleBtn) {
-    editToggleBtn.addEventListener('click', () => {
-      inventoryEditingEnabled = !inventoryEditingEnabled;
-      applyEditingState();
-      if (inventoryEditingEnabled) {
-        const firstInput = inventoryContainer?.querySelector('.inventory-stock-input');
-        if (firstInput) {
-          firstInput.focus();
-          if (typeof firstInput.select === 'function') {
-            firstInput.select();
+    if (editingLockedForDate) {
+      editToggleBtn.disabled = true;
+      editToggleBtn.setAttribute('aria-disabled', 'true');
+      editToggleBtn.setAttribute('aria-pressed', 'false');
+      editToggleBtn.setAttribute('title', 'Editing historical inventory snapshots is disabled.');
+    } else {
+      editToggleBtn.addEventListener('click', () => {
+        inventoryEditingEnabled = !inventoryEditingEnabled;
+        applyEditingState();
+        if (inventoryEditingEnabled) {
+          const firstInput = inventoryContainer?.querySelector('.inventory-stock-input');
+          if (firstInput) {
+            firstInput.focus();
+            if (typeof firstInput.select === 'function') {
+              firstInput.select();
+            }
           }
         }
-      }
-    });
+      });
+    }
   }
 
   function renderInventoryUI() {
@@ -624,36 +635,52 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function applyEditingState() {
+    const effectiveEditingEnabled = !editingLockedForDate && inventoryEditingEnabled;
+
     if (editToggleBtn) {
-      editToggleBtn.textContent = inventoryEditingEnabled ? 'Disable Editing' : 'Enable Editing';
-      editToggleBtn.setAttribute('aria-pressed', inventoryEditingEnabled ? 'true' : 'false');
-      editToggleBtn.classList.toggle('is-active', inventoryEditingEnabled);
-      editToggleBtn.classList.toggle('btn-primary', inventoryEditingEnabled);
-      editToggleBtn.classList.toggle('btn-secondary', !inventoryEditingEnabled);
+      if (editingLockedForDate) {
+        editToggleBtn.disabled = true;
+        editToggleBtn.setAttribute('aria-disabled', 'true');
+        editToggleBtn.setAttribute('aria-pressed', 'false');
+        editToggleBtn.setAttribute('title', 'Editing historical inventory snapshots is disabled.');
+        editToggleBtn.textContent = 'Enable Editing';
+        editToggleBtn.classList.remove('is-active');
+        editToggleBtn.classList.remove('btn-primary');
+        editToggleBtn.classList.add('btn-secondary');
+      } else {
+        editToggleBtn.disabled = false;
+        editToggleBtn.removeAttribute('aria-disabled');
+        editToggleBtn.removeAttribute('title');
+        editToggleBtn.textContent = effectiveEditingEnabled ? 'Disable Editing' : 'Enable Editing';
+        editToggleBtn.setAttribute('aria-pressed', effectiveEditingEnabled ? 'true' : 'false');
+        editToggleBtn.classList.toggle('is-active', effectiveEditingEnabled);
+        editToggleBtn.classList.toggle('btn-primary', effectiveEditingEnabled);
+        editToggleBtn.classList.toggle('btn-secondary', !effectiveEditingEnabled);
+      }
     }
 
     if (!inventoryContainer) {
       return;
     }
 
-    inventoryContainer.classList.toggle('is-editing', inventoryEditingEnabled);
+    inventoryContainer.classList.toggle('is-editing', effectiveEditingEnabled);
 
     inventoryContainer.querySelectorAll('.inventory-stock-control').forEach((control) => {
-      control.classList.toggle('is-readonly', !inventoryEditingEnabled);
+      control.classList.toggle('is-readonly', !effectiveEditingEnabled);
       const minusButton = control.querySelector('.inventory-minus');
       const plusButton = control.querySelector('.inventory-plus');
       const stockInput = control.querySelector('.inventory-stock-input');
 
       [minusButton, plusButton].forEach((button) => {
         if (button) {
-          button.disabled = !inventoryEditingEnabled;
+          button.disabled = !effectiveEditingEnabled;
         }
       });
 
       if (stockInput) {
-        stockInput.disabled = !inventoryEditingEnabled;
-        stockInput.readOnly = !inventoryEditingEnabled;
-        if (!inventoryEditingEnabled) {
+        stockInput.disabled = !effectiveEditingEnabled;
+        stockInput.readOnly = !effectiveEditingEnabled;
+        if (!effectiveEditingEnabled) {
           stockInput.blur();
         }
       }
@@ -751,7 +778,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function adjustStock(control, delta) {
-    if (!inventoryEditingEnabled) {
+    if (!inventoryEditingEnabled || editingLockedForDate) {
       return;
     }
     if (!control) {
@@ -825,7 +852,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function persistStock(control) {
-    if (!inventoryEditingEnabled) {
+    if (!inventoryEditingEnabled || editingLockedForDate) {
       return;
     }
     if (!control) {
