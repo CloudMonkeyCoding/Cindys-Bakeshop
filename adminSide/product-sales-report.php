@@ -19,53 +19,46 @@ $topProductUnits = 0;
 $topCategoryName = 'No category sales yet';
 $topCategoryRevenue = 0.0;
 $recentSaleTimestamp = null;
-$recentSaleDisplay = 'No sales recorded yet';
+$recentSaleDisplay = 'No sales recorded for this date';
 
 $productSales = [];
 $statusBreakdown = [];
 $categoryRevenue = [];
 $categoryUnits = [];
-$timeRanges = [
-    '7d' => ['label' => 'Last 7 Days', 'days' => 7],
-    '30d' => ['label' => 'Last 30 Days', 'days' => 30],
-    '90d' => ['label' => 'Last 90 Days', 'days' => 90],
-];
-if (function_exists('array_key_first')) {
-    $salesTrendDefaultRange = array_key_first($timeRanges) ?? '7d';
-} else {
-    reset($timeRanges);
-    $salesTrendDefaultRange = key($timeRanges);
-    if ($salesTrendDefaultRange === null) {
-        $salesTrendDefaultRange = '7d';
-    }
+$hourlyRevenue = array_fill(0, 24, 0.0);
+$hourlyUnits = array_fill(0, 24, 0);
+$hourlyLabels = array_map(static function ($hour) {
+    return sprintf('%02d:00', $hour);
+}, range(0, 23));
+
+$todayDate = (new DateTime('today'))->format('Y-m-d');
+$selectedDate = isset($_GET['selected_date']) ? trim($_GET['selected_date']) : $todayDate;
+$selectedDateObject = DateTime::createFromFormat('Y-m-d', $selectedDate);
+if ($selectedDateObject === false) {
+    $selectedDateObject = new DateTime($todayDate);
 }
-$salesTrendDefaultLabel = $timeRanges[$salesTrendDefaultRange]['label'] ?? 'Last 7 Days';
-$dailyRevenueMap = [];
-$salesTrendByRange = [];
-$maxDays = 1;
-foreach ($timeRanges as $config) {
-    $days = isset($config['days']) ? (int)$config['days'] : 0;
-    if ($days > $maxDays) {
-        $maxDays = $days;
-    }
-}
+$selectedDate = $selectedDateObject->format('Y-m-d');
+$selectedDateDisplay = $selectedDateObject->format('F d, Y');
+$startDateTime = $selectedDate . ' 00:00:00';
+$endDateTime = (clone $selectedDateObject)->modify('+1 day')->format('Y-m-d 00:00:00');
+$recentSaleDisplayDateFormat = 'M d, Y g:i A';
 
 if ($pdo) {
     $allowedStatuses = ['Pending', 'Confirmed', 'Shipped', 'Delivered'];
     $statusList = implode(',', array_map([$pdo, 'quote'], $allowedStatuses));
-
-    $daysInterval = max($maxDays - 1, 0);
+    $startDateQuoted = $pdo->quote($startDateTime);
+    $endDateQuoted = $pdo->quote($endDateTime);
 
     $productSql = "
         SELECT
             p.Product_ID,
             p.Name,
             p.Category,
-            COALESCE(SUM(CASE WHEN o.Status IN ($statusList) THEN oi.Quantity ELSE 0 END), 0) AS units_sold,
-            COALESCE(SUM(CASE WHEN o.Status IN ($statusList) THEN oi.Subtotal ELSE 0 END), 0) AS revenue,
-            COUNT(DISTINCT CASE WHEN o.Status IN ($statusList) THEN o.Order_ID END) AS order_count,
-            MIN(CASE WHEN o.Status IN ($statusList) THEN o.Order_Date END) AS first_sale,
-            MAX(CASE WHEN o.Status IN ($statusList) THEN o.Order_Date END) AS last_sale
+            COALESCE(SUM(CASE WHEN o.Status IN ($statusList) AND o.Order_Date >= $startDateQuoted AND o.Order_Date < $endDateQuoted THEN oi.Quantity ELSE 0 END), 0) AS units_sold,
+            COALESCE(SUM(CASE WHEN o.Status IN ($statusList) AND o.Order_Date >= $startDateQuoted AND o.Order_Date < $endDateQuoted THEN oi.Subtotal ELSE 0 END), 0) AS revenue,
+            COUNT(DISTINCT CASE WHEN o.Status IN ($statusList) AND o.Order_Date >= $startDateQuoted AND o.Order_Date < $endDateQuoted THEN o.Order_ID END) AS order_count,
+            MIN(CASE WHEN o.Status IN ($statusList) AND o.Order_Date >= $startDateQuoted AND o.Order_Date < $endDateQuoted THEN o.Order_Date END) AS first_sale,
+            MAX(CASE WHEN o.Status IN ($statusList) AND o.Order_Date >= $startDateQuoted AND o.Order_Date < $endDateQuoted THEN o.Order_Date END) AS last_sale
         FROM product p
         LEFT JOIN order_item oi ON oi.Product_ID = p.Product_ID
         LEFT JOIN `order` o ON o.Order_ID = oi.Order_ID
@@ -78,9 +71,11 @@ if ($pdo) {
     }
 
     $ordersSql = "
-        SELECT COUNT(DISTINCT CASE WHEN o.Status IN ($statusList) THEN o.Order_ID END) AS order_count
+        SELECT COUNT(DISTINCT CASE WHEN o.Status IN ($statusList) AND o.Order_Date >= $startDateQuoted AND o.Order_Date < $endDateQuoted THEN o.Order_ID END) AS order_count
         FROM order_item oi
         JOIN `order` o ON o.Order_ID = oi.Order_ID
+        WHERE o.Order_Date >= $startDateQuoted AND o.Order_Date < $endDateQuoted
+          AND o.Status IN ($statusList)
     ";
     $stmtOrders = $pdo->query($ordersSql);
     if ($stmtOrders) {
@@ -89,22 +84,25 @@ if ($pdo) {
 
     $trendSql = "
         SELECT
-            DATE(o.Order_Date) AS sale_date,
-            COALESCE(SUM(oi.Subtotal), 0) AS revenue
+            HOUR(o.Order_Date) AS sale_hour,
+            COALESCE(SUM(oi.Subtotal), 0) AS revenue,
+            COALESCE(SUM(oi.Quantity), 0) AS units
         FROM order_item oi
         JOIN `order` o ON o.Order_ID = oi.Order_ID
         WHERE o.Status IN ($statusList)
           AND o.Order_Date IS NOT NULL
-          AND DATE(o.Order_Date) >= DATE_SUB(CURDATE(), INTERVAL $daysInterval DAY)
-        GROUP BY sale_date
-        ORDER BY sale_date ASC
+          AND o.Order_Date >= $startDateQuoted
+          AND o.Order_Date < $endDateQuoted
+        GROUP BY sale_hour
+        ORDER BY sale_hour ASC
     ";
     $stmtTrend = $pdo->query($trendSql);
     if ($stmtTrend) {
         while ($row = $stmtTrend->fetch(PDO::FETCH_ASSOC)) {
-            $saleDate = $row['sale_date'] ?? null;
-            if ($saleDate) {
-                $dailyRevenueMap[$saleDate] = (float)($row['revenue'] ?? 0);
+            $saleHour = isset($row['sale_hour']) ? (int)$row['sale_hour'] : null;
+            if ($saleHour !== null && $saleHour >= 0 && $saleHour <= 23) {
+                $hourlyRevenue[$saleHour] = (float)($row['revenue'] ?? 0);
+                $hourlyUnits[$saleHour] = (int)($row['units'] ?? 0);
             }
         }
     }
@@ -117,6 +115,8 @@ if ($pdo) {
         FROM order_item oi
         JOIN `order` o ON o.Order_ID = oi.Order_ID
         WHERE o.Status IN ($statusList)
+          AND o.Order_Date >= $startDateQuoted
+          AND o.Order_Date < $endDateQuoted
         GROUP BY status
         ORDER BY revenue DESC
     ";
@@ -166,7 +166,7 @@ foreach ($productSales as &$product) {
 unset($product);
 
 if ($recentSaleTimestamp) {
-    $recentSaleDisplay = date('M d, Y', $recentSaleTimestamp);
+    $recentSaleDisplay = date($recentSaleDisplayDateFormat, $recentSaleTimestamp);
 }
 
 $sortedCategoryRevenue = $categoryRevenue;
@@ -179,39 +179,9 @@ if (!empty($sortedCategoryRevenue)) {
 $averageOrderValue = $totalOrders > 0 ? $totalRevenue / $totalOrders : 0.0;
 $averageUnitsPerOrder = $totalOrders > 0 ? $totalUnits / $totalOrders : 0.0;
 $averageSellingPrice = $totalUnits > 0 ? $totalRevenue / max($totalUnits, 1) : 0.0;
-
-$currentTimestamp = time();
-foreach ($timeRanges as $rangeKey => $config) {
-    $days = isset($config['days']) ? (int)$config['days'] : 0;
-    if ($days <= 0) {
-        continue;
-    }
-    $labels = [];
-    $values = [];
-    for ($i = $days - 1; $i >= 0; $i--) {
-        $timestamp = strtotime("-{$i} day", $currentTimestamp);
-        if ($timestamp === false) {
-            continue;
-        }
-        $dateKey = date('Y-m-d', $timestamp);
-        $labels[] = $days <= 7 ? date('D', $timestamp) : date('M d', $timestamp);
-        $values[] = round($dailyRevenueMap[$dateKey] ?? 0, 2);
-    }
-    if (!empty($labels)) {
-        $salesTrendByRange[$rangeKey] = [
-            'labels' => $labels,
-            'values' => $values,
-            'rangeLabel' => $config['label'] ?? 'Selected Range',
-        ];
-    }
-}
-if (empty($salesTrendByRange) && !empty($timeRanges)) {
-    $salesTrendByRange[$salesTrendDefaultRange] = [
-        'labels' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        'values' => array_fill(0, 7, 0),
-        'rangeLabel' => $salesTrendDefaultLabel,
-    ];
-}
+$hourlyRevenueRounded = array_map(static function ($value) {
+    return round($value, 2);
+}, $hourlyRevenue);
 
 $topProductChartData = array_slice(array_values(array_filter($productSales, function ($product) {
     return ($product['revenue'] ?? 0) > 0;
@@ -239,14 +209,9 @@ foreach ($sortedCategoryRevenue as $category => $revenue) {
 }
 
 $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
-$salesTrendDataJson = json_encode($salesTrendByRange, $jsonFlags);
-if ($salesTrendDataJson === false) {
-    $salesTrendDataJson = '{}';
-}
-$salesTrendDefaultRangeJson = json_encode($salesTrendDefaultRange, $jsonFlags);
-if ($salesTrendDefaultRangeJson === false) {
-    $salesTrendDefaultRangeJson = 'null';
-}
+$hourlyLabelsJson = json_encode($hourlyLabels, $jsonFlags) ?: '[]';
+$hourlyRevenueJson = json_encode($hourlyRevenueRounded, $jsonFlags) ?: '[]';
+$hourlyUnitsJson = json_encode($hourlyUnits, $jsonFlags) ?: '[]';
 $topProductLabelsJson = json_encode($topProductLabels, $jsonFlags) ?: '[]';
 $topProductRevenueJson = json_encode($topProductRevenueValues, $jsonFlags) ?: '[]';
 $topProductUnitsJson = json_encode($topProductUnitValues, $jsonFlags) ?: '[]';
@@ -261,11 +226,17 @@ include 'includes/sidebar.php';
 ?>
 
 <div class="main">
-  <div class="header">
-    <h1>Product Sales Report</h1>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+  <div class="header" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;">
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <h1 style="margin:0;">Product Sales Report</h1>
       <span style="font-size:14px;color:#7f8c8d;">Last sale: <?= htmlspecialchars($recentSaleDisplay); ?></span>
     </div>
+    <form method="get" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+      <label for="selected_date" style="font-size:14px;color:#2c3e50;">View date:</label>
+      <input type="date" id="selected_date" name="selected_date" value="<?= htmlspecialchars($selectedDate); ?>" max="<?= htmlspecialchars($todayDate); ?>" style="padding:8px 12px;border:1px solid #dcdde1;border-radius:6px;font-size:14px;">
+      <button type="submit" class="btn btn-primary" style="padding:8px 16px;">Apply</button>
+      <a href="?selected_date=<?= htmlspecialchars($todayDate); ?>" class="btn" style="padding:8px 16px;border:1px solid #dcdde1;border-radius:6px;font-size:14px;text-decoration:none;color:#2c3e50;background:#ecf0f1;">Today</a>
+    </form>
   </div>
 
   <section class="stats-grid columns-4" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
@@ -307,18 +278,11 @@ include 'includes/sidebar.php';
     <div class="card">
       <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px;">
         <div>
-          <h2 style="font-size:18px;margin:0;">Sales Trend</h2>
-          <p id="salesTrendRangeCaption" style="margin:4px 0 0;font-size:13px;color:#7f8c8d;">
-            <?= htmlspecialchars($salesTrendDefaultLabel); ?>
+          <h2 style="font-size:18px;margin:0;">Hourly Sales</h2>
+          <p id="hourlySalesCaption" style="margin:4px 0 0;font-size:13px;color:#7f8c8d;">
+            <?= htmlspecialchars($selectedDateDisplay); ?>
           </p>
         </div>
-        <select id="salesTrendRange" aria-label="Change sales trend range" style="padding:8px 12px;border:1px solid #dcdde1;border-radius:6px;font-size:14px;min-width:180px;">
-          <?php foreach ($timeRanges as $rangeKey => $rangeConfig): ?>
-            <option value="<?= htmlspecialchars($rangeKey); ?>" <?= $rangeKey === $salesTrendDefaultRange ? 'selected' : ''; ?>>
-              <?= htmlspecialchars($rangeConfig['label']); ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
       </div>
       <canvas id="salesChart" height="220"></canvas>
     </div>
@@ -408,8 +372,8 @@ include 'includes/sidebar.php';
               <td><?= number_format($unitsSold); ?></td>
               <td>₱<?= number_format($revenue, 2); ?></td>
               <td><?= number_format($product['order_count']); ?></td>
-              <td><?= $firstSale ? htmlspecialchars(date('M d, Y', $firstSale)) : '—'; ?></td>
-              <td><?= $lastSale ? htmlspecialchars(date('M d, Y', $lastSale)) : '—'; ?></td>
+              <td><?= $firstSale ? htmlspecialchars(date('M d, Y g:i A', $firstSale)) : '—'; ?></td>
+              <td><?= $lastSale ? htmlspecialchars(date('M d, Y g:i A', $lastSale)) : '—'; ?></td>
               <td><?= $unitsSold > 0 ? '₱' . number_format($avgPrice, 2) : '—'; ?></td>
             </tr>
           <?php endforeach; ?>
@@ -426,8 +390,9 @@ if ($recentSaleLabelJson === false) {
 }
 $extraScripts = <<<JS
 <script>
-  const salesTrendDataByRange = $salesTrendDataJson;
-  const salesTrendDefaultRange = $salesTrendDefaultRangeJson;
+  const hourlySalesLabels = $hourlyLabelsJson;
+  const hourlySalesRevenue = $hourlyRevenueJson;
+  const hourlySalesUnits = $hourlyUnitsJson;
   const topProductLabels = $topProductLabelsJson;
   const topProductRevenue = $topProductRevenueJson;
   const topProductUnits = $topProductUnitsJson;
@@ -437,59 +402,40 @@ $extraScripts = <<<JS
   const lastSaleLabel = $recentSaleLabelJson;
 
   const salesChartCanvas = document.getElementById('salesChart');
-  const salesTrendRangeSelect = document.getElementById('salesTrendRange');
-  const salesTrendRangeCaption = document.getElementById('salesTrendRangeCaption');
+  const hourlySalesCaption = document.getElementById('hourlySalesCaption');
   if (salesChartCanvas) {
     const ctx = salesChartCanvas.getContext('2d');
     const gradient = ctx.createLinearGradient(0, 0, 0, salesChartCanvas.height || 400);
     gradient.addColorStop(0, 'rgba(231, 76, 60, 0.4)');
     gradient.addColorStop(1, 'rgba(231, 76, 60, 0)');
 
-    const rangeOptions = (salesTrendDataByRange && typeof salesTrendDataByRange === 'object' && !Array.isArray(salesTrendDataByRange)) ? salesTrendDataByRange : {};
-    const rangeKeys = Object.keys(rangeOptions);
-    const fallbackLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const fallbackValues = new Array(fallbackLabels.length).fill(0);
-    const getPointStyling = labelCount => {
-      const isDense = labelCount > 31;
-      return {
-        radius: isDense ? 3 : 6,
-        hoverRadius: isDense ? 5 : 8,
-      };
-    };
-    const getDatasetForRange = rangeKey => {
-      const dataset = rangeKey && Object.prototype.hasOwnProperty.call(rangeOptions, rangeKey) ? rangeOptions[rangeKey] : null;
-      const labels = dataset && Array.isArray(dataset.labels) ? dataset.labels.slice() : fallbackLabels.slice();
-      const rawValues = dataset && Array.isArray(dataset.values) ? dataset.values.slice() : fallbackValues.slice();
-      const sanitizedValues = labels.map((_, index) => {
-        const value = rawValues[index] ?? 0;
-        const numericValue = Number.parseFloat(value);
-        return Number.isFinite(numericValue) ? numericValue : 0;
-      });
-      const rangeLabel = dataset && typeof dataset.rangeLabel === 'string' ? dataset.rangeLabel : 'No sales recorded yet';
-      return { labels, values: sanitizedValues, rangeLabel };
-    };
-
-    const defaultRangeKey = typeof salesTrendDefaultRange === 'string' && Object.prototype.hasOwnProperty.call(rangeOptions, salesTrendDefaultRange)
-      ? salesTrendDefaultRange
-      : (rangeKeys.length > 0 ? rangeKeys[0] : null);
-
-    const initialDataset = getDatasetForRange(defaultRangeKey);
-    const initialPointStyle = getPointStyling(initialDataset.labels.length);
+    const labels = Array.isArray(hourlySalesLabels) ? hourlySalesLabels.slice() : [];
+    const revenueValues = [];
+    const unitValues = [];
+    for (let index = 0; index < labels.length; index += 1) {
+      const revenueCandidate = Array.isArray(hourlySalesRevenue) && index < hourlySalesRevenue.length ? Number.parseFloat(hourlySalesRevenue[index]) : 0;
+      revenueValues.push(Number.isFinite(revenueCandidate) ? revenueCandidate : 0);
+      const unitCandidate = Array.isArray(hourlySalesUnits) && index < hourlySalesUnits.length ? Number.parseFloat(hourlySalesUnits[index]) : 0;
+      unitValues.push(Number.isFinite(unitCandidate) ? unitCandidate : 0);
+    }
+    const isDense = labels.length > 16;
+    const pointRadius = isDense ? 3 : 6;
+    const hoverRadius = isDense ? 5 : 8;
 
     const salesChart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: initialDataset.labels,
+        labels,
         datasets: [{
-          label: 'Sales (₱)',
-          data: initialDataset.values,
+          label: 'Revenue (₱)',
+          data: revenueValues,
           borderColor: '#e74c3c',
           borderWidth: 3,
           backgroundColor: gradient,
           pointBackgroundColor: '#fff',
           pointBorderColor: '#e74c3c',
-          pointRadius: initialPointStyle.radius,
-          pointHoverRadius: initialPointStyle.hoverRadius,
+          pointRadius,
+          pointHoverRadius: hoverRadius,
           tension: 0.4,
           fill: true,
         }]
@@ -502,17 +448,21 @@ $extraScripts = <<<JS
             callbacks: {
               label: context => {
                 const value = context.parsed.y ?? 0;
-                return 'Sales: ₱' + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const revenueLabel = 'Revenue: ₱' + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const units = unitValues[context.dataIndex] ?? 0;
+                const unitsLabel = 'Units sold: ' + Number(units).toLocaleString();
+                return [revenueLabel, unitsLabel];
               }
             }
           }
         },
         scales: {
           x: {
+            title: { display: true, text: 'Hour of Day' },
             ticks: {
               autoSkip: true,
               maxRotation: 0,
-              maxTicksLimit: 15,
+              maxTicksLimit: 12,
             }
           },
           y: {
@@ -525,30 +475,11 @@ $extraScripts = <<<JS
       }
     });
 
-    if (salesTrendRangeCaption) {
-      salesTrendRangeCaption.textContent = initialDataset.rangeLabel;
-    }
-
-    const updateSalesChartRange = rangeKey => {
-      const dataset = getDatasetForRange(rangeKey);
-      const pointStyle = getPointStyling(dataset.labels.length);
-      salesChart.data.labels = dataset.labels;
-      salesChart.data.datasets[0].data = dataset.values;
-      salesChart.data.datasets[0].pointRadius = pointStyle.radius;
-      salesChart.data.datasets[0].pointHoverRadius = pointStyle.hoverRadius;
-      salesChart.update();
-      if (salesTrendRangeCaption) {
-        salesTrendRangeCaption.textContent = dataset.rangeLabel;
+    if (hourlySalesCaption) {
+      const hasSalesData = revenueValues.some(value => Number.isFinite(value) && Math.abs(value) > 0);
+      if (!hasSalesData) {
+        hourlySalesCaption.textContent = hourlySalesCaption.textContent + ' • No sales recorded';
       }
-    };
-
-    if (salesTrendRangeSelect) {
-      if (defaultRangeKey) {
-        salesTrendRangeSelect.value = defaultRangeKey;
-      }
-      salesTrendRangeSelect.addEventListener('change', event => {
-        updateSalesChartRange(event.target.value);
-      });
     }
   }
 
