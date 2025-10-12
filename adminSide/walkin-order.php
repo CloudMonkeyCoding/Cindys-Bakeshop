@@ -131,22 +131,9 @@ include 'includes/sidebar.php';
               <select id="paymentMethod">
                 <option value="Cash">Cash</option>
                 <option value="GCash">GCash</option>
-                <option value="Card">Card</option>
-                <option value="Bank transfer">Bank transfer</option>
               </select>
             </div>
-            <div class="form-field">
-              <label for="paymentStatus">Payment status</label>
-              <select id="paymentStatus">
-                <option value="Paid" selected>Paid</option>
-                <option value="Pending">Pending</option>
-                <option value="Partially Paid">Partially Paid</option>
-              </select>
-            </div>
-            <div class="form-field">
-              <label for="paymentAmount">Amount paid</label>
-              <input type="number" id="paymentAmount" min="0" step="0.01" value="0.00">
-            </div>
+            <p class="pos-payment-note">Walk-in orders are automatically recorded as fully paid.</p>
             <div class="form-field">
               <label for="referenceNumber">Reference # (optional)</label>
               <input type="text" id="referenceNumber" maxlength="100">
@@ -194,8 +181,8 @@ $scriptTemplate = <<<'JS'
   const fulfillmentTypeSelect = document.getElementById('fulfillmentType');
   const orderStatusInput = document.getElementById('orderStatus');
   const paymentMethodSelect = document.getElementById('paymentMethod');
-  const paymentStatusSelect = document.getElementById('paymentStatus');
-  const paymentAmountInput = document.getElementById('paymentAmount');
+  const PAYMENT_STATUS = 'Paid';
+  let currentOrderTotal = 0;
   const referenceNumberInput = document.getElementById('referenceNumber');
   const productSearchInput = document.getElementById('productSearch');
   const inStockOnlyCheckbox = document.getElementById('inStockOnly');
@@ -221,7 +208,6 @@ $scriptTemplate = <<<'JS'
   let selectedCustomer = null;
   let customerSearchTimer = null;
   let productSearchTimer = null;
-  let paymentAmountTouched = false;
 
   function setMessage(target, type, text) {
     if (!target) return;
@@ -547,12 +533,10 @@ $scriptTemplate = <<<'JS'
     }
 
     orderTotalLabel.textContent = peso.format(total);
-    if (!paymentAmountTouched || paymentStatusSelect.value === 'Paid') {
-      paymentAmountInput.value = total.toFixed(2);
-    }
+    currentOrderTotal = total;
     log('debug', 'Cart totals updated', {
       total,
-      paymentStatus: paymentStatusSelect.value,
+      paymentStatus: PAYMENT_STATUS,
       items: Array.from(selectedItems.values()).map((item) => ({
         id: item.id,
         name: item.name,
@@ -683,7 +667,7 @@ $scriptTemplate = <<<'JS'
     log('debug', 'Form submission initiated', {
       mode,
       itemCount: selectedItems.size,
-      paymentStatus: paymentStatusSelect.value,
+      paymentStatus: PAYMENT_STATUS,
     });
 
     if (!selectedItems.size) {
@@ -725,8 +709,8 @@ $scriptTemplate = <<<'JS'
       fulfillment_type: fulfillmentTypeSelect.value,
       order_status: orderStatusInput ? orderStatusInput.value : 'Confirmed',
       payment_method: paymentMethodSelect.value,
-      payment_status: paymentStatusSelect.value,
-      payment_amount: paymentAmountInput.value || '0',
+      payment_status: PAYMENT_STATUS,
+      payment_amount: currentOrderTotal.toFixed(2),
       reference_number: referenceNumberInput.value.trim(),
       items: JSON.stringify(items)
     };
@@ -779,10 +763,7 @@ $scriptTemplate = <<<'JS'
       if (newCustomerNameInput) newCustomerNameInput.value = '';
       if (newCustomerEmailInput) newCustomerEmailInput.value = '';
       if (newCustomerAddressInput) newCustomerAddressInput.value = '';
-      paymentAmountInput.value = '0.00';
-      paymentAmountTouched = false;
       referenceNumberInput.value = '';
-      paymentStatusSelect.value = 'Paid';
       paymentMethodSelect.value = 'Cash';
       if (fulfillmentTypeSelect) {
         fulfillmentTypeSelect.value = 'Pick up';
@@ -905,21 +886,6 @@ $scriptTemplate = <<<'JS'
   inStockOnlyCheckbox.addEventListener('change', () => {
     log('debug', 'In-stock filter toggled', { checked: inStockOnlyCheckbox.checked });
     fetchProducts(productSearchInput.value.trim());
-  });
-
-  paymentStatusSelect.addEventListener('change', () => {
-    log('debug', 'Payment status changed', { status: paymentStatusSelect.value });
-    if (paymentStatusSelect.value === 'Paid' && !paymentAmountTouched) {
-      const total = Array.from(selectedItems.values()).reduce((sum, item) => sum + item.price * item.quantity, 0);
-      paymentAmountInput.value = total.toFixed(2);
-    } else if (!paymentAmountTouched) {
-      paymentAmountInput.value = '0.00';
-    }
-  });
-
-  paymentAmountInput.addEventListener('input', () => {
-    paymentAmountTouched = true;
-    log('debug', 'Payment amount input changed', { value: paymentAmountInput.value });
   });
 
   form.addEventListener('submit', submitForm);

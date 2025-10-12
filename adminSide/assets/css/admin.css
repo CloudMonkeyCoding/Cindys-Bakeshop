@@ -1541,6 +1541,12 @@ button,
   font-size: 14px;
 }
 
+.pos-payment-note {
+  font-size: 13px;
+  color: #555;
+  margin: -4px 0 0;
+}
+
 .summary-table {
   width: 100%;
   border-collapse: collapse;
