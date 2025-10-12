@@ -373,6 +373,17 @@ img {
   font-size: 14px;
 }
 
+.btn.btn-secondary[disabled],
+.btn.btn-secondary:disabled,
+.btn.btn-secondary[aria-disabled="true"] {
+  background-color: #d4d8df;
+  border-color: #c6cad1;
+  color: #7a828f;
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 1;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
