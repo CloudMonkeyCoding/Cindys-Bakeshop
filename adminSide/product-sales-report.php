@@ -28,6 +28,14 @@ $categoryUnits = [];
 $hourlyLabels = [];
 $hourlyRevenue = [];
 $hourlyUnits = [];
+$dailyTotals = [];
+$dailyLabels = [];
+$dailyRevenue = [];
+$dailyUnits = [];
+$weeklyTotals = [];
+$weeklyLabels = [];
+$weeklyRevenue = [];
+$weeklyUnits = [];
 $recentSaleDisplayDateFormat = 'M d, Y g:i A';
 
 $today = new DateTimeImmutable('today');
@@ -231,8 +239,109 @@ if ($pdo) {
         $bucketKey = $point->format('Y-m-d H:00:00');
         $hourlyLabels[] = $point->format($hourLabelFormat);
         $bucketData = $trendBuckets[$bucketKey] ?? ['revenue' => 0.0, 'units' => 0.0];
-        $hourlyRevenue[] = (float)$bucketData['revenue'];
-        $hourlyUnits[] = (int)round($bucketData['units']);
+        $bucketRevenue = (float)($bucketData['revenue'] ?? 0.0);
+        $bucketUnits = (float)($bucketData['units'] ?? 0.0);
+        $hourlyRevenue[] = $bucketRevenue;
+        $hourlyUnits[] = (int)round($bucketUnits);
+
+        $dayKey = $point->format('Y-m-d');
+        if (!isset($dailyTotals[$dayKey])) {
+            $dailyTotals[$dayKey] = [
+                'date' => $point->setTime(0, 0, 0),
+                'revenue' => 0.0,
+                'units' => 0.0,
+            ];
+        }
+        $dailyTotals[$dayKey]['revenue'] += $bucketRevenue;
+        $dailyTotals[$dayKey]['units'] += $bucketUnits;
+
+        $weekYear = (int)$point->format('o');
+        $weekNumber = (int)$point->format('W');
+        $weekKey = sprintf('%d-W%02d', $weekYear, $weekNumber);
+        if (!isset($weeklyTotals[$weekKey])) {
+            $weekStartFull = (new DateTimeImmutable())->setISODate($weekYear, $weekNumber)->setTime(0, 0, 0);
+            $weekStartForLabel = $weekStartFull;
+            if ($weekStartFull < $rangeStart) {
+                $weekStartForLabel = $rangeStart;
+            }
+            $weekEndFull = $weekStartFull->modify('+6 days');
+            $weekEndForLabel = $weekEndFull;
+            $lastRangeDay = $rangeEndExclusive->modify('-1 day');
+            if ($weekEndForLabel > $lastRangeDay) {
+                $weekEndForLabel = $lastRangeDay;
+            }
+            $weeklyTotals[$weekKey] = [
+                'start' => $weekStartForLabel,
+                'end' => $weekEndForLabel,
+                'revenue' => 0.0,
+                'units' => 0.0,
+            ];
+        }
+        $weeklyTotals[$weekKey]['revenue'] += $bucketRevenue;
+        $weeklyTotals[$weekKey]['units'] += $bucketUnits;
+    }
+
+    ksort($dailyTotals);
+    if (!empty($dailyTotals)) {
+        $dailyYears = [];
+        foreach ($dailyTotals as $dailyData) {
+            $dailyDate = $dailyData['date'] ?? null;
+            if ($dailyDate instanceof DateTimeInterface) {
+                $dailyYears[$dailyDate->format('Y')] = true;
+            }
+        }
+        $includeDailyYear = count($dailyYears) > 1;
+        foreach ($dailyTotals as $dailyData) {
+            $dailyDate = $dailyData['date'] ?? null;
+            $label = '';
+            if ($dailyDate instanceof DateTimeInterface) {
+                $label = $dailyDate->format($includeDailyYear ? 'M d, Y' : 'M d');
+            }
+            $dailyLabels[] = $label;
+            $dailyRevenue[] = round((float)($dailyData['revenue'] ?? 0), 2);
+            $dailyUnits[] = (int)round((float)($dailyData['units'] ?? 0));
+        }
+    }
+
+    ksort($weeklyTotals);
+    if (!empty($weeklyTotals)) {
+        $weekYears = [];
+        foreach ($weeklyTotals as $weeklyData) {
+            $startDate = $weeklyData['start'] ?? null;
+            $endDate = $weeklyData['end'] ?? null;
+            if ($startDate instanceof DateTimeInterface) {
+                $weekYears[$startDate->format('Y')] = true;
+            }
+            if ($endDate instanceof DateTimeInterface) {
+                $weekYears[$endDate->format('Y')] = true;
+            }
+        }
+        $includeWeekYear = count($weekYears) > 1;
+        foreach ($weeklyTotals as $weeklyData) {
+            $startDate = $weeklyData['start'] ?? null;
+            $endDate = $weeklyData['end'] ?? null;
+            $startLabel = '';
+            $endLabel = '';
+            if ($startDate instanceof DateTimeInterface) {
+                $startLabel = $startDate->format($includeWeekYear ? 'M d, Y' : 'M d');
+            }
+            if ($endDate instanceof DateTimeInterface) {
+                $endFormat = $includeWeekYear;
+                if ($startDate instanceof DateTimeInterface && $startDate->format('Y') !== $endDate->format('Y')) {
+                    $endFormat = true;
+                }
+                $endLabel = $endDate->format($endFormat ? 'M d, Y' : 'M d');
+            }
+            if ($startLabel !== '' && $endLabel !== '') {
+                $weeklyLabels[] = sprintf('Week of %s – %s', $startLabel, $endLabel);
+            } elseif ($startLabel !== '') {
+                $weeklyLabels[] = sprintf('Week of %s', $startLabel);
+            } else {
+                $weeklyLabels[] = 'Week';
+            }
+            $weeklyRevenue[] = round((float)($weeklyData['revenue'] ?? 0), 2);
+            $weeklyUnits[] = (int)round((float)($weeklyData['units'] ?? 0));
+        }
     }
 
     $statusSql = "
@@ -337,9 +446,24 @@ foreach ($sortedCategoryRevenue as $category => $revenue) {
 }
 
 $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
-$hourlyLabelsJson = json_encode($hourlyLabels, $jsonFlags) ?: '[]';
-$hourlyRevenueJson = json_encode($hourlyRevenueRounded, $jsonFlags) ?: '[]';
-$hourlyUnitsJson = json_encode($hourlyUnits, $jsonFlags) ?: '[]';
+$salesTrendSeries = [
+    'hourly' => [
+        'labels' => $hourlyLabels,
+        'revenue' => $hourlyRevenueRounded,
+        'units' => array_map('intval', $hourlyUnits),
+    ],
+    'daily' => [
+        'labels' => $dailyLabels,
+        'revenue' => $dailyRevenue,
+        'units' => array_map('intval', $dailyUnits),
+    ],
+    'weekly' => [
+        'labels' => $weeklyLabels,
+        'revenue' => $weeklyRevenue,
+        'units' => array_map('intval', $weeklyUnits),
+    ],
+];
+$salesTrendSeriesJson = json_encode($salesTrendSeries, $jsonFlags) ?: '{}';
 $topProductLabelsJson = json_encode($topProductLabels, $jsonFlags) ?: '[]';
 $topProductRevenueJson = json_encode($topProductRevenueValues, $jsonFlags) ?: '[]';
 $topProductUnitsJson = json_encode($topProductUnitValues, $jsonFlags) ?: '[]';
@@ -347,7 +471,41 @@ $categoryLabelsJson = json_encode($categoryLabels, $jsonFlags) ?: '[]';
 $categoryRevenueJson = json_encode($categoryRevenueValues, $jsonFlags) ?: '[]';
 $categoryUnitsJson = json_encode($categoryUnitValues, $jsonFlags) ?: '[]';
 
-$extraHead = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>';
+$extraHead = <<<HTML
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+<style>
+  .chart-interval-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .chart-interval-button {
+    padding: 6px 12px;
+    border: 1px solid #dcdde1;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #2c3e50;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .chart-interval-button.is-active {
+    background: #e74c3c;
+    color: #ffffff;
+    border-color: #e74c3c;
+  }
+
+  .chart-interval-button:focus-visible {
+    outline: 2px solid #e74c3c;
+    outline-offset: 1px;
+  }
+</style>
+HTML;
 
 include 'includes/header.php';
 include 'includes/sidebar.php';
@@ -431,10 +589,15 @@ include 'includes/sidebar.php';
     <div class="card">
       <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px;">
         <div>
-          <h2 style="font-size:18px;margin:0;">Hourly Sales</h2>
-          <p id="hourlySalesCaption" style="margin:4px 0 0;font-size:13px;color:#7f8c8d;">
+          <h2 style="font-size:18px;margin:0;">Sales Trend</h2>
+          <p id="salesTrendCaption" style="margin:4px 0 0;font-size:13px;color:#7f8c8d;">
             <?= htmlspecialchars($rangeSummaryLabel); ?>
           </p>
+        </div>
+        <div class="chart-interval-controls" role="group" aria-label="Sales trend interval">
+          <button type="button" class="chart-interval-button is-active" data-sales-interval="hourly" aria-pressed="true">Hourly</button>
+          <button type="button" class="chart-interval-button" data-sales-interval="daily" aria-pressed="false">Daily</button>
+          <button type="button" class="chart-interval-button" data-sales-interval="weekly" aria-pressed="false">Weekly</button>
         </div>
       </div>
       <canvas id="salesChart" height="220"></canvas>
@@ -547,9 +710,7 @@ if ($rangeSummaryJson === false) {
 }
 $extraScripts = <<<JS
 <script>
-  const hourlySalesLabels = $hourlyLabelsJson;
-  const hourlySalesRevenue = $hourlyRevenueJson;
-  const hourlySalesUnits = $hourlyUnitsJson;
+  const salesTrendSeries = $salesTrendSeriesJson;
   const topProductLabels = $topProductLabelsJson;
   const topProductRevenue = $topProductRevenueJson;
   const topProductUnits = $topProductUnitsJson;
@@ -595,40 +756,141 @@ $extraScripts = <<<JS
   }
 
   const salesChartCanvas = document.getElementById('salesChart');
-  const hourlySalesCaption = document.getElementById('hourlySalesCaption');
+  const salesTrendCaption = document.getElementById('salesTrendCaption');
+  const intervalButtons = Array.from(document.querySelectorAll('[data-sales-interval]'));
+
+  const intervalLabels = {
+    hourly: 'Hourly',
+    daily: 'Daily',
+    weekly: 'Weekly',
+  };
+
+  const axisLabels = {
+    hourly: 'Hour of Day',
+    daily: 'Day',
+    weekly: 'Week',
+  };
+
+  const hasInterval = interval => Object.prototype.hasOwnProperty.call(intervalLabels, interval);
+
+  const getSeriesForInterval = interval => {
+    if (!salesTrendSeries || typeof salesTrendSeries !== 'object') {
+      return { labels: [], revenue: [], units: [] };
+    }
+    const candidate = hasInterval(interval) ? salesTrendSeries[interval] : null;
+    if (!candidate || typeof candidate !== 'object') {
+      return { labels: [], revenue: [], units: [] };
+    }
+    const labels = Array.isArray(candidate.labels) ? candidate.labels.slice() : [];
+    const revenue = Array.isArray(candidate.revenue)
+      ? candidate.revenue.map(value => {
+          const numeric = Number.parseFloat(value);
+          return Number.isFinite(numeric) ? numeric : 0;
+        })
+      : [];
+    const units = Array.isArray(candidate.units)
+      ? candidate.units.map(value => {
+          const numeric = Number.parseFloat(value);
+          return Number.isFinite(numeric) ? Math.round(numeric) : 0;
+        })
+      : [];
+    return { labels, revenue, units };
+  };
+
+  const computePointRadius = labels => (Array.isArray(labels) && labels.length > 16 ? 3 : 6);
+  const computeHoverRadius = radius => (radius <= 3 ? 5 : 8);
+
+  const updateIntervalButtons = interval => {
+    if (!intervalButtons.length) {
+      return;
+    }
+    intervalButtons.forEach(button => {
+      const buttonInterval = button.getAttribute('data-sales-interval');
+      const isActive = buttonInterval === interval;
+      if (isActive) {
+        button.classList.add('is-active');
+        button.setAttribute('aria-pressed', 'true');
+      } else {
+        button.classList.remove('is-active');
+        button.setAttribute('aria-pressed', 'false');
+      }
+    });
+  };
+
+  const updateCaption = (series, interval) => {
+    if (!salesTrendCaption) {
+      return;
+    }
+    const captionParts = [];
+    if (reportRangeLabel) {
+      captionParts.push(reportRangeLabel);
+    }
+    const intervalLabel = hasInterval(interval) ? intervalLabels[interval] : intervalLabels.hourly;
+    captionParts.push(intervalLabel + ' view');
+    const hasRevenue = Array.isArray(series.revenue) && series.revenue.some(value => {
+      const numeric = Number.parseFloat(value);
+      return Number.isFinite(numeric) && Math.abs(numeric) > 0;
+    });
+    if (!hasRevenue) {
+      captionParts.push('No sales recorded');
+    }
+    salesTrendCaption.textContent = captionParts.join(' • ');
+  };
+
+  let activeInterval = 'hourly';
+  let salesChart = null;
+
+  const applySalesTrendInterval = interval => {
+    const normalizedInterval = hasInterval(interval) ? interval : 'hourly';
+    const series = getSeriesForInterval(normalizedInterval);
+    activeInterval = normalizedInterval;
+    if (salesChart) {
+      const dataset = salesChart.data.datasets[0];
+      dataset.data = series.revenue.slice();
+      dataset.units = series.units.slice();
+      const pointRadius = computePointRadius(series.labels);
+      dataset.pointRadius = pointRadius;
+      dataset.pointHoverRadius = computeHoverRadius(pointRadius);
+      salesChart.data.labels = series.labels.slice();
+      if (
+        salesChart.options &&
+        salesChart.options.scales &&
+        salesChart.options.scales.x &&
+        salesChart.options.scales.x.title
+      ) {
+        salesChart.options.scales.x.title.text = axisLabels[normalizedInterval] || 'Period';
+      }
+      salesChart.update();
+    }
+    updateCaption(series, normalizedInterval);
+    updateIntervalButtons(normalizedInterval);
+  };
+
   if (salesChartCanvas) {
     const ctx = salesChartCanvas.getContext('2d');
     const gradient = ctx.createLinearGradient(0, 0, 0, salesChartCanvas.height || 400);
     gradient.addColorStop(0, 'rgba(231, 76, 60, 0.4)');
     gradient.addColorStop(1, 'rgba(231, 76, 60, 0)');
 
-    const labels = Array.isArray(hourlySalesLabels) ? hourlySalesLabels.slice() : [];
-    const revenueValues = [];
-    const unitValues = [];
-    for (let index = 0; index < labels.length; index += 1) {
-      const revenueCandidate = Array.isArray(hourlySalesRevenue) && index < hourlySalesRevenue.length ? Number.parseFloat(hourlySalesRevenue[index]) : 0;
-      revenueValues.push(Number.isFinite(revenueCandidate) ? revenueCandidate : 0);
-      const unitCandidate = Array.isArray(hourlySalesUnits) && index < hourlySalesUnits.length ? Number.parseFloat(hourlySalesUnits[index]) : 0;
-      unitValues.push(Number.isFinite(unitCandidate) ? unitCandidate : 0);
-    }
-    const isDense = labels.length > 16;
-    const pointRadius = isDense ? 3 : 6;
-    const hoverRadius = isDense ? 5 : 8;
+    const initialSeries = getSeriesForInterval(activeInterval);
+    const initialPointRadius = computePointRadius(initialSeries.labels);
+    const initialHoverRadius = computeHoverRadius(initialPointRadius);
 
-    const salesChart = new Chart(ctx, {
+    salesChart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels,
+        labels: initialSeries.labels.slice(),
         datasets: [{
           label: 'Revenue (₱)',
-          data: revenueValues,
+          data: initialSeries.revenue.slice(),
+          units: initialSeries.units.slice(),
           borderColor: '#e74c3c',
           borderWidth: 3,
           backgroundColor: gradient,
           pointBackgroundColor: '#fff',
           pointBorderColor: '#e74c3c',
-          pointRadius,
-          pointHoverRadius: hoverRadius,
+          pointRadius: initialPointRadius,
+          pointHoverRadius: initialHoverRadius,
           tension: 0.4,
           fill: true,
         }]
@@ -642,8 +904,9 @@ $extraScripts = <<<JS
               label: context => {
                 const value = context.parsed.y ?? 0;
                 const revenueLabel = 'Revenue: ₱' + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                const units = unitValues[context.dataIndex] ?? 0;
-                const unitsLabel = 'Units sold: ' + Number(units).toLocaleString();
+                const unitsCollection = Array.isArray(context.dataset.units) ? context.dataset.units : [];
+                const unitsValue = unitsCollection[context.dataIndex] ?? 0;
+                const unitsLabel = 'Units sold: ' + Number(unitsValue).toLocaleString();
                 return [revenueLabel, unitsLabel];
               }
             }
@@ -651,7 +914,7 @@ $extraScripts = <<<JS
         },
         scales: {
           x: {
-            title: { display: true, text: 'Hour of Day' },
+            title: { display: true, text: axisLabels[activeInterval] },
             ticks: {
               autoSkip: true,
               maxRotation: 0,
@@ -668,12 +931,23 @@ $extraScripts = <<<JS
       }
     });
 
-    if (hourlySalesCaption) {
-      const hasSalesData = revenueValues.some(value => Number.isFinite(value) && Math.abs(value) > 0);
-      if (!hasSalesData) {
-        hourlySalesCaption.textContent = hourlySalesCaption.textContent + ' • No sales recorded';
-      }
-    }
+    updateCaption(initialSeries, activeInterval);
+    updateIntervalButtons(activeInterval);
+  } else {
+    updateCaption(getSeriesForInterval(activeInterval), activeInterval);
+    updateIntervalButtons(activeInterval);
+  }
+
+  if (intervalButtons.length) {
+    intervalButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const interval = button.getAttribute('data-sales-interval') || 'hourly';
+        if (interval === activeInterval) {
+          return;
+        }
+        applySalesTrendInterval(interval);
+      });
+    });
   }
 
   const topProductChartEl = document.getElementById('topProductChart');
