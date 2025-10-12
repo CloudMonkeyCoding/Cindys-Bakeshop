@@ -15,6 +15,9 @@ function buildProductPayload(array $product): array
 {
     $category = strtolower(trim((string)($product['Category'] ?? '')));
     $stock = (int)($product['Stock_Quantity'] ?? 0);
+    if ($stock < 0) {
+        $stock = 0;
+    }
     return [
         'id' => (int)($product['Product_ID'] ?? 0),
         'name' => (string)($product['Name'] ?? 'Untitled Product'),
@@ -23,7 +26,7 @@ function buildProductPayload(array $product): array
         'stock' => $stock,
         'category' => $category !== '' ? $category : 'other',
         'image' => getProductImageUrl($product, '../../'),
-        'isPreorder' => $stock <= 0,
+        'isPreorder' => false,
     ];
 }
 
@@ -39,9 +42,7 @@ usort($bestSellers, static function ($a, $b) {
 });
 $bestSellers = array_slice($bestSellers, 0, 6);
 
-$preorderItems = array_values(array_filter($payloadProducts, static function ($product) {
-    return $product['isPreorder'];
-}));
+$preorderItems = [];
 
 $pageData = [
     'all' => $payloadProducts,

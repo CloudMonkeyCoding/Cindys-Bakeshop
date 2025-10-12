@@ -34,7 +34,8 @@ if ($pdo) {
     $rows = getInventoryWithProducts($pdo, $reportDate);
     foreach ($rows as $row) {
         $category = $row['Category'] ?? 'Uncategorized';
-        $stock = $row['Stock_Quantity'];
+        $stockRaw = $row['Stock_Quantity'];
+        $stockValue = max(0, (int)$stockRaw);
 
         if (!array_key_exists($category, $inventoryData)) {
             $inventoryData[$category] = [];
@@ -46,19 +47,14 @@ if ($pdo) {
         $inventoryData[$category][] = [
             'id' => $row['Product_ID'],
             'name' => $row['Name'],
-            'stock' => $stock
+            'stock' => $stockValue
         ];
 
         $totalTracked++;
 
-        if ($stock === null) {
-            $preOrderCount++;
-        } else {
-            $stockValue = max(0, (int)$stock);
-            $categoryTotals[$category] += $stockValue;
-            if ($stockValue <= 10) {
-                $lowStockCount++;
-            }
+        $categoryTotals[$category] += $stockValue;
+        if ($stockValue <= 10) {
+            $lowStockCount++;
         }
     }
 
@@ -205,8 +201,8 @@ include 'includes/sidebar.php';
     </div>
     <div class="stat-card">
       <h3>Pre-order Items</h3>
-      <div class="value" id="inventoryPreorderCount"><?= number_format($preOrderCount); ?></div>
-      <div class="meta">Stock marked as TBD</div>
+      <div class="value" id="inventoryPreorderCount">0</div>
+      <div class="meta">Pre-ordering disabled</div>
     </div>
     <div class="stat-card">
       <h3>Low Stock Alerts</h3>
@@ -249,13 +245,7 @@ include 'includes/sidebar.php';
                 <?php foreach ($items as $item): ?>
                   <tr>
                     <td><?= htmlspecialchars($item['name']); ?></td>
-                    <td>
-                      <?php if ($item['stock'] === null): ?>
-                        Pre-order
-                      <?php else: ?>
-                        <?= number_format(max(0, (int)$item['stock'])); ?>
-                      <?php endif; ?>
-                    </td>
+                    <td><?= number_format(max(0, (int)$item['stock'])); ?></td>
                   </tr>
                 <?php endforeach; ?>
               </tbody>
@@ -521,12 +511,10 @@ document.addEventListener('DOMContentLoaded', () => {
         stockInput.min = '0';
         stockInput.step = '1';
         stockInput.setAttribute('inputmode', 'numeric');
-        stockInput.placeholder = 'Pre-order';
-        if (item?.stock !== null && typeof item?.stock !== 'undefined') {
-          stockInput.value = Number(item.stock);
-        } else {
-          stockInput.value = '';
-        }
+        stockInput.placeholder = '0';
+        const parsedStock = parseInt(item?.stock, 10);
+        const safeStock = Number.isNaN(parsedStock) ? 0 : Math.max(0, parsedStock);
+        stockInput.value = safeStock;
 
         const plusButton = document.createElement('button');
         plusButton.type = 'button';
@@ -688,22 +676,11 @@ document.addEventListener('DOMContentLoaded', () => {
       row.removeAttribute('data-stock-state');
     }
 
-    if (raw === '') {
-      if (note) {
-        note.textContent = 'Pre-order';
-        note.classList.add('is-preorder');
-      }
-      if (row) {
-        row.setAttribute('data-stock-state', 'preorder');
-      }
-      return null;
-    }
-
     let numeric = parseInt(raw, 10);
     if (Number.isNaN(numeric) || numeric < 0) {
       numeric = 0;
     }
-    if (input && String(numeric) !== raw) {
+    if (input) {
       input.value = numeric;
     }
 
@@ -742,16 +719,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const productId = Number(control.dataset.productId);
     const sanitized = sanitizeStockValue(input.value);
-    input.value = sanitized === '' ? '' : sanitized;
+    input.value = sanitized;
     updateStockStatus(control);
 
     const itemMeta = inventoryIndex.get(productId);
-    const previous = itemMeta ? inventoryData[itemMeta.category]?.[itemMeta.position]?.stock ?? null : null;
+    const previous = itemMeta ? inventoryData[itemMeta.category]?.[itemMeta.position]?.stock ?? 0 : 0;
+    const sanitizedNumber = parseInt(sanitized, 10);
 
-    if (sanitized === '' && previous === null) {
-      return;
-    }
-    if (sanitized !== '' && previous === Number(sanitized)) {
+    if (!Number.isNaN(sanitizedNumber) && previous === sanitizedNumber) {
       return;
     }
 
@@ -800,14 +775,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function sanitizeStockValue(raw) {
     const trimmed = (raw ?? '').toString().trim();
-    if (trimmed === '') {
-      return '';
-    }
     let numeric = parseInt(trimmed, 10);
     if (Number.isNaN(numeric) || numeric < 0) {
       numeric = 0;
     }
-    return numeric;
+    return String(numeric);
   }
 
   function normalizeInventoryData(raw) {
@@ -821,13 +793,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       normalized[category] = items.map((item) => {
         const stockValue = item?.stock;
-        let normalizedStock = null;
-        if (stockValue === null || stockValue === '' || typeof stockValue === 'undefined') {
-          normalizedStock = null;
-        } else {
-          const parsed = parseInt(stockValue, 10);
-          normalizedStock = Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
-        }
+        const parsed = parseInt(stockValue, 10);
+        const normalizedStock = Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
         return {
           id: Number(item?.id ?? 0),
           name: item?.name ?? '',
@@ -852,14 +819,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       items.forEach((item) => {
         totalTracked += 1;
-        if (item.stock === null || typeof item.stock === 'undefined') {
-          preOrderCount += 1;
-        } else {
-          const value = Math.max(0, parseInt(item.stock, 10) || 0);
-          categoryTotal += value;
-          if (value <= 10) {
-            lowStockCount += 1;
-          }
+        const value = Math.max(0, parseInt(item.stock, 10) || 0);
+        categoryTotal += value;
+        if (value <= 10) {
+          lowStockCount += 1;
         }
       });
       totals[category] = categoryTotal;
@@ -901,8 +864,8 @@ document.addEventListener('DOMContentLoaded', () => {
       y += 6;
 
       const body = (inventoryData[category] || []).map((item) => {
-        const stock = item.stock === null || typeof item.stock === 'undefined' ? 'Pre-order' : String(item.stock);
-        return [item.name || 'Unnamed Item', stock];
+        const stock = Math.max(0, parseInt(item.stock, 10) || 0);
+        return [item.name || 'Unnamed Item', String(stock)];
       });
 
       if (!body.length) {

@@ -263,7 +263,15 @@ function ensureInventoryDailySnapshot(PDO $pdo, $snapshotDate)
             $snapshotQuantity = $row['Current_Quantity'];
         }
 
+        if ($snapshotQuantity === null) {
+            $snapshotQuantity = 0;
+        }
+
         $normalizedQuantity = normalizeInventoryQuantity($snapshotQuantity);
+
+        if ($normalizedQuantity === null) {
+            $normalizedQuantity = 0;
+        }
 
         $insert->execute([
             ':snapshot_date' => $normalizedDate,
@@ -280,7 +288,7 @@ function ensureInventoryDailySnapshot(PDO $pdo, $snapshotDate)
 function getInventoryWithProducts($pdo, $snapshotDate = null) {
     if ($snapshotDate === null) {
         $stmt = $pdo->query(
-            "SELECT p.Product_ID, p.Name, p.Category, i.Stock_Quantity\n" .
+            "SELECT p.Product_ID, p.Name, p.Category, COALESCE(i.Stock_Quantity, 0) AS Stock_Quantity\n" .
             "FROM inventory i\n" .
             "JOIN product p ON i.Product_ID = p.Product_ID"
         );
@@ -294,10 +302,7 @@ function getInventoryWithProducts($pdo, $snapshotDate = null) {
         . "    p.Product_ID,\n"
         . "    p.Name,\n"
         . "    p.Category,\n"
-        . "    CASE\n"
-        . "        WHEN ids.Snapshot_ID IS NOT NULL THEN ids.Quantity\n"
-        . "        ELSE i.Stock_Quantity\n"
-        . "    END AS Stock_Quantity\n"
+        . "    COALESCE(ids.Quantity, i.Stock_Quantity, 0) AS Stock_Quantity\n"
         . "FROM inventory i\n"
         . "JOIN product p ON i.Product_ID = p.Product_ID\n"
         . "LEFT JOIN inventory_daily_snapshot ids\n"
@@ -476,7 +481,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['product_id'], $_POST[
 
     $productId = (int)$_POST['product_id'];
     $stockInput = trim($_POST['stock_quantity']);
-    $stockQuantity = ($stockInput === '') ? null : (int)$stockInput;
+    if ($stockInput === '' || !is_numeric($stockInput)) {
+        $stockQuantity = 0;
+    } else {
+        $stockQuantity = (int)$stockInput;
+    }
+
+    if ($stockQuantity < 0) {
+        $stockQuantity = 0;
+    }
     updateInventoryStock($pdo, $productId, $stockQuantity, [
         'reference_type' => 'admin_panel',
         'note' => 'Admin inventory adjustment'
