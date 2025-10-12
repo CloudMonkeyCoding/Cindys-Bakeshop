@@ -933,6 +933,7 @@ $productBase = $userPrefix . 'PRODUCT/';
           flex-direction: column;
           text-align: center;
           padding: 5rem 4% 4rem;
+          gap: 3rem;
         }
 
         .hero h1 {
