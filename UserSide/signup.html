@@ -846,6 +846,93 @@ const errors = {
 };
 
 let mediaStream = null;
+let nativeFaceDetector = null;
+let fallbackDetectorPromise = null;
+let loadingFallbackDetector = false;
+
+const FALLBACK_FACE_DETECTION_SCRIPTS = [
+  'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js',
+  'https://cdn.jsdelivr.net/npm/@tensorflow-models/face-detection@1.0.2/dist/face-detection.min.js'
+];
+
+function loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) {
+      resolve();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+    document.head.appendChild(script);
+  });
+}
+
+async function getFallbackFaceDetector() {
+  if (fallbackDetectorPromise) {
+    return fallbackDetectorPromise;
+  }
+
+  fallbackDetectorPromise = (async () => {
+    try {
+      loadingFallbackDetector = true;
+      for (const script of FALLBACK_FACE_DETECTION_SCRIPTS) {
+        await loadScriptOnce(script);
+      }
+
+      if (!window.faceDetection || !faceDetection.SupportedModels || !faceDetection.createDetector) {
+        throw new Error('Face detection library is unavailable after loading scripts.');
+      }
+
+      return await faceDetection.createDetector(faceDetection.SupportedModels.MediaPipeFaceDetector, {
+        runtime: 'tfjs',
+        maxFaces: 1,
+        modelType: 'short',
+      });
+    } catch (error) {
+      fallbackDetectorPromise = null;
+      throw error;
+    } finally {
+      loadingFallbackDetector = false;
+    }
+  })();
+
+  return fallbackDetectorPromise;
+}
+
+async function detectFaceWithFallback(canvas) {
+  if (loadingFallbackDetector) {
+    setErrorMessage(
+      faceError,
+      'Loading face detection support. This may take a moment on your first attempt.'
+    );
+  }
+  try {
+    const detector = await getFallbackFaceDetector();
+    const faces = await detector.estimateFaces(canvas, { flipHorizontal: false });
+    if (!faces.length) {
+      setErrorMessage(
+        faceError,
+        'No face detected. Please ensure your face is clearly visible in the frame and try again.'
+      );
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Fallback face detection failed:', error);
+    const supportHint = isSecureContext
+      ? 'Please try using a browser that supports camera-based face detection.'
+      : 'Face detection requires a secure (https) connection. Reload the page using https or try a supported browser.';
+    setErrorMessage(
+      faceError,
+      `Face detection is not supported in this environment. ${supportHint}`
+    );
+    return false;
+  }
+}
 
 function setErrorMessage(element, message) {
   if (!element) return;
@@ -1076,33 +1163,34 @@ function stopCamera() {
 }
 
 async function detectFaceFromCanvas(canvas) {
-  if (!('FaceDetector' in window)) {
-    setErrorMessage(
-      faceError,
-      'Face detection is not supported in this browser. Please try using the latest version of Chrome or Edge.'
-    );
-    return false;
+  if ('FaceDetector' in window) {
+    try {
+      if (!nativeFaceDetector) {
+        nativeFaceDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+      }
+      const faces = await nativeFaceDetector.detect(canvas);
+      if (!faces.length) {
+        setErrorMessage(
+          faceError,
+          'No face detected. Please ensure your face is clearly visible in the frame and try again.'
+        );
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.warn('Native face detection failed, attempting fallback:', error);
+      return detectFaceWithFallback(canvas);
+    }
   }
 
-  try {
-    const detector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
-    const faces = await detector.detect(canvas);
-    if (!faces.length) {
-      setErrorMessage(
-        faceError,
-        'No face detected. Please ensure your face is clearly visible in the frame and try again.'
-      );
-      return false;
-    }
-    return true;
-  } catch (error) {
-    console.error('Face detection failed:', error);
+  if (!loadingFallbackDetector) {
     setErrorMessage(
       faceError,
-      'We could not verify your face. Adjust lighting or remove obstructions and capture again.'
+      'Face detection support is loading. This may take a moment on your first attempt.'
     );
-    return false;
   }
+
+  return detectFaceWithFallback(canvas);
 }
 
 async function captureFace() {
