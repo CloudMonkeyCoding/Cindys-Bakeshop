@@ -61,6 +61,12 @@
       font-weight: 700;
     }
 
+    .delivery-area-note {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.4rem;
+    }
+
     .cart-list {
       display: flex;
       flex-direction: column;
@@ -398,6 +404,7 @@
               <label for="address-street">Delivery Address</label>
               <button type="button" id="edit-address" class="edit-field-btn">Edit</button>
             </div>
+            <p class="delivery-area-note">Delivery service is currently limited to Hagonoy, Bulacan.</p>
             <div class="input-wrapper address-wrapper">
               <div class="address-grid">
                 <input type="text" id="address-street" class="wide" placeholder="House No., Street" required readonly />
@@ -471,7 +478,8 @@
     const addressBarangayField = document.getElementById('address-barangay');
     const addressCityField = document.getElementById('address-city');
     const addressProvinceField = document.getElementById('address-province');
-    const addressFields = [addressStreetField, addressBarangayField, addressCityField, addressProvinceField];
+    const editableAddressFields = [addressStreetField, addressBarangayField];
+    const lockedAddressFields = [addressCityField, addressProvinceField];
     const nameEditBtn = document.getElementById('edit-name');
     const addrEditBtn = document.getElementById('edit-address');
     const nameDoneBtn = document.getElementById('done-name');
@@ -480,6 +488,23 @@
     const mopSelect = document.getElementById('mop');
     const specialInstructionsField = document.getElementById('special-instructions');
     const cartStatus = document.getElementById('cartStatus');
+
+    const SERVICE_CITY = 'Hagonoy';
+    const SERVICE_PROVINCE = 'Bulacan';
+
+    function enforceLockedAddressParts() {
+      lockedAddressFields.forEach(field => {
+        field.readOnly = true;
+      });
+
+      if (addressCityField.value.trim().toLowerCase() !== SERVICE_CITY.toLowerCase()) {
+        addressCityField.value = SERVICE_CITY;
+      }
+
+      if (addressProvinceField.value.trim().toLowerCase() !== SERVICE_PROVINCE.toLowerCase()) {
+        addressProvinceField.value = SERVICE_PROVINCE;
+      }
+    }
 
     function getAddressParts() {
       return {
@@ -523,9 +548,10 @@
     }
 
     function setAddressFieldsReadOnly(isReadOnly) {
-      addressFields.forEach(field => {
+      editableAddressFields.forEach(field => {
         field.readOnly = isReadOnly;
       });
+      enforceLockedAddressParts();
     }
 
     function isDeliveryAreaValid() {
@@ -675,6 +701,7 @@
       updateDeliveryAvailability();
     });
 
+    enforceLockedAddressParts();
     updateDeliveryAvailability();
     updateMopOptions();
 
@@ -710,6 +737,8 @@
         addressCityField.value = parsedAddress.city;
         addressProvinceField.value = parsedAddress.province;
       }
+
+      enforceLockedAddressParts();
       updateDeliveryAvailability();
     }
 
@@ -776,6 +805,7 @@
 
     function saveProfile() {
       if (!userEmail) return;
+      enforceLockedAddressParts();
       const parts = getAddressParts();
       const addressValue = composeAddress();
       updateDeliveryAvailability();
