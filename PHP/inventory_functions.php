@@ -183,7 +183,7 @@ function ensureOrderInventoryLogs(PDO $pdo, $startDate = null, $endDate = null)
         }
 
         $orderDate = $row['Order_Date'] ?? null;
-        $createdAt = $orderDate ? ($orderDate . ' 12:00:00') : date('Y-m-d H:i:s');
+        $createdAt = $orderDate && $orderDate !== '' ? $orderDate : date('Y-m-d H:i:s');
 
         $insert->execute([
             ':product_id' => $productId,

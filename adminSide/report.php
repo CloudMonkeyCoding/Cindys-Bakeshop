@@ -103,7 +103,7 @@ if ($pdo) {
         }
 
         if (($rawDate === null || $rawDate === '') && !empty($logRow['Order_Date'])) {
-            $rawDate = $logRow['Order_Date'] . ' 00:00:00';
+            $rawDate = (string)$logRow['Order_Date'];
             $rawDateTimestamp = strtotime($rawDate);
         }
 

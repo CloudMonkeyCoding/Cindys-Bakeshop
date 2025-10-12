@@ -97,7 +97,7 @@ CREATE TABLE `inventory_daily_snapshot` (
 CREATE TABLE `order` (
   `Order_ID` int(11) NOT NULL,
   `User_ID` int(11) DEFAULT NULL,
-  `Order_Date` date DEFAULT NULL,
+  `Order_Date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `Source` enum('online','walk-in') DEFAULT 'online',
   `Fulfillment_Type` enum('Delivery','Pick up') DEFAULT 'Delivery',
   `Special_Instructions` text DEFAULT NULL,
