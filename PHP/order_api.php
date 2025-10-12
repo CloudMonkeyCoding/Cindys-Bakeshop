@@ -62,7 +62,7 @@ switch ($action) {
             }
         }
 
-        $orderId = addOrder($pdo, $userId, date('Y-m-d'), 'Pending', 'online', $orderType, $specialInstructions);
+        $orderId = addOrder($pdo, $userId, date('Y-m-d H:i:s'), 'Pending', 'online', $orderType, $specialInstructions);
         $total = 0;
         foreach ($items as $it) {
             $productId = (int)$it['product_id'];

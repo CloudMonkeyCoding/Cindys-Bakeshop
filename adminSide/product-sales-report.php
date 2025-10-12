@@ -19,53 +19,170 @@ $topProductUnits = 0;
 $topCategoryName = 'No category sales yet';
 $topCategoryRevenue = 0.0;
 $recentSaleTimestamp = null;
-$recentSaleDisplay = 'No sales recorded yet';
+$recentSaleDisplay = 'No sales recorded for this date';
 
 $productSales = [];
 $statusBreakdown = [];
 $categoryRevenue = [];
 $categoryUnits = [];
-$timeRanges = [
-    '7d' => ['label' => 'Last 7 Days', 'days' => 7],
-    '30d' => ['label' => 'Last 30 Days', 'days' => 30],
-    '90d' => ['label' => 'Last 90 Days', 'days' => 90],
-];
-if (function_exists('array_key_first')) {
-    $salesTrendDefaultRange = array_key_first($timeRanges) ?? '7d';
-} else {
-    reset($timeRanges);
-    $salesTrendDefaultRange = key($timeRanges);
-    if ($salesTrendDefaultRange === null) {
-        $salesTrendDefaultRange = '7d';
-    }
+$hourlyLabels = [];
+$hourlyRevenue = [];
+$hourlyUnits = [];
+$dailyTotals = [];
+$dailyLabels = [];
+$dailyRevenue = [];
+$dailyUnits = [];
+$weeklyTotals = [];
+$weeklyLabels = [];
+$weeklyRevenue = [];
+$weeklyUnits = [];
+$recentSaleDisplayDateFormat = 'M d, Y g:i A';
+
+$today = new DateTimeImmutable('today');
+$todayDate = $today->format('Y-m-d');
+$todayWeek = $today->format('o-\WW');
+$todayMonth = $today->format('Y-m');
+
+$viewMode = isset($_GET['view']) ? strtolower(trim((string)$_GET['view'])) : 'day';
+$validViewModes = ['day', 'week', 'month', 'range'];
+if (!in_array($viewMode, $validViewModes, true)) {
+    $viewMode = 'day';
 }
-$salesTrendDefaultLabel = $timeRanges[$salesTrendDefaultRange]['label'] ?? 'Last 7 Days';
-$dailyRevenueMap = [];
-$salesTrendByRange = [];
-$maxDays = 1;
-foreach ($timeRanges as $config) {
-    $days = isset($config['days']) ? (int)$config['days'] : 0;
-    if ($days > $maxDays) {
-        $maxDays = $days;
-    }
+
+$selectedDate = $todayDate;
+$selectedWeek = $todayWeek;
+$selectedMonth = $todayMonth;
+$rangeStartInput = $today->modify('-6 days')->format('Y-m-d');
+$rangeEndInput = $todayDate;
+
+$rangeStart = $today->setTime(0, 0, 0);
+$rangeEndExclusive = $rangeStart->modify('+1 day');
+$rangeLabel = $today->format('F d, Y');
+
+switch ($viewMode) {
+    case 'week':
+        $candidateWeek = isset($_GET['selected_week']) ? trim((string)$_GET['selected_week']) : $selectedWeek;
+        if (preg_match('/^(\d{4})-W(\d{2})$/', $candidateWeek, $matches)) {
+            $weekYear = (int)$matches[1];
+            $weekNumber = (int)$matches[2];
+            try {
+                $weekStart = (new DateTimeImmutable())->setISODate($weekYear, $weekNumber)->setTime(0, 0, 0);
+                $rangeStart = $weekStart;
+                $rangeEndExclusive = $weekStart->modify('+1 week');
+                $rangeLabel = sprintf(
+                    'Week of %s – %s',
+                    $weekStart->format('M d, Y'),
+                    $weekStart->modify('+6 days')->format('M d, Y')
+                );
+                $selectedWeek = $weekStart->format('o-\WW');
+            } catch (Exception $exception) {
+                $selectedWeek = $todayWeek;
+            }
+        }
+        break;
+    case 'month':
+        $candidateMonth = isset($_GET['selected_month']) ? trim((string)$_GET['selected_month']) : $selectedMonth;
+        $monthCandidate = DateTimeImmutable::createFromFormat('Y-m', $candidateMonth) ?: null;
+        if ($monthCandidate instanceof DateTimeImmutable) {
+            $monthStart = $monthCandidate->setTime(0, 0, 0)->modify('first day of this month');
+            $rangeStart = $monthStart;
+            $rangeEndExclusive = $monthStart->modify('first day of next month');
+            $rangeLabel = $monthStart->format('F Y');
+            $selectedMonth = $monthStart->format('Y-m');
+        }
+        break;
+    case 'range':
+        $candidateRangeStart = isset($_GET['range_start']) ? trim((string)$_GET['range_start']) : $rangeStartInput;
+        $candidateRangeEnd = isset($_GET['range_end']) ? trim((string)$_GET['range_end']) : $rangeEndInput;
+        $rangeStartCandidate = DateTimeImmutable::createFromFormat('Y-m-d', $candidateRangeStart) ?: null;
+        $rangeEndCandidate = DateTimeImmutable::createFromFormat('Y-m-d', $candidateRangeEnd) ?: null;
+        if ($rangeStartCandidate instanceof DateTimeImmutable && $rangeEndCandidate instanceof DateTimeImmutable) {
+            if ($rangeEndCandidate < $rangeStartCandidate) {
+                [$rangeStartCandidate, $rangeEndCandidate] = [$rangeEndCandidate, $rangeStartCandidate];
+            }
+            if ($rangeEndCandidate > $today) {
+                $rangeEndCandidate = $today;
+            }
+            if ($rangeStartCandidate > $today) {
+                $rangeStartCandidate = $today;
+            }
+            if ($rangeStartCandidate > $rangeEndCandidate) {
+                $rangeStartCandidate = $rangeEndCandidate;
+            }
+            $rangeStart = $rangeStartCandidate->setTime(0, 0, 0);
+            $rangeEndExclusive = $rangeEndCandidate->setTime(0, 0, 0)->modify('+1 day');
+            $rangeLabel = sprintf(
+                'Custom range: %s – %s',
+                $rangeStart->format('M d, Y'),
+                $rangeEndCandidate->format('M d, Y')
+            );
+            $rangeStartInput = $rangeStart->format('Y-m-d');
+            $rangeEndInput = $rangeEndCandidate->format('Y-m-d');
+        }
+        break;
+    case 'day':
+    default:
+        $candidateDate = isset($_GET['selected_date']) ? trim((string)$_GET['selected_date']) : $selectedDate;
+        $dateCandidate = DateTimeImmutable::createFromFormat('Y-m-d', $candidateDate) ?: null;
+        if (!($dateCandidate instanceof DateTimeImmutable)) {
+            $dateCandidate = $today;
+        }
+        if ($dateCandidate > $today) {
+            $dateCandidate = $today;
+        }
+        $selectedDate = $dateCandidate->format('Y-m-d');
+        $rangeStart = $dateCandidate->setTime(0, 0, 0);
+        $rangeEndExclusive = $rangeStart->modify('+1 day');
+        $rangeLabel = $dateCandidate->format('F d, Y');
+        break;
+}
+
+$startDateTime = $rangeStart->format('Y-m-d H:i:s');
+$endDateTime = $rangeEndExclusive->format('Y-m-d H:i:s');
+$rangeDurationSeconds = max(0, $rangeEndExclusive->getTimestamp() - $rangeStart->getTimestamp());
+$rangeDurationHours = max(1, (int)floor($rangeDurationSeconds / 3600));
+$rangeDayCount = max(1, (int)ceil($rangeDurationSeconds / 86400));
+$recentSaleDisplay = $rangeDayCount > 1 ? 'No sales recorded for this range' : 'No sales recorded for this date';
+$rangeStartForInputs = $rangeStart->format('Y-m-d');
+$rangeEndForInputs = $rangeEndExclusive->modify('-1 day')->format('Y-m-d');
+if ($viewMode !== 'range') {
+    $rangeStartInput = $rangeStartForInputs;
+    $rangeEndInput = $rangeEndForInputs;
+}
+$hourLabelFormat = $viewMode === 'day' ? 'H:i' : 'M d H:i';
+$rangeFieldHidden = [
+    'day' => $viewMode === 'day' ? '' : 'hidden',
+    'week' => $viewMode === 'week' ? '' : 'hidden',
+    'month' => $viewMode === 'month' ? '' : 'hidden',
+    'range' => $viewMode === 'range' ? '' : 'hidden',
+];
+$rangeFieldDisabled = [
+    'day' => $viewMode === 'day' ? '' : 'disabled',
+    'week' => $viewMode === 'week' ? '' : 'disabled',
+    'month' => $viewMode === 'month' ? '' : 'disabled',
+    'range' => $viewMode === 'range' ? '' : 'disabled',
+];
+$rangeSummaryLabel = $rangeLabel;
+if ($rangeDayCount > 1) {
+    $rangeSummaryLabel .= sprintf(' • %d days', $rangeDayCount);
 }
 
 if ($pdo) {
     $allowedStatuses = ['Pending', 'Confirmed', 'Shipped', 'Delivered'];
     $statusList = implode(',', array_map([$pdo, 'quote'], $allowedStatuses));
-
-    $daysInterval = max($maxDays - 1, 0);
+    $startDateQuoted = $pdo->quote($startDateTime);
+    $endDateQuoted = $pdo->quote($endDateTime);
 
     $productSql = "
         SELECT
             p.Product_ID,
             p.Name,
             p.Category,
-            COALESCE(SUM(CASE WHEN o.Status IN ($statusList) THEN oi.Quantity ELSE 0 END), 0) AS units_sold,
-            COALESCE(SUM(CASE WHEN o.Status IN ($statusList) THEN oi.Subtotal ELSE 0 END), 0) AS revenue,
-            COUNT(DISTINCT CASE WHEN o.Status IN ($statusList) THEN o.Order_ID END) AS order_count,
-            MIN(CASE WHEN o.Status IN ($statusList) THEN o.Order_Date END) AS first_sale,
-            MAX(CASE WHEN o.Status IN ($statusList) THEN o.Order_Date END) AS last_sale
+            COALESCE(SUM(CASE WHEN o.Status IN ($statusList) AND o.Order_Date >= $startDateQuoted AND o.Order_Date < $endDateQuoted THEN oi.Quantity ELSE 0 END), 0) AS units_sold,
+            COALESCE(SUM(CASE WHEN o.Status IN ($statusList) AND o.Order_Date >= $startDateQuoted AND o.Order_Date < $endDateQuoted THEN oi.Subtotal ELSE 0 END), 0) AS revenue,
+            COUNT(DISTINCT CASE WHEN o.Status IN ($statusList) AND o.Order_Date >= $startDateQuoted AND o.Order_Date < $endDateQuoted THEN o.Order_ID END) AS order_count,
+            MIN(CASE WHEN o.Status IN ($statusList) AND o.Order_Date >= $startDateQuoted AND o.Order_Date < $endDateQuoted THEN o.Order_Date END) AS first_sale,
+            MAX(CASE WHEN o.Status IN ($statusList) AND o.Order_Date >= $startDateQuoted AND o.Order_Date < $endDateQuoted THEN o.Order_Date END) AS last_sale
         FROM product p
         LEFT JOIN order_item oi ON oi.Product_ID = p.Product_ID
         LEFT JOIN `order` o ON o.Order_ID = oi.Order_ID
@@ -78,9 +195,11 @@ if ($pdo) {
     }
 
     $ordersSql = "
-        SELECT COUNT(DISTINCT CASE WHEN o.Status IN ($statusList) THEN o.Order_ID END) AS order_count
+        SELECT COUNT(DISTINCT CASE WHEN o.Status IN ($statusList) AND o.Order_Date >= $startDateQuoted AND o.Order_Date < $endDateQuoted THEN o.Order_ID END) AS order_count
         FROM order_item oi
         JOIN `order` o ON o.Order_ID = oi.Order_ID
+        WHERE o.Order_Date >= $startDateQuoted AND o.Order_Date < $endDateQuoted
+          AND o.Status IN ($statusList)
     ";
     $stmtOrders = $pdo->query($ordersSql);
     if ($stmtOrders) {
@@ -89,23 +208,139 @@ if ($pdo) {
 
     $trendSql = "
         SELECT
-            DATE(o.Order_Date) AS sale_date,
-            COALESCE(SUM(oi.Subtotal), 0) AS revenue
+            DATE_FORMAT(o.Order_Date, '%Y-%m-%d %H:00:00') AS sale_bucket,
+            COALESCE(SUM(oi.Subtotal), 0) AS revenue,
+            COALESCE(SUM(oi.Quantity), 0) AS units
         FROM order_item oi
         JOIN `order` o ON o.Order_ID = oi.Order_ID
         WHERE o.Status IN ($statusList)
           AND o.Order_Date IS NOT NULL
-          AND DATE(o.Order_Date) >= DATE_SUB(CURDATE(), INTERVAL $daysInterval DAY)
-        GROUP BY sale_date
-        ORDER BY sale_date ASC
+          AND o.Order_Date >= $startDateQuoted
+          AND o.Order_Date < $endDateQuoted
+        GROUP BY sale_bucket
+        ORDER BY sale_bucket ASC
     ";
     $stmtTrend = $pdo->query($trendSql);
+    $trendBuckets = [];
     if ($stmtTrend) {
         while ($row = $stmtTrend->fetch(PDO::FETCH_ASSOC)) {
-            $saleDate = $row['sale_date'] ?? null;
-            if ($saleDate) {
-                $dailyRevenueMap[$saleDate] = (float)($row['revenue'] ?? 0);
+            $bucketKey = $row['sale_bucket'] ?? null;
+            if (is_string($bucketKey) && $bucketKey !== '') {
+                $trendBuckets[$bucketKey] = [
+                    'revenue' => (float)($row['revenue'] ?? 0),
+                    'units' => (float)($row['units'] ?? 0),
+                ];
             }
+        }
+    }
+    $hourInterval = new DateInterval('PT1H');
+    $period = new DatePeriod($rangeStart, $hourInterval, $rangeEndExclusive);
+    foreach ($period as $point) {
+        $bucketKey = $point->format('Y-m-d H:00:00');
+        $hourlyLabels[] = $point->format($hourLabelFormat);
+        $bucketData = $trendBuckets[$bucketKey] ?? ['revenue' => 0.0, 'units' => 0.0];
+        $bucketRevenue = (float)($bucketData['revenue'] ?? 0.0);
+        $bucketUnits = (float)($bucketData['units'] ?? 0.0);
+        $hourlyRevenue[] = $bucketRevenue;
+        $hourlyUnits[] = (int)round($bucketUnits);
+
+        $dayKey = $point->format('Y-m-d');
+        if (!isset($dailyTotals[$dayKey])) {
+            $dailyTotals[$dayKey] = [
+                'date' => $point->setTime(0, 0, 0),
+                'revenue' => 0.0,
+                'units' => 0.0,
+            ];
+        }
+        $dailyTotals[$dayKey]['revenue'] += $bucketRevenue;
+        $dailyTotals[$dayKey]['units'] += $bucketUnits;
+
+        $weekYear = (int)$point->format('o');
+        $weekNumber = (int)$point->format('W');
+        $weekKey = sprintf('%d-W%02d', $weekYear, $weekNumber);
+        if (!isset($weeklyTotals[$weekKey])) {
+            $weekStartFull = (new DateTimeImmutable())->setISODate($weekYear, $weekNumber)->setTime(0, 0, 0);
+            $weekStartForLabel = $weekStartFull;
+            if ($weekStartFull < $rangeStart) {
+                $weekStartForLabel = $rangeStart;
+            }
+            $weekEndFull = $weekStartFull->modify('+6 days');
+            $weekEndForLabel = $weekEndFull;
+            $lastRangeDay = $rangeEndExclusive->modify('-1 day');
+            if ($weekEndForLabel > $lastRangeDay) {
+                $weekEndForLabel = $lastRangeDay;
+            }
+            $weeklyTotals[$weekKey] = [
+                'start' => $weekStartForLabel,
+                'end' => $weekEndForLabel,
+                'revenue' => 0.0,
+                'units' => 0.0,
+            ];
+        }
+        $weeklyTotals[$weekKey]['revenue'] += $bucketRevenue;
+        $weeklyTotals[$weekKey]['units'] += $bucketUnits;
+    }
+
+    ksort($dailyTotals);
+    if (!empty($dailyTotals)) {
+        $dailyYears = [];
+        foreach ($dailyTotals as $dailyData) {
+            $dailyDate = $dailyData['date'] ?? null;
+            if ($dailyDate instanceof DateTimeInterface) {
+                $dailyYears[$dailyDate->format('Y')] = true;
+            }
+        }
+        $includeDailyYear = count($dailyYears) > 1;
+        foreach ($dailyTotals as $dailyData) {
+            $dailyDate = $dailyData['date'] ?? null;
+            $label = '';
+            if ($dailyDate instanceof DateTimeInterface) {
+                $label = $dailyDate->format($includeDailyYear ? 'M d, Y' : 'M d');
+            }
+            $dailyLabels[] = $label;
+            $dailyRevenue[] = round((float)($dailyData['revenue'] ?? 0), 2);
+            $dailyUnits[] = (int)round((float)($dailyData['units'] ?? 0));
+        }
+    }
+
+    ksort($weeklyTotals);
+    if (!empty($weeklyTotals)) {
+        $weekYears = [];
+        foreach ($weeklyTotals as $weeklyData) {
+            $startDate = $weeklyData['start'] ?? null;
+            $endDate = $weeklyData['end'] ?? null;
+            if ($startDate instanceof DateTimeInterface) {
+                $weekYears[$startDate->format('Y')] = true;
+            }
+            if ($endDate instanceof DateTimeInterface) {
+                $weekYears[$endDate->format('Y')] = true;
+            }
+        }
+        $includeWeekYear = count($weekYears) > 1;
+        foreach ($weeklyTotals as $weeklyData) {
+            $startDate = $weeklyData['start'] ?? null;
+            $endDate = $weeklyData['end'] ?? null;
+            $startLabel = '';
+            $endLabel = '';
+            if ($startDate instanceof DateTimeInterface) {
+                $startLabel = $startDate->format($includeWeekYear ? 'M d, Y' : 'M d');
+            }
+            if ($endDate instanceof DateTimeInterface) {
+                $endFormat = $includeWeekYear;
+                if ($startDate instanceof DateTimeInterface && $startDate->format('Y') !== $endDate->format('Y')) {
+                    $endFormat = true;
+                }
+                $endLabel = $endDate->format($endFormat ? 'M d, Y' : 'M d');
+            }
+            if ($startLabel !== '' && $endLabel !== '') {
+                $weeklyLabels[] = sprintf('Week of %s – %s', $startLabel, $endLabel);
+            } elseif ($startLabel !== '') {
+                $weeklyLabels[] = sprintf('Week of %s', $startLabel);
+            } else {
+                $weeklyLabels[] = 'Week';
+            }
+            $weeklyRevenue[] = round((float)($weeklyData['revenue'] ?? 0), 2);
+            $weeklyUnits[] = (int)round((float)($weeklyData['units'] ?? 0));
         }
     }
 
@@ -117,6 +352,8 @@ if ($pdo) {
         FROM order_item oi
         JOIN `order` o ON o.Order_ID = oi.Order_ID
         WHERE o.Status IN ($statusList)
+          AND o.Order_Date >= $startDateQuoted
+          AND o.Order_Date < $endDateQuoted
         GROUP BY status
         ORDER BY revenue DESC
     ";
@@ -166,7 +403,7 @@ foreach ($productSales as &$product) {
 unset($product);
 
 if ($recentSaleTimestamp) {
-    $recentSaleDisplay = date('M d, Y', $recentSaleTimestamp);
+    $recentSaleDisplay = date($recentSaleDisplayDateFormat, $recentSaleTimestamp);
 }
 
 $sortedCategoryRevenue = $categoryRevenue;
@@ -179,39 +416,9 @@ if (!empty($sortedCategoryRevenue)) {
 $averageOrderValue = $totalOrders > 0 ? $totalRevenue / $totalOrders : 0.0;
 $averageUnitsPerOrder = $totalOrders > 0 ? $totalUnits / $totalOrders : 0.0;
 $averageSellingPrice = $totalUnits > 0 ? $totalRevenue / max($totalUnits, 1) : 0.0;
-
-$currentTimestamp = time();
-foreach ($timeRanges as $rangeKey => $config) {
-    $days = isset($config['days']) ? (int)$config['days'] : 0;
-    if ($days <= 0) {
-        continue;
-    }
-    $labels = [];
-    $values = [];
-    for ($i = $days - 1; $i >= 0; $i--) {
-        $timestamp = strtotime("-{$i} day", $currentTimestamp);
-        if ($timestamp === false) {
-            continue;
-        }
-        $dateKey = date('Y-m-d', $timestamp);
-        $labels[] = $days <= 7 ? date('D', $timestamp) : date('M d', $timestamp);
-        $values[] = round($dailyRevenueMap[$dateKey] ?? 0, 2);
-    }
-    if (!empty($labels)) {
-        $salesTrendByRange[$rangeKey] = [
-            'labels' => $labels,
-            'values' => $values,
-            'rangeLabel' => $config['label'] ?? 'Selected Range',
-        ];
-    }
-}
-if (empty($salesTrendByRange) && !empty($timeRanges)) {
-    $salesTrendByRange[$salesTrendDefaultRange] = [
-        'labels' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        'values' => array_fill(0, 7, 0),
-        'rangeLabel' => $salesTrendDefaultLabel,
-    ];
-}
+$hourlyRevenueRounded = array_map(static function ($value) {
+    return round($value, 2);
+}, $hourlyRevenue);
 
 $topProductChartData = array_slice(array_values(array_filter($productSales, function ($product) {
     return ($product['revenue'] ?? 0) > 0;
@@ -239,14 +446,24 @@ foreach ($sortedCategoryRevenue as $category => $revenue) {
 }
 
 $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
-$salesTrendDataJson = json_encode($salesTrendByRange, $jsonFlags);
-if ($salesTrendDataJson === false) {
-    $salesTrendDataJson = '{}';
-}
-$salesTrendDefaultRangeJson = json_encode($salesTrendDefaultRange, $jsonFlags);
-if ($salesTrendDefaultRangeJson === false) {
-    $salesTrendDefaultRangeJson = 'null';
-}
+$salesTrendSeries = [
+    'hourly' => [
+        'labels' => $hourlyLabels,
+        'revenue' => $hourlyRevenueRounded,
+        'units' => array_map('intval', $hourlyUnits),
+    ],
+    'daily' => [
+        'labels' => $dailyLabels,
+        'revenue' => $dailyRevenue,
+        'units' => array_map('intval', $dailyUnits),
+    ],
+    'weekly' => [
+        'labels' => $weeklyLabels,
+        'revenue' => $weeklyRevenue,
+        'units' => array_map('intval', $weeklyUnits),
+    ],
+];
+$salesTrendSeriesJson = json_encode($salesTrendSeries, $jsonFlags) ?: '{}';
 $topProductLabelsJson = json_encode($topProductLabels, $jsonFlags) ?: '[]';
 $topProductRevenueJson = json_encode($topProductRevenueValues, $jsonFlags) ?: '[]';
 $topProductUnitsJson = json_encode($topProductUnitValues, $jsonFlags) ?: '[]';
@@ -254,18 +471,83 @@ $categoryLabelsJson = json_encode($categoryLabels, $jsonFlags) ?: '[]';
 $categoryRevenueJson = json_encode($categoryRevenueValues, $jsonFlags) ?: '[]';
 $categoryUnitsJson = json_encode($categoryUnitValues, $jsonFlags) ?: '[]';
 
-$extraHead = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>';
+$extraHead = <<<HTML
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+<style>
+  .chart-interval-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .chart-interval-button {
+    padding: 6px 12px;
+    border: 1px solid #dcdde1;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #2c3e50;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .chart-interval-button.is-active {
+    background: #e74c3c;
+    color: #ffffff;
+    border-color: #e74c3c;
+  }
+
+  .chart-interval-button:focus-visible {
+    outline: 2px solid #e74c3c;
+    outline-offset: 1px;
+  }
+</style>
+HTML;
 
 include 'includes/header.php';
 include 'includes/sidebar.php';
 ?>
 
 <div class="main">
-  <div class="header">
-    <h1>Product Sales Report</h1>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+  <div class="header" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;">
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <h1 style="margin:0;">Product Sales Report</h1>
       <span style="font-size:14px;color:#7f8c8d;">Last sale: <?= htmlspecialchars($recentSaleDisplay); ?></span>
     </div>
+    <form method="get" id="reportRangeForm" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
+        <label for="viewMode" style="font-size:14px;color:#2c3e50;">View:</label>
+        <select id="viewMode" name="view" style="padding:8px 12px;border:1px solid #dcdde1;border-radius:6px;font-size:14px;">
+          <option value="day" <?= $viewMode === 'day' ? 'selected' : ''; ?>>Day</option>
+          <option value="week" <?= $viewMode === 'week' ? 'selected' : ''; ?>>Week</option>
+          <option value="month" <?= $viewMode === 'month' ? 'selected' : ''; ?>>Month</option>
+          <option value="range" <?= $viewMode === 'range' ? 'selected' : ''; ?>>Custom Range</option>
+        </select>
+      </div>
+      <div class="range-field" data-range-mode="day"<?= $rangeFieldHidden['day'] !== '' ? ' hidden' : ''; ?> style="display:flex;align-items:center;gap:8px;">
+        <label for="selected_date" style="font-size:14px;color:#2c3e50;">Date:</label>
+        <input type="date" id="selected_date" name="selected_date" value="<?= htmlspecialchars($selectedDate); ?>" max="<?= htmlspecialchars($todayDate); ?>"<?= $rangeFieldDisabled['day'] !== '' ? ' disabled' : ''; ?> style="padding:8px 12px;border:1px solid #dcdde1;border-radius:6px;font-size:14px;">
+      </div>
+      <div class="range-field" data-range-mode="week"<?= $rangeFieldHidden['week'] !== '' ? ' hidden' : ''; ?> style="display:flex;align-items:center;gap:8px;">
+        <label for="selected_week" style="font-size:14px;color:#2c3e50;">Week:</label>
+        <input type="week" id="selected_week" name="selected_week" value="<?= htmlspecialchars($selectedWeek); ?>" max="<?= htmlspecialchars($todayWeek); ?>"<?= $rangeFieldDisabled['week'] !== '' ? ' disabled' : ''; ?> style="padding:8px 12px;border:1px solid #dcdde1;border-radius:6px;font-size:14px;">
+      </div>
+      <div class="range-field" data-range-mode="month"<?= $rangeFieldHidden['month'] !== '' ? ' hidden' : ''; ?> style="display:flex;align-items:center;gap:8px;">
+        <label for="selected_month" style="font-size:14px;color:#2c3e50;">Month:</label>
+        <input type="month" id="selected_month" name="selected_month" value="<?= htmlspecialchars($selectedMonth); ?>" max="<?= htmlspecialchars($todayMonth); ?>"<?= $rangeFieldDisabled['month'] !== '' ? ' disabled' : ''; ?> style="padding:8px 12px;border:1px solid #dcdde1;border-radius:6px;font-size:14px;">
+      </div>
+      <div class="range-field" data-range-mode="range"<?= $rangeFieldHidden['range'] !== '' ? ' hidden' : ''; ?> style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <label for="range_start" style="font-size:14px;color:#2c3e50;">From:</label>
+        <input type="date" id="range_start" name="range_start" value="<?= htmlspecialchars($rangeStartInput); ?>" max="<?= htmlspecialchars($todayDate); ?>"<?= $rangeFieldDisabled['range'] !== '' ? ' disabled' : ''; ?> style="padding:8px 12px;border:1px solid #dcdde1;border-radius:6px;font-size:14px;">
+        <label for="range_end" style="font-size:14px;color:#2c3e50;">To:</label>
+        <input type="date" id="range_end" name="range_end" value="<?= htmlspecialchars($rangeEndInput); ?>" max="<?= htmlspecialchars($todayDate); ?>"<?= $rangeFieldDisabled['range'] !== '' ? ' disabled' : ''; ?> style="padding:8px 12px;border:1px solid #dcdde1;border-radius:6px;font-size:14px;">
+      </div>
+      <button type="submit" class="btn btn-primary" style="padding:8px 16px;">Apply</button>
+      <a href="?view=day&amp;selected_date=<?= htmlspecialchars($todayDate); ?>" class="btn" style="padding:8px 16px;border:1px solid #dcdde1;border-radius:6px;font-size:14px;text-decoration:none;color:#2c3e50;background:#ecf0f1;">Today</a>
+    </form>
   </div>
 
   <section class="stats-grid columns-4" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
@@ -308,17 +590,15 @@ include 'includes/sidebar.php';
       <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px;">
         <div>
           <h2 style="font-size:18px;margin:0;">Sales Trend</h2>
-          <p id="salesTrendRangeCaption" style="margin:4px 0 0;font-size:13px;color:#7f8c8d;">
-            <?= htmlspecialchars($salesTrendDefaultLabel); ?>
+          <p id="salesTrendCaption" style="margin:4px 0 0;font-size:13px;color:#7f8c8d;">
+            <?= htmlspecialchars($rangeSummaryLabel); ?>
           </p>
         </div>
-        <select id="salesTrendRange" aria-label="Change sales trend range" style="padding:8px 12px;border:1px solid #dcdde1;border-radius:6px;font-size:14px;min-width:180px;">
-          <?php foreach ($timeRanges as $rangeKey => $rangeConfig): ?>
-            <option value="<?= htmlspecialchars($rangeKey); ?>" <?= $rangeKey === $salesTrendDefaultRange ? 'selected' : ''; ?>>
-              <?= htmlspecialchars($rangeConfig['label']); ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
+        <div class="chart-interval-controls" role="group" aria-label="Sales trend interval">
+          <button type="button" class="chart-interval-button is-active" data-sales-interval="hourly" aria-pressed="true">Hourly</button>
+          <button type="button" class="chart-interval-button" data-sales-interval="daily" aria-pressed="false">Daily</button>
+          <button type="button" class="chart-interval-button" data-sales-interval="weekly" aria-pressed="false">Weekly</button>
+        </div>
       </div>
       <canvas id="salesChart" height="220"></canvas>
     </div>
@@ -408,8 +688,8 @@ include 'includes/sidebar.php';
               <td><?= number_format($unitsSold); ?></td>
               <td>₱<?= number_format($revenue, 2); ?></td>
               <td><?= number_format($product['order_count']); ?></td>
-              <td><?= $firstSale ? htmlspecialchars(date('M d, Y', $firstSale)) : '—'; ?></td>
-              <td><?= $lastSale ? htmlspecialchars(date('M d, Y', $lastSale)) : '—'; ?></td>
+              <td><?= $firstSale ? htmlspecialchars(date('M d, Y g:i A', $firstSale)) : '—'; ?></td>
+              <td><?= $lastSale ? htmlspecialchars(date('M d, Y g:i A', $lastSale)) : '—'; ?></td>
               <td><?= $unitsSold > 0 ? '₱' . number_format($avgPrice, 2) : '—'; ?></td>
             </tr>
           <?php endforeach; ?>
@@ -424,10 +704,13 @@ $recentSaleLabelJson = json_encode($recentSaleDisplay, $jsonFlags);
 if ($recentSaleLabelJson === false) {
     $recentSaleLabelJson = '""';
 }
+$rangeSummaryJson = json_encode($rangeSummaryLabel, $jsonFlags);
+if ($rangeSummaryJson === false) {
+    $rangeSummaryJson = '""';
+}
 $extraScripts = <<<JS
 <script>
-  const salesTrendDataByRange = $salesTrendDataJson;
-  const salesTrendDefaultRange = $salesTrendDefaultRangeJson;
+  const salesTrendSeries = $salesTrendSeriesJson;
   const topProductLabels = $topProductLabelsJson;
   const topProductRevenue = $topProductRevenueJson;
   const topProductUnits = $topProductUnitsJson;
@@ -435,61 +718,179 @@ $extraScripts = <<<JS
   const categoryRevenue = $categoryRevenueJson;
   const categoryUnits = $categoryUnitsJson;
   const lastSaleLabel = $recentSaleLabelJson;
+  const reportRangeLabel = $rangeSummaryJson;
+
+  const rangeForm = document.getElementById('reportRangeForm');
+  const viewModeSelect = document.getElementById('viewMode');
+  if (rangeForm && viewModeSelect) {
+    const rangeFields = rangeForm.querySelectorAll('.range-field');
+    const updateRangeInputs = () => {
+      const activeMode = viewModeSelect.value;
+      rangeFields.forEach(field => {
+        const fieldMode = field.getAttribute('data-range-mode');
+        const inputs = field.querySelectorAll('input');
+        const isActive = fieldMode === activeMode;
+        if (isActive) {
+          field.removeAttribute('hidden');
+        } else {
+          field.setAttribute('hidden', '');
+        }
+        inputs.forEach(input => {
+          if (isActive) {
+            input.removeAttribute('disabled');
+          } else {
+            input.setAttribute('disabled', 'disabled');
+          }
+        });
+      });
+    };
+    updateRangeInputs();
+    viewModeSelect.addEventListener('change', () => {
+      updateRangeInputs();
+      const selector = '.range-field[data-range-mode="' + viewModeSelect.value + '"] input:not([disabled])';
+      const activeInput = rangeForm.querySelector(selector);
+      if (activeInput) {
+        activeInput.focus();
+      }
+    });
+  }
 
   const salesChartCanvas = document.getElementById('salesChart');
-  const salesTrendRangeSelect = document.getElementById('salesTrendRange');
-  const salesTrendRangeCaption = document.getElementById('salesTrendRangeCaption');
+  const salesTrendCaption = document.getElementById('salesTrendCaption');
+  const intervalButtons = Array.from(document.querySelectorAll('[data-sales-interval]'));
+
+  const intervalLabels = {
+    hourly: 'Hourly',
+    daily: 'Daily',
+    weekly: 'Weekly',
+  };
+
+  const axisLabels = {
+    hourly: 'Hour of Day',
+    daily: 'Day',
+    weekly: 'Week',
+  };
+
+  const hasInterval = interval => Object.prototype.hasOwnProperty.call(intervalLabels, interval);
+
+  const getSeriesForInterval = interval => {
+    if (!salesTrendSeries || typeof salesTrendSeries !== 'object') {
+      return { labels: [], revenue: [], units: [] };
+    }
+    const candidate = hasInterval(interval) ? salesTrendSeries[interval] : null;
+    if (!candidate || typeof candidate !== 'object') {
+      return { labels: [], revenue: [], units: [] };
+    }
+    const labels = Array.isArray(candidate.labels) ? candidate.labels.slice() : [];
+    const revenue = Array.isArray(candidate.revenue)
+      ? candidate.revenue.map(value => {
+          const numeric = Number.parseFloat(value);
+          return Number.isFinite(numeric) ? numeric : 0;
+        })
+      : [];
+    const units = Array.isArray(candidate.units)
+      ? candidate.units.map(value => {
+          const numeric = Number.parseFloat(value);
+          return Number.isFinite(numeric) ? Math.round(numeric) : 0;
+        })
+      : [];
+    return { labels, revenue, units };
+  };
+
+  const computePointRadius = labels => (Array.isArray(labels) && labels.length > 16 ? 3 : 6);
+  const computeHoverRadius = radius => (radius <= 3 ? 5 : 8);
+
+  const updateIntervalButtons = interval => {
+    if (!intervalButtons.length) {
+      return;
+    }
+    intervalButtons.forEach(button => {
+      const buttonInterval = button.getAttribute('data-sales-interval');
+      const isActive = buttonInterval === interval;
+      if (isActive) {
+        button.classList.add('is-active');
+        button.setAttribute('aria-pressed', 'true');
+      } else {
+        button.classList.remove('is-active');
+        button.setAttribute('aria-pressed', 'false');
+      }
+    });
+  };
+
+  const updateCaption = (series, interval) => {
+    if (!salesTrendCaption) {
+      return;
+    }
+    const captionParts = [];
+    if (reportRangeLabel) {
+      captionParts.push(reportRangeLabel);
+    }
+    const intervalLabel = hasInterval(interval) ? intervalLabels[interval] : intervalLabels.hourly;
+    captionParts.push(intervalLabel + ' view');
+    const hasRevenue = Array.isArray(series.revenue) && series.revenue.some(value => {
+      const numeric = Number.parseFloat(value);
+      return Number.isFinite(numeric) && Math.abs(numeric) > 0;
+    });
+    if (!hasRevenue) {
+      captionParts.push('No sales recorded');
+    }
+    salesTrendCaption.textContent = captionParts.join(' • ');
+  };
+
+  let activeInterval = 'hourly';
+  let salesChart = null;
+
+  const applySalesTrendInterval = interval => {
+    const normalizedInterval = hasInterval(interval) ? interval : 'hourly';
+    const series = getSeriesForInterval(normalizedInterval);
+    activeInterval = normalizedInterval;
+    if (salesChart) {
+      const dataset = salesChart.data.datasets[0];
+      dataset.data = series.revenue.slice();
+      dataset.units = series.units.slice();
+      const pointRadius = computePointRadius(series.labels);
+      dataset.pointRadius = pointRadius;
+      dataset.pointHoverRadius = computeHoverRadius(pointRadius);
+      salesChart.data.labels = series.labels.slice();
+      if (
+        salesChart.options &&
+        salesChart.options.scales &&
+        salesChart.options.scales.x &&
+        salesChart.options.scales.x.title
+      ) {
+        salesChart.options.scales.x.title.text = axisLabels[normalizedInterval] || 'Period';
+      }
+      salesChart.update();
+    }
+    updateCaption(series, normalizedInterval);
+    updateIntervalButtons(normalizedInterval);
+  };
+
   if (salesChartCanvas) {
     const ctx = salesChartCanvas.getContext('2d');
     const gradient = ctx.createLinearGradient(0, 0, 0, salesChartCanvas.height || 400);
     gradient.addColorStop(0, 'rgba(231, 76, 60, 0.4)');
     gradient.addColorStop(1, 'rgba(231, 76, 60, 0)');
 
-    const rangeOptions = (salesTrendDataByRange && typeof salesTrendDataByRange === 'object' && !Array.isArray(salesTrendDataByRange)) ? salesTrendDataByRange : {};
-    const rangeKeys = Object.keys(rangeOptions);
-    const fallbackLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const fallbackValues = new Array(fallbackLabels.length).fill(0);
-    const getPointStyling = labelCount => {
-      const isDense = labelCount > 31;
-      return {
-        radius: isDense ? 3 : 6,
-        hoverRadius: isDense ? 5 : 8,
-      };
-    };
-    const getDatasetForRange = rangeKey => {
-      const dataset = rangeKey && Object.prototype.hasOwnProperty.call(rangeOptions, rangeKey) ? rangeOptions[rangeKey] : null;
-      const labels = dataset && Array.isArray(dataset.labels) ? dataset.labels.slice() : fallbackLabels.slice();
-      const rawValues = dataset && Array.isArray(dataset.values) ? dataset.values.slice() : fallbackValues.slice();
-      const sanitizedValues = labels.map((_, index) => {
-        const value = rawValues[index] ?? 0;
-        const numericValue = Number.parseFloat(value);
-        return Number.isFinite(numericValue) ? numericValue : 0;
-      });
-      const rangeLabel = dataset && typeof dataset.rangeLabel === 'string' ? dataset.rangeLabel : 'No sales recorded yet';
-      return { labels, values: sanitizedValues, rangeLabel };
-    };
+    const initialSeries = getSeriesForInterval(activeInterval);
+    const initialPointRadius = computePointRadius(initialSeries.labels);
+    const initialHoverRadius = computeHoverRadius(initialPointRadius);
 
-    const defaultRangeKey = typeof salesTrendDefaultRange === 'string' && Object.prototype.hasOwnProperty.call(rangeOptions, salesTrendDefaultRange)
-      ? salesTrendDefaultRange
-      : (rangeKeys.length > 0 ? rangeKeys[0] : null);
-
-    const initialDataset = getDatasetForRange(defaultRangeKey);
-    const initialPointStyle = getPointStyling(initialDataset.labels.length);
-
-    const salesChart = new Chart(ctx, {
+    salesChart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: initialDataset.labels,
+        labels: initialSeries.labels.slice(),
         datasets: [{
-          label: 'Sales (₱)',
-          data: initialDataset.values,
+          label: 'Revenue (₱)',
+          data: initialSeries.revenue.slice(),
+          units: initialSeries.units.slice(),
           borderColor: '#e74c3c',
           borderWidth: 3,
           backgroundColor: gradient,
           pointBackgroundColor: '#fff',
           pointBorderColor: '#e74c3c',
-          pointRadius: initialPointStyle.radius,
-          pointHoverRadius: initialPointStyle.hoverRadius,
+          pointRadius: initialPointRadius,
+          pointHoverRadius: initialHoverRadius,
           tension: 0.4,
           fill: true,
         }]
@@ -502,17 +903,22 @@ $extraScripts = <<<JS
             callbacks: {
               label: context => {
                 const value = context.parsed.y ?? 0;
-                return 'Sales: ₱' + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const revenueLabel = 'Revenue: ₱' + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const unitsCollection = Array.isArray(context.dataset.units) ? context.dataset.units : [];
+                const unitsValue = unitsCollection[context.dataIndex] ?? 0;
+                const unitsLabel = 'Units sold: ' + Number(unitsValue).toLocaleString();
+                return [revenueLabel, unitsLabel];
               }
             }
           }
         },
         scales: {
           x: {
+            title: { display: true, text: axisLabels[activeInterval] },
             ticks: {
               autoSkip: true,
               maxRotation: 0,
-              maxTicksLimit: 15,
+              maxTicksLimit: 12,
             }
           },
           y: {
@@ -525,31 +931,23 @@ $extraScripts = <<<JS
       }
     });
 
-    if (salesTrendRangeCaption) {
-      salesTrendRangeCaption.textContent = initialDataset.rangeLabel;
-    }
+    updateCaption(initialSeries, activeInterval);
+    updateIntervalButtons(activeInterval);
+  } else {
+    updateCaption(getSeriesForInterval(activeInterval), activeInterval);
+    updateIntervalButtons(activeInterval);
+  }
 
-    const updateSalesChartRange = rangeKey => {
-      const dataset = getDatasetForRange(rangeKey);
-      const pointStyle = getPointStyling(dataset.labels.length);
-      salesChart.data.labels = dataset.labels;
-      salesChart.data.datasets[0].data = dataset.values;
-      salesChart.data.datasets[0].pointRadius = pointStyle.radius;
-      salesChart.data.datasets[0].pointHoverRadius = pointStyle.hoverRadius;
-      salesChart.update();
-      if (salesTrendRangeCaption) {
-        salesTrendRangeCaption.textContent = dataset.rangeLabel;
-      }
-    };
-
-    if (salesTrendRangeSelect) {
-      if (defaultRangeKey) {
-        salesTrendRangeSelect.value = defaultRangeKey;
-      }
-      salesTrendRangeSelect.addEventListener('change', event => {
-        updateSalesChartRange(event.target.value);
+  if (intervalButtons.length) {
+    intervalButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const interval = button.getAttribute('data-sales-interval') || 'hourly';
+        if (interval === activeInterval) {
+          return;
+        }
+        applySalesTrendInterval(interval);
       });
-    }
+    });
   }
 
   const topProductChartEl = document.getElementById('topProductChart');
@@ -882,6 +1280,10 @@ $extraScripts = <<<JS
       let nextLineY = 26;
       doc.text('Generated on: ' + generatedLabel, 14, nextLineY);
       nextLineY += 8;
+      if (typeof reportRangeLabel === 'string' && reportRangeLabel.trim().length > 0) {
+        doc.text('Range: ' + reportRangeLabel, 14, nextLineY);
+        nextLineY += 8;
+      }
       if (typeof lastSaleLabel === 'string' && lastSaleLabel.trim().length > 0) {
         doc.text('Last sale recorded: ' + lastSaleLabel, 14, nextLineY);
         nextLineY += 8;

@@ -18,13 +18,33 @@ function addOrder($pdo, $userId, $orderDate, $status, $source = 'online', $fulfi
         }
     }
 
+    if ($orderDate instanceof DateTimeInterface) {
+        $orderDateValue = $orderDate->format('Y-m-d H:i:s');
+    } else {
+        $orderDateValue = is_string($orderDate) ? trim($orderDate) : '';
+        if ($orderDateValue !== '') {
+            $parsed = DateTime::createFromFormat('Y-m-d H:i:s', $orderDateValue);
+            if ($parsed === false) {
+                $parsed = DateTime::createFromFormat('Y-m-d', $orderDateValue);
+            }
+            if ($parsed instanceof DateTimeInterface) {
+                $orderDateValue = $parsed->format('Y-m-d H:i:s');
+            } else {
+                $orderDateValue = '';
+            }
+        }
+        if ($orderDateValue === '') {
+            $orderDateValue = date('Y-m-d H:i:s');
+        }
+    }
+
     $stmt = $pdo->prepare("
         INSERT INTO `order` (User_ID, Order_Date, Source, Fulfillment_Type, Special_Instructions, Status)
         VALUES (:user_id, :order_date, :source, :fulfillment_type, :special_instructions, :status)
     ");
     $stmt->execute([
         ':user_id' => $userId,
-        ':order_date' => $orderDate,
+        ':order_date' => $orderDateValue,
         ':source' => $source,
         ':fulfillment_type' => $fulfillmentType,
         ':special_instructions' => $specialInstructions,

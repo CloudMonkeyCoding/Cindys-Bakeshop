@@ -327,7 +327,7 @@ switch ($action) {
                 ]);
             }
 
-            $orderId = addOrder($pdo, $userId, date('Y-m-d'), $orderStatus, 'walk-in', $fulfillmentType);
+            $orderId = addOrder($pdo, $userId, date('Y-m-d H:i:s'), $orderStatus, 'walk-in', $fulfillmentType);
             walkin_order_log('Order inserted', ['order_id' => $orderId, 'item_count' => count($orderItems)]);
 
             foreach ($orderItems as $line) {

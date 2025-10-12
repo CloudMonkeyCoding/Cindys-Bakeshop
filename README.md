@@ -31,7 +31,7 @@ The SQL dump defines the following tables:
 - **cart_item** – items placed in a shopping cart (`Cart_Item_ID`, `Cart_ID`, `Product_ID`, `Quantity`)
 - **delivery** – delivery status for orders (`Delivery_ID`, `Order_ID`, `Status`, `Delivery_Date`, `Delivery_Personnel` [User_ID])
 - **inventory** – stock levels for products (`Inventory_ID`, `Product_ID`, `Stock_Quantity`)
-- **order** – customer orders (`Order_ID`, `User_ID`, `Order_Date`, `Source`, `Fulfillment_Type`, `Status`)
+- **order** – customer orders (`Order_ID`, `User_ID`, `Order_Date` [datetime], `Source`, `Fulfillment_Type`, `Status`)
 - **order_item** – products within an order (`Order_Item_ID`, `Order_ID`, `Product_ID`, `Quantity`, `Subtotal`)
 - **product** – product catalog (`Product_ID`, `Name`, `Description`, `Price`, `Stock_Quantity`, `Category`, `Image_Path`)
 - **shopping_cart** – cart ownership (`Cart_ID`, `User_ID`)
@@ -59,6 +59,12 @@ The SQL dump defines the following tables:
 
 ### Upgrading an Existing Database
 If you are updating an existing installation, apply the `Database/add_order_source_columns.sql` migration after pulling the latest code. The script adds the new `Source` and `Fulfillment_Type` columns required by the admin tooling.
+
+Run the `Database/alter_order_date_to_datetime.sql` migration to convert existing `Order_Date` values to full timestamps so hourly reporting works correctly:
+
+```sh
+mysql -u root -p cindysdb < Database/alter_order_date_to_datetime.sql
+```
 
 Run the shift scheduling migration to create the tables that power the admin shift tracker:
 
