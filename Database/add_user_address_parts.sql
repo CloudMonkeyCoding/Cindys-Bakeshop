@@ -13,7 +13,7 @@ LEFT JOIN (
         TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(normalized, ',', 2), ',', -1)) AS barangay,
         TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(normalized, ',', 3), ',', -1)) AS city,
         TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(normalized, ',', 4), ',', -1)) AS province,
-        GREATEST(0, CHAR_LENGTH(normalized) - CHAR_LENGTH(REPLACE(normalized, ',', '))) AS comma_count
+        GREATEST(0, CHAR_LENGTH(normalized) - CHAR_LENGTH(REPLACE(normalized, ',', ''))) AS comma_count
     FROM (
         SELECT
             User_ID,
