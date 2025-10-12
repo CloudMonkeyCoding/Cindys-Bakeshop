@@ -66,6 +66,7 @@ $currentAdminIsSuper = !empty($adminSession['is_super_admin']);
     <div class="table-actions">
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
         <button class="btn btn-secondary" id="showAll">All Users</button>
+        <button class="btn btn-muted" id="showCustomers">Customers</button>
         <button class="btn btn-muted" id="showEmployees">Employees</button>
         <button class="btn btn-muted" id="showBlocked">Blocked Users</button>
       </div>
@@ -282,6 +283,7 @@ $currentAdminIsSuper = !empty($adminSession['is_super_admin']);
 $extraScripts = <<<'JS'
 <script>
   const showAllBtn = document.getElementById('showAll');
+  const showCustomersBtn = document.getElementById('showCustomers');
   const showEmployeesBtn = document.getElementById('showEmployees');
   const showBlockedBtn = document.getElementById('showBlocked');
   const allTable = document.getElementById('allUsersTable');
@@ -310,7 +312,13 @@ $extraScripts = <<<'JS'
         }
 
         const isEmployee = row.dataset.isEmployee === '1';
-        const matchesRole = currentView === 'employees' ? isEmployee : true;
+        const isSuperAdmin = row.dataset.isSuperAdmin === '1';
+        let matchesRole = true;
+        if (currentView === 'employees') {
+          matchesRole = isEmployee;
+        } else if (currentView === 'customers') {
+          matchesRole = !isEmployee && !isSuperAdmin;
+        }
 
         if (matchesRole) {
           row.style.display = '';
@@ -360,6 +368,7 @@ $extraScripts = <<<'JS'
     if (blockedTable) blockedTable.style.display = showingBlocked ? '' : 'none';
 
     setButtonState(showAllBtn, target === 'all');
+    setButtonState(showCustomersBtn, target === 'customers');
     setButtonState(showEmployeesBtn, target === 'employees');
     setButtonState(showBlockedBtn, target === 'blocked');
 
@@ -368,6 +377,7 @@ $extraScripts = <<<'JS'
 
   searchInput?.addEventListener('input', searchUsers);
   showAllBtn?.addEventListener('click', () => toggleView('all'));
+  showCustomersBtn?.addEventListener('click', () => toggleView('customers'));
   showEmployeesBtn?.addEventListener('click', () => toggleView('employees'));
   showBlockedBtn?.addEventListener('click', () => toggleView('blocked'));
 
