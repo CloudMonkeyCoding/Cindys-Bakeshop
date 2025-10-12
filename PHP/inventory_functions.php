@@ -130,13 +130,52 @@ function getAllInventory($pdo) {
 }
 
 // 3b) Get inventory with product details
-function getInventoryWithProducts($pdo) {
-    $stmt = $pdo->query(
-        "SELECT p.Product_ID, p.Name, p.Category, i.Stock_Quantity\n" .
-        "FROM inventory i\n" .
-        "JOIN product p ON i.Product_ID = p.Product_ID"
-    );
-    return $stmt->fetchAll();
+function getInventoryWithProducts($pdo, $snapshotDate = null) {
+    if ($snapshotDate === null) {
+        $stmt = $pdo->query(
+            "SELECT p.Product_ID, p.Name, p.Category, i.Stock_Quantity\n" .
+            "FROM inventory i\n" .
+            "JOIN product p ON i.Product_ID = p.Product_ID"
+        );
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    $endOfDay = $snapshotDate . ' 23:59:59';
+
+    $sql = "
+        SELECT
+            p.Product_ID,
+            p.Name,
+            p.Category,
+            i.Stock_Quantity,
+            (
+                SELECT isl.New_Quantity
+                FROM inventory_stock_log isl
+                WHERE isl.Product_ID = p.Product_ID
+                  AND isl.Created_At <= :end_of_day
+                ORDER BY isl.Created_At DESC, isl.Log_ID DESC
+                LIMIT 1
+            ) AS Snapshot_Quantity
+        FROM inventory i
+        JOIN product p ON i.Product_ID = p.Product_ID
+    ";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([':end_of_day' => $endOfDay]);
+
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($rows as &$row) {
+        $snapshotQuantity = array_key_exists('Snapshot_Quantity', $row) ? $row['Snapshot_Quantity'] : null;
+        if ($snapshotQuantity === null && array_key_exists('Stock_Quantity', $row)) {
+            $snapshotQuantity = $row['Stock_Quantity'];
+        }
+        $row['Stock_Quantity'] = $snapshotQuantity;
+        unset($row['Snapshot_Quantity']);
+    }
+    unset($row);
+
+    return $rows;
 }
 
 // 3c) Get inventory change log entries

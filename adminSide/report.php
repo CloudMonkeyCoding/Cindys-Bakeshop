@@ -23,9 +23,12 @@ if ($reportDateInput !== '') {
 }
 $reportDateLabel = $reportDate ? date('M j, Y', strtotime($reportDate)) : null;
 $reportRangeDescription = $reportDateLabel ? 'Showing changes for ' . $reportDateLabel : 'Showing changes for all dates';
+$inventorySnapshotDescription = $reportDateLabel
+    ? 'Stock levels reflect end-of-day balances for ' . $reportDateLabel . '.'
+    : 'Stock levels reflect current stock levels.';
 
 if ($pdo) {
-    $rows = getInventoryWithProducts($pdo);
+    $rows = getInventoryWithProducts($pdo, $reportDate);
     foreach ($rows as $row) {
         $category = $row['Category'] ?? 'Uncategorized';
         $stock = $row['Stock_Quantity'];
@@ -156,6 +159,10 @@ include 'includes/sidebar.php';
   <div class="header">
     <h1>Inventory Report</h1>
   </div>
+
+  <?php if ($inventorySnapshotDescription !== ''): ?>
+    <p class="inventory-snapshot-note"><?= htmlspecialchars($inventorySnapshotDescription); ?></p>
+  <?php endif; ?>
 
   <section class="stats-grid columns-4" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
     <div class="stat-card">

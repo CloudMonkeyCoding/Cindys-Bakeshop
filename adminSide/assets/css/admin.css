@@ -570,6 +570,12 @@ table tbody tr:hover {
   color: #6c757d;
 }
 
+.inventory-snapshot-note {
+  margin: -12px 0 24px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
 .inventory-log-filter {
   display: flex;
   align-items: center;
