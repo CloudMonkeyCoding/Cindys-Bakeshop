@@ -101,6 +101,12 @@ function isDropdownActive(array $pages, $activePage) {
           Activity Logs
         </a>
       </li>
+      <li>
+        <a href="database-tools.php" class="<?= isActive('database-tools', $activePage); ?>">
+          <span><i class="fa-solid fa-database"></i></span>
+          Database Tools
+        </a>
+      </li>
     <?php endif; ?>
     <li>
       <a href="settings.php" class="<?= isActive('settings', $activePage); ?>">
