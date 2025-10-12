@@ -1,6 +1,6 @@
 <?php
 // 1) Create a new order
-function addOrder($pdo, $userId, $orderDate, $status, $source = 'online', $fulfillmentType = 'Delivery') {
+function addOrder($pdo, $userId, $orderDate, $status, $source = 'online', $fulfillmentType = 'Delivery', $specialInstructions = null) {
     $validSources = ['online', 'walk-in'];
     if (in_array($source, $validSources, true) === false) {
         $source = 'online';
@@ -11,15 +11,23 @@ function addOrder($pdo, $userId, $orderDate, $status, $source = 'online', $fulfi
         $fulfillmentType = 'Delivery';
     }
 
+    if ($specialInstructions !== null) {
+        $specialInstructions = trim((string)$specialInstructions);
+        if ($specialInstructions === '') {
+            $specialInstructions = null;
+        }
+    }
+
     $stmt = $pdo->prepare("
-        INSERT INTO `order` (User_ID, Order_Date, Source, Fulfillment_Type, Status)
-        VALUES (:user_id, :order_date, :source, :fulfillment_type, :status)
+        INSERT INTO `order` (User_ID, Order_Date, Source, Fulfillment_Type, Special_Instructions, Status)
+        VALUES (:user_id, :order_date, :source, :fulfillment_type, :special_instructions, :status)
     ");
     $stmt->execute([
         ':user_id' => $userId,
         ':order_date' => $orderDate,
         ':source' => $source,
         ':fulfillment_type' => $fulfillmentType,
+        ':special_instructions' => $specialInstructions,
         ':status' => $status
     ]);
     return $pdo->lastInsertId();
@@ -40,6 +48,7 @@ function getOrdersByUserId($pdo, $userId) {
                o.Source,
                o.Fulfillment_Type,
                o.Status,
+               o.Special_Instructions,
                MIN(p.Image_Path) AS Image_Path,
                MIN(p.Category) AS Category,
                COALESCE(SUM(oi.Quantity), 0) AS Item_Count,
@@ -52,7 +61,7 @@ function getOrdersByUserId($pdo, $userId) {
         LEFT JOIN order_item oi ON o.Order_ID = oi.Order_ID
         LEFT JOIN product p ON oi.Product_ID = p.Product_ID
         WHERE o.User_ID = :user_id
-        GROUP BY o.Order_ID, o.User_ID, o.Order_Date, o.Source, o.Fulfillment_Type, o.Status
+        GROUP BY o.Order_ID, o.User_ID, o.Order_Date, o.Source, o.Fulfillment_Type, o.Status, o.Special_Instructions
         ORDER BY o.Order_Date DESC, o.Order_ID DESC
     ");
     $stmt->execute([':user_id' => $userId]);

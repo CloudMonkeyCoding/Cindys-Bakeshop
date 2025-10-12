@@ -42,6 +42,16 @@ switch ($action) {
         $orderTypeInput = isset($_POST['order_type']) ? trim((string)$_POST['order_type']) : '';
         $orderType = in_array($orderTypeInput, ['Delivery', 'Pick up'], true) ? $orderTypeInput : 'Delivery';
         $mop = $_POST['mop'] ?? '';
+        $specialInstructions = isset($_POST['special_instructions']) ? trim((string)$_POST['special_instructions']) : '';
+        if ($specialInstructions !== '') {
+            if (function_exists('mb_substr')) {
+                $specialInstructions = mb_substr($specialInstructions, 0, 500);
+            } else {
+                $specialInstructions = substr($specialInstructions, 0, 500);
+            }
+        } else {
+            $specialInstructions = null;
+        }
 
         foreach ($items as $it) {
             $productId = (int)($it['product_id'] ?? 0);
@@ -52,7 +62,7 @@ switch ($action) {
             }
         }
 
-        $orderId = addOrder($pdo, $userId, date('Y-m-d'), 'Pending', 'online', $orderType);
+        $orderId = addOrder($pdo, $userId, date('Y-m-d'), 'Pending', 'online', $orderType, $specialInstructions);
         $total = 0;
         foreach ($items as $it) {
             $productId = (int)$it['product_id'];
@@ -106,6 +116,7 @@ switch ($action) {
                 'total' => $total,
                 'order_type' => $orderType,
                 'payment_method' => $mop,
+                'special_instructions' => $specialInstructions,
                 'item_count' => count($items),
             ],
         ]);
