@@ -14,6 +14,14 @@
       flex-direction: column;
     }
 
+    .page-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+      padding-top: 100px;
+      width: 100%;
+    }
+
     .checkout-hero {
       margin-bottom: 2rem;
       display: grid;
@@ -332,6 +340,11 @@
     }
 
     @media (max-width: 768px) {
+      .page-container {
+        padding: 1.5rem 1rem;
+        padding-top: 90px;
+      }
+
       .checkout-wrapper {
         gap: 1.5rem;
       }
@@ -358,6 +371,18 @@
 
       body.checkout-active main {
         padding-top: 120px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .page-container {
+        padding: 1rem 0.75rem;
+        padding-top: 85px;
+      }
+
+      .glass-card {
+        padding: 1.5rem;
+        border-radius: 20px;
       }
     }
   </style>

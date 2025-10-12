@@ -108,6 +108,8 @@ $activeResolver = function (array $needles) use ($currentScript): string {
     return '';
 };
 ?>
+<!-- Font Awesome for Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <header id="mainHeader" data-api-base="<?= htmlspecialchars($apiBase, ENT_QUOTES) ?>" data-images-base="<?= htmlspecialchars($imagesBase, ENT_QUOTES) ?>" data-root-prefix="<?= htmlspecialchars($rootPrefix, ENT_QUOTES) ?>" data-user-prefix="<?= htmlspecialchars($userPrefix, ENT_QUOTES) ?>">
   <div class="header-content">
     <div class="logo">
