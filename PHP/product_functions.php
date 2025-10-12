@@ -23,20 +23,59 @@ function addProduct($pdo, $name, $description, $price, $stock_quantity, $categor
 
 // 2) Get all products
 function getAllProducts($pdo) {
-    $stmt = $pdo->query("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path, IFNULL(Is_Archived, 0) AS Is_Archived FROM product WHERE IFNULL(Is_Archived, 0) = 0");
-    return $stmt->fetchAll();
+    $sql = "SELECT\n"
+        . "    p.Product_ID,\n"
+        . "    p.Name,\n"
+        . "    p.Description,\n"
+        . "    p.Price,\n"
+        . "    COALESCE(i.Stock_Quantity, p.Stock_Quantity) AS Stock_Quantity,\n"
+        . "    p.Category,\n"
+        . "    p.Image_Path,\n"
+        . "    IFNULL(p.Is_Archived, 0) AS Is_Archived\n"
+        . "FROM product p\n"
+        . "LEFT JOIN inventory i ON i.Product_ID = p.Product_ID\n"
+        . "WHERE IFNULL(p.Is_Archived, 0) = 0";
+
+    $stmt = $pdo->query($sql);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 function getArchivedProducts($pdo) {
-    $stmt = $pdo->query("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path, IFNULL(Is_Archived, 0) AS Is_Archived FROM product WHERE IFNULL(Is_Archived, 0) = 1");
-    return $stmt->fetchAll();
+    $sql = "SELECT\n"
+        . "    p.Product_ID,\n"
+        . "    p.Name,\n"
+        . "    p.Description,\n"
+        . "    p.Price,\n"
+        . "    COALESCE(i.Stock_Quantity, p.Stock_Quantity) AS Stock_Quantity,\n"
+        . "    p.Category,\n"
+        . "    p.Image_Path,\n"
+        . "    IFNULL(p.Is_Archived, 0) AS Is_Archived\n"
+        . "FROM product p\n"
+        . "LEFT JOIN inventory i ON i.Product_ID = p.Product_ID\n"
+        . "WHERE IFNULL(p.Is_Archived, 0) = 1";
+
+    $stmt = $pdo->query($sql);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 // 2a) Get products by category
 function getProductsByCategory($pdo, $category) {
-    $stmt = $pdo->prepare("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path, IFNULL(Is_Archived, 0) AS Is_Archived FROM product WHERE Category = :category AND IFNULL(Is_Archived, 0) = 0");
+    $sql = "SELECT\n"
+        . "    p.Product_ID,\n"
+        . "    p.Name,\n"
+        . "    p.Description,\n"
+        . "    p.Price,\n"
+        . "    COALESCE(i.Stock_Quantity, p.Stock_Quantity) AS Stock_Quantity,\n"
+        . "    p.Category,\n"
+        . "    p.Image_Path,\n"
+        . "    IFNULL(p.Is_Archived, 0) AS Is_Archived\n"
+        . "FROM product p\n"
+        . "LEFT JOIN inventory i ON i.Product_ID = p.Product_ID\n"
+        . "WHERE p.Category = :category AND IFNULL(p.Is_Archived, 0) = 0";
+
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([':category' => $category]);
-    return $stmt->fetchAll();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 function getProductImageUrl(array $product, string $relativePrefix = ''): string
@@ -90,7 +129,20 @@ function getProductImageUrl(array $product, string $relativePrefix = ''): string
 
 // 3) Get a product by ID
 function getProductById($pdo, $productId) {
-    $stmt = $pdo->prepare("SELECT Product_ID, Name, Description, Price, Stock_Quantity, Category, Image_Path, IFNULL(Is_Archived, 0) AS Is_Archived FROM product WHERE Product_ID = :product_id AND IFNULL(Is_Archived, 0) = 0");
+    $sql = "SELECT\n"
+        . "    p.Product_ID,\n"
+        . "    p.Name,\n"
+        . "    p.Description,\n"
+        . "    p.Price,\n"
+        . "    COALESCE(i.Stock_Quantity, p.Stock_Quantity) AS Stock_Quantity,\n"
+        . "    p.Category,\n"
+        . "    p.Image_Path,\n"
+        . "    IFNULL(p.Is_Archived, 0) AS Is_Archived\n"
+        . "FROM product p\n"
+        . "LEFT JOIN inventory i ON i.Product_ID = p.Product_ID\n"
+        . "WHERE p.Product_ID = :product_id AND IFNULL(p.Is_Archived, 0) = 0";
+
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([':product_id' => $productId]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
@@ -183,12 +235,22 @@ function deleteProductById($pdo, $productId) {
 
 // 6) Search products by name or category
 function searchProducts($pdo, $keyword) {
-    $stmt = $pdo->prepare("
-        SELECT * FROM product
-        WHERE Name LIKE :kw OR Category LIKE :kw
-    ");
+    $sql = "SELECT\n"
+        . "    p.Product_ID,\n"
+        . "    p.Name,\n"
+        . "    p.Description,\n"
+        . "    p.Price,\n"
+        . "    COALESCE(i.Stock_Quantity, p.Stock_Quantity) AS Stock_Quantity,\n"
+        . "    p.Category,\n"
+        . "    p.Image_Path,\n"
+        . "    IFNULL(p.Is_Archived, 0) AS Is_Archived\n"
+        . "FROM product p\n"
+        . "LEFT JOIN inventory i ON i.Product_ID = p.Product_ID\n"
+        . "WHERE (p.Name LIKE :kw OR p.Category LIKE :kw)";
+
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([':kw' => "%$keyword%"]);
-    return $stmt->fetchAll();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 // 7) Adjust stock quantity (+/-)

@@ -155,7 +155,7 @@ $stock = (int)($product['Stock_Quantity'] ?? 0);
 
     .status-text {
       font-weight: 600;
-      color: <?= $stock > 0 ? "'#2d8659'" : "'#c8283c'" ?>;
+      color: <?= $stock > 0 ? '#2d8659' : '#c8283c' ?>;
     }
   </style>
 </head>
@@ -181,9 +181,9 @@ $stock = (int)($product['Stock_Quantity'] ?? 0);
           <button type="button" onclick="changeQty(1)">+</button>
         </div>
         <div class="action-buttons">
-          <button class="primary-btn" onclick="addToCart()">Add to cart</button>
-          <button class="secondary-btn" onclick="buyNow()">Buy now</button>
-          <button class="secondary-btn" onclick="shareNow()">Share</button>
+          <button class="primary-btn" id="addToCartBtn" onclick="addToCart()">Add to cart</button>
+          <button class="secondary-btn" id="buyNowBtn" onclick="buyNow()">Buy now</button>
+          <button class="secondary-btn" id="shareBtn" onclick="shareNow()">Share</button>
         </div>
       </div>
     </div>
@@ -194,6 +194,35 @@ $stock = (int)($product['Stock_Quantity'] ?? 0);
   <script>
     let maxStock = <?= $stock ?>;
     window.maxStock = maxStock;
+
+    const addToCartBtn = document.getElementById('addToCartBtn');
+    const buyNowBtn = document.getElementById('buyNowBtn');
+    const qtyEl = document.getElementById('qty');
+
+    function syncStockUI() {
+      const stockEl = document.getElementById('stockDisplay');
+      if (stockEl) {
+        stockEl.textContent = `Stock: ${maxStock}`;
+      }
+
+      if (qtyEl) {
+        if (maxStock === 0) {
+          qtyEl.value = 0;
+        } else if (parseInt(qtyEl.value, 10) > maxStock) {
+          qtyEl.value = maxStock;
+        } else if (parseInt(qtyEl.value, 10) < 1) {
+          qtyEl.value = 1;
+        }
+      }
+
+      const shouldDisablePurchase = maxStock === 0;
+      if (addToCartBtn) {
+        addToCartBtn.disabled = shouldDisablePurchase;
+      }
+      if (buyNowBtn) {
+        buyNowBtn.disabled = shouldDisablePurchase;
+      }
+    }
 
     async function updateMaxStockFromCart() {
       const productId = <?= (int)$id ?>;
@@ -222,26 +251,19 @@ $stock = (int)($product['Stock_Quantity'] ?? 0);
         console.error('Failed to fetch cart', err);
       }
 
-      const stockEl = document.getElementById('stockDisplay');
-      if (stockEl) stockEl.textContent = `Stock: ${maxStock}`;
-
-      const qtyEl = document.getElementById('qty');
-      if (qtyEl) {
-        if (maxStock === 0) qtyEl.value = 0;
-        else if (parseInt(qtyEl.value, 10) > maxStock) qtyEl.value = maxStock;
-      }
-
-      if (maxStock === 0) {
-        document.querySelector('.primary-btn').disabled = true;
-        document.querySelector('.secondary-btn').disabled = true;
-      }
+      syncStockUI();
     }
 
     updateMaxStockFromCart();
+    syncStockUI();
 
     function changeQty(delta) {
-      const qty = document.getElementById('qty');
-      let current = parseInt(qty.value);
+      if (maxStock === 0) {
+        alert('This item is currently out of stock.');
+        return;
+      }
+
+      let current = parseInt(qtyEl.value);
       current = Number.isNaN(current) ? 1 : current;
       current += delta;
       if (current < 1) current = 1;
@@ -249,7 +271,7 @@ $stock = (int)($product['Stock_Quantity'] ?? 0);
         current = maxStock;
         alert(`Only ${maxStock} left in stock.`);
       }
-      qty.value = current;
+      qtyEl.value = current;
     }
 
     function toggleFavorite(button) {
