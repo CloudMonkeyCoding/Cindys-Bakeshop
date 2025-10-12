@@ -549,6 +549,53 @@ table tbody tr:hover {
   vertical-align: middle;
 }
 
+.inventory-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.inventory-log-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inventory-log-meta {
+  margin: 0;
+  font-size: 13px;
+  color: #6c757d;
+}
+
+.inventory-log-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.inventory-log-filter label {
+  font-size: 14px;
+  color: #4a4a4a;
+}
+
+.inventory-log-filter input[type='date'] {
+  padding: 6px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: #fff;
+  color: #343a40;
+}
+
+.inventory-log-filter .btn {
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
 .btn,
 button,
 .button {

@@ -12,6 +12,16 @@ $totalTracked = 0;
 $preOrderCount = 0;
 $lowStockCount = 0;
 $inventoryLogEntries = [];
+$reportDateInput = isset($_GET['report_date']) ? trim((string)$_GET['report_date']) : '';
+$reportDate = null;
+if ($reportDateInput !== '') {
+    $parsedDate = DateTime::createFromFormat('Y-m-d', $reportDateInput);
+    if ($parsedDate !== false) {
+        $reportDate = $parsedDate->format('Y-m-d');
+    }
+}
+$reportDateLabel = $reportDate ? date('M j, Y', strtotime($reportDate)) : null;
+$reportRangeDescription = $reportDateLabel ? 'Showing changes for ' . $reportDateLabel : 'Showing changes for all dates';
 
 if ($pdo) {
     $rows = getInventoryWithProducts($pdo);
@@ -48,36 +58,62 @@ if ($pdo) {
     ksort($inventoryData);
     ksort($categoryTotals);
 
-    $logRows = getInventoryChangeLog($pdo);
+    $logRows = getInventoryChangeLog($pdo, $reportDate, $reportDate);
     foreach ($logRows as $logRow) {
         $orderId = isset($logRow['Order_ID']) ? (int)$logRow['Order_ID'] : 0;
-        $rawQuantity = isset($logRow['Quantity']) ? (int)$logRow['Quantity'] : 0;
-        $quantity = $rawQuantity < 0 ? abs($rawQuantity) : max(0, $rawQuantity);
-        $changeValue = $quantity > 0 ? -$quantity : 0;
-
-        $rawDate = $logRow['Order_Date'] ?? null;
+        $rawDate = $logRow['Created_At'] ?? null;
         $formattedDate = null;
         if ($rawDate) {
             $timestamp = strtotime($rawDate);
             if ($timestamp !== false) {
-                $formattedDate = date('M j, Y', $timestamp);
+                $formattedDate = date('M j, Y g:i A', $timestamp);
             }
         }
 
-        $orderCode = $orderId ? '#' . str_pad((string)$orderId, 5, '0', STR_PAD_LEFT) : '—';
+        $source = $logRow['Change_Source'] ?? '';
+        $note = $logRow['Note'] ?? '';
+        $referenceType = $logRow['Reference_Type'] ?? '';
+        $referenceLabel = null;
+
+        if ($referenceType === 'order' && $orderId > 0) {
+            $referenceLabel = '#' . str_pad((string)$orderId, 5, '0', STR_PAD_LEFT);
+        }
+
+        if ($referenceLabel === null || $referenceLabel === '') {
+            $referenceLabel = $note !== '' ? $note : ucwords(str_replace('_', ' ', $source !== '' ? $source : 'Stock Update'));
+        }
+
+        $changeTypeMap = [
+            'order' => 'Order Placement',
+            'manual_adjustment' => 'Manual Adjustment',
+            'initial_entry' => 'Inventory Seed',
+            'adjustment' => 'Stock Adjustment',
+        ];
+        $changeType = $changeTypeMap[$source] ?? 'Stock Update';
+
+        $previousQuantityRaw = $logRow['Previous_Quantity'] ?? null;
+        $previousQuantity = $previousQuantityRaw !== null ? (int)$previousQuantityRaw : null;
+        $newQuantityRaw = $logRow['New_Quantity'] ?? null;
+        $newQuantity = $newQuantityRaw !== null ? (int)$newQuantityRaw : null;
+        $changeValueRaw = $logRow['Change_Amount'] ?? null;
+        $changeValue = $changeValueRaw !== null ? (int)$changeValueRaw : 0;
 
         $inventoryLogEntries[] = [
-            'order_item_id' => (int)($logRow['Order_Item_ID'] ?? 0),
+            'log_id' => (int)($logRow['Log_ID'] ?? 0),
             'order_id' => $orderId,
-            'order_code' => $orderCode,
+            'order_code' => $referenceLabel,
             'product_id' => (int)($logRow['Product_ID'] ?? 0),
             'product_name' => $logRow['Product_Name'] ?? '',
-            'quantity' => $quantity,
             'change' => $changeValue,
-            'order_date' => $rawDate,
-            'order_date_formatted' => $formattedDate,
+            'change_type' => $changeType,
+            'created_at' => $rawDate,
+            'created_at_formatted' => $formattedDate,
             'customer_name' => $logRow['Customer_Name'] ?? '',
-            'change_type' => 'Order Placement'
+            'previous_quantity' => $previousQuantity,
+            'new_quantity' => $newQuantity,
+            'note' => $note,
+            'reference_label' => $referenceLabel,
+            'change_source' => $source,
         ];
     }
 }
@@ -179,7 +215,20 @@ include 'includes/sidebar.php';
 
   <div class="card" style="margin-top:24px;">
     <div class="table-actions">
-      <h2 style="margin:0;font-size:18px;font-weight:600;">Inventory Change Log</h2>
+      <div class="inventory-log-header">
+        <div class="inventory-log-heading">
+          <h2 style="margin:0;font-size:18px;font-weight:600;">Inventory Change Log</h2>
+          <p class="inventory-log-meta"><?= htmlspecialchars($reportRangeDescription); ?></p>
+        </div>
+        <form method="get" action="report.php" class="inventory-log-filter" autocomplete="off">
+          <label for="reportDate">Report date</label>
+          <input type="date" id="reportDate" name="report_date" value="<?= htmlspecialchars($reportDate ?? ''); ?>">
+          <button type="submit" class="btn btn-primary">Apply</button>
+          <?php if ($reportDate !== null): ?>
+            <a href="report.php" class="btn btn-secondary">Clear</a>
+          <?php endif; ?>
+        </form>
+      </div>
       <input type="text" id="inventoryLogSearch" placeholder="🔍 Search change log...">
     </div>
     <table class="inventory-log-table" id="inventoryLogTable">
@@ -198,24 +247,25 @@ include 'includes/sidebar.php';
             <td colspan="5" class="table-empty">No inventory changes recorded.</td>
           </tr>
         <?php else: ?>
-          <?php foreach ($inventoryLogEntries as $entry): ?>
-            <?php
-              $changeValue = (int)($entry['change'] ?? 0);
-              $changeLabel = ($changeValue > 0 ? '+' : '') . number_format($changeValue) . ' pcs';
-              $changeClass = $changeValue > 0 ? 'stock-change-positive' : ($changeValue < 0 ? 'stock-change-negative' : 'stock-change-zero');
-              $customerName = $entry['customer_name'] ?? '';
-            ?>
-            <tr data-order-id="<?= (int)($entry['order_id'] ?? 0); ?>">
-              <td><?= htmlspecialchars($entry['order_date_formatted'] ?? $entry['order_date'] ?? '—'); ?></td>
-              <td class="log-order"><?= htmlspecialchars($entry['order_code'] ?? ('#' . str_pad((string)($entry['order_id'] ?? 0), 5, '0', STR_PAD_LEFT))); ?></td>
-              <td><?= htmlspecialchars($customerName !== '' ? $customerName : '—'); ?></td>
-              <td class="log-product"><?= htmlspecialchars($entry['product_name'] ?? ''); ?></td>
-              <td><span class="<?= $changeClass; ?>"><?= htmlspecialchars($changeLabel); ?></span></td>
-            </tr>
-          <?php endforeach; ?>
-        <?php endif; ?>
-      </tbody>
-    </table>
+            <?php foreach ($inventoryLogEntries as $entry): ?>
+              <?php
+                $changeValue = (int)($entry['change'] ?? 0);
+                $changeLabel = ($changeValue > 0 ? '+' : '') . number_format($changeValue) . ' pcs';
+                $changeClass = $changeValue > 0 ? 'stock-change-positive' : ($changeValue < 0 ? 'stock-change-negative' : 'stock-change-zero');
+                $customerName = $entry['customer_name'] ?? '';
+                $referenceLabel = $entry['reference_label'] ?? $entry['order_code'] ?? ($entry['order_id'] ?? 0 ? '#' . str_pad((string)($entry['order_id'] ?? 0), 5, '0', STR_PAD_LEFT) : '—');
+              ?>
+              <tr data-order-id="<?= (int)($entry['order_id'] ?? 0); ?>">
+                <td><?= htmlspecialchars($entry['created_at_formatted'] ?? $entry['created_at'] ?? '—'); ?></td>
+                <td class="log-order"><?= htmlspecialchars($referenceLabel); ?></td>
+                <td><?= htmlspecialchars($customerName !== '' ? $customerName : '—'); ?></td>
+                <td class="log-product"><?= htmlspecialchars($entry['product_name'] ?? ''); ?></td>
+                <td><span class="<?= $changeClass; ?>"><?= htmlspecialchars($changeLabel); ?></span></td>
+              </tr>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </tbody>
+      </table>
   </div>
 </div>
 <?php
@@ -237,6 +287,13 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const numberFormatter = new Intl.NumberFormat();
+  const parseNullableInteger = (value) => {
+    if (value === null || typeof value === 'undefined' || value === '') {
+      return null;
+    }
+    const parsed = parseInt(value, 10);
+    return Number.isNaN(parsed) ? null : parsed;
+  };
   let currentSearchTerm = '';
   let currentLogSearchTerm = '';
   let latestUpdateToken = 0;
@@ -1023,9 +1080,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (entry.orderId) {
         row.dataset.orderId = String(entry.orderId);
       }
+      if (entry.changeType) {
+        row.dataset.changeType = entry.changeType;
+      }
+      if (entry.note) {
+        row.title = entry.note;
+      }
 
       const dateCell = document.createElement('td');
-      dateCell.textContent = entry.orderDateFormatted || entry.orderDate || '—';
+      dateCell.textContent = entry.createdAtFormatted || entry.createdAt || '—';
       row.appendChild(dateCell);
 
       const orderCell = document.createElement('td');
@@ -1044,7 +1107,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const changeCell = document.createElement('td');
       const changeSpan = document.createElement('span');
-      const changeValue = typeof entry.change === 'number' ? entry.change : 0;
+      const changeValue = typeof entry.change === 'number' && !Number.isNaN(entry.change) ? entry.change : 0;
       const changeClass = getStockChangeClass(changeValue);
       if (changeClass) {
         changeSpan.className = changeClass;
@@ -1067,10 +1130,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const haystack = [
       entry.referenceLabel,
       entry.productName,
-      entry.orderDateFormatted,
-      entry.orderDate,
+      entry.createdAtFormatted,
+      entry.createdAt,
       entry.customerName,
       entry.changeType,
+      entry.changeSource,
+      entry.note,
       entry.orderId ? `#\${entry.orderId}` : ''
     ]
       .filter(Boolean)
@@ -1120,34 +1185,59 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     return raw.map((entry) => {
-      const orderId = Number(entry?.order_id ?? entry?.Order_ID ?? 0);
-      const productId = Number(entry?.product_id ?? entry?.Product_ID ?? 0);
-      const quantityRaw = entry?.quantity ?? entry?.Quantity;
-      const parsedQuantity = parseInt(quantityRaw, 10);
-      const quantity = Number.isNaN(parsedQuantity) ? 0 : Math.max(0, parsedQuantity);
-      const changeRaw = entry?.change ?? entry?.Change;
+      const logId = Number(
+        entry?.log_id
+        ?? entry?.Log_ID
+        ?? entry?.order_item_id
+        ?? entry?.Order_Item_ID
+        ?? 0
+      );
+      const orderId = Number(
+        entry?.order_id
+        ?? entry?.Order_ID
+        ?? entry?.reference_id
+        ?? entry?.Reference_ID
+        ?? 0
+      );
+      const referenceFallback = orderId ? `#${String(orderId).padStart(5, '0')}` : '';
+      const referenceLabel = entry?.reference_label
+        ?? entry?.Reference_Label
+        ?? entry?.order_code
+        ?? entry?.Order_Code
+        ?? referenceFallback;
+      const changeRaw = entry?.change
+        ?? entry?.Change
+        ?? entry?.change_amount
+        ?? entry?.Change_Amount
+        ?? 0;
       const parsedChange = parseInt(changeRaw, 10);
-      const changeValue = !Number.isNaN(parsedChange)
-        ? parsedChange
-        : quantity > 0
-          ? -quantity
-          : 0;
-      const orderCode = entry?.order_code ?? entry?.Order_Code ?? (orderId ? `#\${String(orderId).padStart(5, '0')}` : '—');
-      const orderDate = entry?.order_date ?? entry?.Order_Date ?? '';
-      const orderDateFormatted = entry?.order_date_formatted ?? entry?.Order_Date_Formatted ?? formatDateForDisplay(orderDate);
+      const changeValue = Number.isNaN(parsedChange) ? 0 : parsedChange;
+      const createdAt = entry?.created_at
+        ?? entry?.Created_At
+        ?? entry?.order_date
+        ?? entry?.Order_Date
+        ?? '';
+      const createdAtFormatted = entry?.created_at_formatted
+        ?? entry?.Created_At_Formatted
+        ?? entry?.order_date_formatted
+        ?? entry?.Order_Date_Formatted
+        ?? formatDateForDisplay(createdAt);
 
       return {
-        id: Number(entry?.order_item_id ?? entry?.Order_Item_ID ?? 0),
+        id: logId,
         orderId,
-        referenceLabel: orderCode,
-        productId,
+        referenceLabel,
+        productId: Number(entry?.product_id ?? entry?.Product_ID ?? 0),
         productName: entry?.product_name ?? entry?.Product_Name ?? '',
-        quantity,
         change: changeValue,
-        orderDate,
-        orderDateFormatted,
+        createdAt,
+        createdAtFormatted,
         customerName: entry?.customer_name ?? entry?.Customer_Name ?? '',
-        changeType: entry?.change_type ?? entry?.Change_Type ?? 'Order Placement'
+        changeType: entry?.change_type ?? entry?.Change_Type ?? 'Stock Update',
+        changeSource: entry?.change_source ?? entry?.Change_Source ?? '',
+        note: entry?.note ?? entry?.Note ?? '',
+        previousQuantity: parseNullableInteger(entry?.previous_quantity ?? entry?.Previous_Quantity),
+        newQuantity: parseNullableInteger(entry?.new_quantity ?? entry?.New_Quantity)
       };
     });
   }

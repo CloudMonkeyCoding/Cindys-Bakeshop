@@ -63,7 +63,12 @@ switch ($action) {
             $subtotal = $price * $quantity;
             $total += $subtotal;
             addOrderItem($pdo, $orderId, $productId, $quantity, $subtotal);
-            adjustInventoryStock($pdo, $productId, -$quantity);
+            adjustInventoryStock($pdo, $productId, -$quantity, [
+                'change_source' => 'order',
+                'reference_type' => 'order',
+                'reference_id' => $orderId,
+                'note' => 'Online order placement'
+            ]);
             adjustProductStock($pdo, $productId, -$quantity);
 
             $inventory = getInventoryByProductId($pdo, $productId);
