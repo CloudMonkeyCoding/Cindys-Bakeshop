@@ -443,6 +443,13 @@ table tbody tr:hover {
   transition: border 0.2s ease, box-shadow 0.2s ease;
 }
 
+.inventory-stock-input:disabled {
+  background: #f4f6f8;
+  border-color: #e6e9ed;
+  color: var(--muted-text);
+  cursor: not-allowed;
+}
+
 .inventory-stock-input:focus {
   outline: none;
   border-color: var(--primary);
@@ -483,6 +490,16 @@ table tbody tr:hover {
   opacity: 0.4;
   cursor: not-allowed;
   transform: none;
+}
+
+.inventory-stock-control.is-readonly {
+  opacity: 0.7;
+}
+
+.inventory-stock-control.is-readonly .inventory-stock-input {
+  background: #f4f6f8;
+  border-color: #e6e9ed;
+  color: var(--muted-text);
 }
 
 .inventory-stock-control.is-saving {

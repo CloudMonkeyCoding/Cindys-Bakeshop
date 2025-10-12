@@ -264,6 +264,7 @@ include 'includes/sidebar.php';
     <div class="table-actions">
       <input type="text" id="inventorySearch" placeholder="🔍 Search inventory item...">
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-secondary" type="button" id="toggleInventoryEdit" aria-pressed="false">Enable Editing</button>
         <button class="btn btn-primary" type="button" id="exportInventory">Export Inventory PDF</button>
       </div>
     </div>
@@ -354,6 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const inventoryContainer = document.getElementById('inventoryContainer');
   const searchInput = document.getElementById('inventorySearch');
   const exportBtn = document.getElementById('exportInventory');
+  const editToggleBtn = document.getElementById('toggleInventoryEdit');
   const logSearchInput = document.getElementById('inventoryLogSearch');
   const logTableBody = document.getElementById('inventoryLogBody');
   const reportForm = document.querySelector('.inventory-log-filter');
@@ -384,6 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let logDateCountsByDate = new Map();
   let calendarFocusYear = null;
   let calendarFocusMonth = null;
+  let inventoryEditingEnabled = false;
 
   if (searchInput) {
     currentSearchTerm = searchInput.value.toLowerCase();
@@ -395,6 +398,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (inventoryContainer) {
     inventoryContainer.addEventListener('click', (event) => {
+      if (!inventoryEditingEnabled) {
+        return;
+      }
       const button = event.target.closest('.inventory-adjust-btn');
       if (!button || !inventoryContainer.contains(button)) {
         return;
@@ -408,6 +414,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     inventoryContainer.addEventListener('input', (event) => {
+      if (!inventoryEditingEnabled) {
+        return;
+      }
       const input = event.target.closest('.inventory-stock-input');
       if (!input) {
         return;
@@ -417,6 +426,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     inventoryContainer.addEventListener('change', (event) => {
+      if (!inventoryEditingEnabled) {
+        return;
+      }
       const input = event.target.closest('.inventory-stock-input');
       if (!input) {
         return;
@@ -426,6 +438,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     inventoryContainer.addEventListener('keydown', (event) => {
+      if (!inventoryEditingEnabled) {
+        return;
+      }
       if (event.key === 'Enter') {
         const input = event.target.closest('.inventory-stock-input');
         if (input) {
@@ -458,6 +473,22 @@ document.addEventListener('DOMContentLoaded', () => {
     logSearchInput.addEventListener('input', () => {
       currentLogSearchTerm = logSearchInput.value.trim().toLowerCase();
       renderInventoryLogTable();
+    });
+  }
+
+  if (editToggleBtn) {
+    editToggleBtn.addEventListener('click', () => {
+      inventoryEditingEnabled = !inventoryEditingEnabled;
+      applyEditingState();
+      if (inventoryEditingEnabled) {
+        const firstInput = inventoryContainer?.querySelector('.inventory-stock-input');
+        if (firstInput) {
+          firstInput.focus();
+          if (typeof firstInput.select === 'function') {
+            firstInput.select();
+          }
+        }
+      }
     });
   }
 
@@ -587,7 +618,46 @@ document.addEventListener('DOMContentLoaded', () => {
       updateStockStatus(control);
     });
 
+    applyEditingState();
+
     applySearchFilter();
+  }
+
+  function applyEditingState() {
+    if (editToggleBtn) {
+      editToggleBtn.textContent = inventoryEditingEnabled ? 'Disable Editing' : 'Enable Editing';
+      editToggleBtn.setAttribute('aria-pressed', inventoryEditingEnabled ? 'true' : 'false');
+      editToggleBtn.classList.toggle('is-active', inventoryEditingEnabled);
+      editToggleBtn.classList.toggle('btn-primary', inventoryEditingEnabled);
+      editToggleBtn.classList.toggle('btn-secondary', !inventoryEditingEnabled);
+    }
+
+    if (!inventoryContainer) {
+      return;
+    }
+
+    inventoryContainer.classList.toggle('is-editing', inventoryEditingEnabled);
+
+    inventoryContainer.querySelectorAll('.inventory-stock-control').forEach((control) => {
+      control.classList.toggle('is-readonly', !inventoryEditingEnabled);
+      const minusButton = control.querySelector('.inventory-minus');
+      const plusButton = control.querySelector('.inventory-plus');
+      const stockInput = control.querySelector('.inventory-stock-input');
+
+      [minusButton, plusButton].forEach((button) => {
+        if (button) {
+          button.disabled = !inventoryEditingEnabled;
+        }
+      });
+
+      if (stockInput) {
+        stockInput.disabled = !inventoryEditingEnabled;
+        stockInput.readOnly = !inventoryEditingEnabled;
+        if (!inventoryEditingEnabled) {
+          stockInput.blur();
+        }
+      }
+    });
   }
 
   function updateStats(metrics) {
@@ -681,6 +751,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function adjustStock(control, delta) {
+    if (!inventoryEditingEnabled) {
+      return;
+    }
     if (!control) {
       return;
     }
@@ -752,6 +825,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function persistStock(control) {
+    if (!inventoryEditingEnabled) {
+      return;
+    }
     if (!control) {
       return;
     }
