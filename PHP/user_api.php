@@ -110,6 +110,11 @@ switch ($action) {
         $lastName = $_POST['last_name'] ?? '';
         $email = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
+        $address = $_POST['address'] ?? '';
+        $addressStreet = $_POST['address_street'] ?? null;
+        $addressBarangay = $_POST['address_barangay'] ?? null;
+        $addressCity = $_POST['address_city'] ?? null;
+        $addressProvince = $_POST['address_province'] ?? null;
 
         if (!$firstName || !$lastName || !$email) {
             http_response_code(400);
@@ -125,11 +130,25 @@ switch ($action) {
         }
 
         $fullName = trim($firstName . ' ' . $lastName);
+        $baseAddress = $address !== '' ? $address : ($user['Address'] ?? null);
+        [$resolvedAddress, $street, $barangay, $city, $province] = resolveAddressData(
+            $baseAddress,
+            $addressStreet,
+            $addressBarangay,
+            $addressCity,
+            $addressProvince
+        );
+
         $params = [
             ':name' => $fullName,
+            ':address' => $resolvedAddress,
+            ':address_street' => $street,
+            ':address_barangay' => $barangay,
+            ':address_city' => $city,
+            ':address_province' => $province,
             ':id' => $user['User_ID']
         ];
-        $sql = 'UPDATE user SET Name = :name';
+        $sql = 'UPDATE user SET Name = :name, Address = :address, Address_Street = :address_street, Address_Barangay = :address_barangay, Address_City = :address_city, Address_Province = :address_province';
 
         if ($password) {
             $hashed = password_hash($password, PASSWORD_DEFAULT);

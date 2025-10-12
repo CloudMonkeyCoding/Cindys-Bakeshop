@@ -149,7 +149,8 @@
       margin-bottom: 0.45rem;
     }
 
-    .profile-form input {
+    .profile-form input,
+    .profile-form textarea {
       width: 100%;
       border-radius: 16px;
       border: 1px solid rgba(139, 69, 19, 0.15);
@@ -157,6 +158,11 @@
       font-size: 0.95rem;
       background: rgba(255, 255, 255, 0.9);
       font-family: inherit;
+    }
+
+    .profile-form textarea {
+      min-height: 120px;
+      resize: vertical;
     }
 
     .form-actions {
@@ -258,6 +264,26 @@
             <label for="email">Email</label>
             <input type="email" id="email" placeholder="Email" required readonly />
           </div>
+          <div>
+            <label for="address">Full address (optional)</label>
+            <textarea id="address" placeholder="House number, street, barangay..."></textarea>
+          </div>
+          <div>
+            <label for="addressStreet">Street</label>
+            <input type="text" id="addressStreet" placeholder="Street" />
+          </div>
+          <div>
+            <label for="addressBarangay">Barangay</label>
+            <input type="text" id="addressBarangay" placeholder="Barangay" />
+          </div>
+          <div>
+            <label for="addressCity">City / Municipality</label>
+            <input type="text" id="addressCity" placeholder="City or municipality" />
+          </div>
+          <div>
+            <label for="addressProvince">Province</label>
+            <input type="text" id="addressProvince" placeholder="Province" />
+          </div>
           <div class="form-actions" style="grid-column: 1 / -1;">
             <button type="submit">Save changes</button>
           </div>
@@ -278,6 +304,11 @@
     const lastNameField = document.getElementById('lastName');
     const emailField = document.getElementById('email');
     const serverMessage = document.getElementById('serverMessage');
+    const addressField = document.getElementById('address');
+    const addressStreetField = document.getElementById('addressStreet');
+    const addressBarangayField = document.getElementById('addressBarangay');
+    const addressCityField = document.getElementById('addressCity');
+    const addressProvinceField = document.getElementById('addressProvince');
     const displayName = document.getElementById('displayName');
     const displayEmail = document.getElementById('displayEmail');
     const statName = document.getElementById('statName');
@@ -304,6 +335,11 @@
             if (data.face_image_path) {
               profilePic.src = data.face_image_path;
             }
+            addressField.value = data.address || '';
+            addressStreetField.value = data.address_street || '';
+            addressBarangayField.value = data.address_barangay || '';
+            addressCityField.value = data.address_city || '';
+            addressProvinceField.value = data.address_province || '';
           });
       }
     });
@@ -323,6 +359,11 @@
       formData.append('first_name', firstNameField.value.trim());
       formData.append('last_name', lastNameField.value.trim());
       formData.append('email', emailField.value.trim());
+      formData.append('address', addressField.value.trim());
+      formData.append('address_street', addressStreetField.value.trim());
+      formData.append('address_barangay', addressBarangayField.value.trim());
+      formData.append('address_city', addressCityField.value.trim());
+      formData.append('address_province', addressProvinceField.value.trim());
       if (profilePicFile) {
         formData.append('profile_picture', profilePicFile);
       }
