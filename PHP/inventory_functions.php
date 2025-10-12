@@ -167,8 +167,8 @@ function ensureOrderInventoryLogs(PDO $pdo, $startDate = null, $endDate = null)
         return 0;
     }
 
-    $insert = $pdo->prepare(""
-        . "INSERT INTO inventory_stock_log "
+    $insert = $pdo->prepare(
+        "INSERT INTO inventory_stock_log "
         . "(Product_ID, Change_Amount, Previous_Quantity, New_Quantity, Change_Source, Reference_Type, Reference_ID, Note, Created_At) "
         . "VALUES (:product_id, :change_amount, :previous_quantity, :new_quantity, :change_source, :reference_type, :reference_id, :note, :created_at)"
     );
@@ -203,6 +203,80 @@ function ensureOrderInventoryLogs(PDO $pdo, $startDate = null, $endDate = null)
     return $inserted;
 }
 
+function ensureInventoryDailySnapshot(PDO $pdo, $snapshotDate)
+{
+    if ($snapshotDate === null || $snapshotDate === '') {
+        return 0;
+    }
+
+    $date = DateTime::createFromFormat('Y-m-d', (string)$snapshotDate);
+    if ($date === false) {
+        return 0;
+    }
+
+    $normalizedDate = $date->format('Y-m-d');
+
+    ensureOrderInventoryLogs($pdo, $normalizedDate, $normalizedDate);
+
+    $endOfDay = $normalizedDate . ' 23:59:59';
+
+    $stmt = $pdo->prepare(
+        "SELECT\n"
+        . "    i.Product_ID,\n"
+        . "    i.Stock_Quantity AS Current_Quantity,\n"
+        . "    (\n"
+        . "        SELECT isl.New_Quantity\n"
+        . "        FROM inventory_stock_log isl\n"
+        . "        WHERE isl.Product_ID = i.Product_ID\n"
+        . "          AND isl.Created_At <= :end_of_day\n"
+        . "        ORDER BY isl.Created_At DESC, isl.Log_ID DESC\n"
+        . "        LIMIT 1\n"
+        . "    ) AS Snapshot_Quantity\n"
+        . "FROM inventory i"
+    );
+
+    $stmt->execute([':end_of_day' => $endOfDay]);
+
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (!$rows) {
+        return 0;
+    }
+
+    $insert = $pdo->prepare(
+        "INSERT INTO inventory_daily_snapshot "
+        . "(Snapshot_Date, Product_ID, Quantity) "
+        . "VALUES (:snapshot_date, :product_id, :quantity) "
+        . "ON DUPLICATE KEY UPDATE "
+        . "    Quantity = VALUES(Quantity), "
+        . "    Updated_At = CURRENT_TIMESTAMP"
+    );
+
+    $persisted = 0;
+    foreach ($rows as $row) {
+        $productId = isset($row['Product_ID']) ? (int)$row['Product_ID'] : 0;
+        if ($productId <= 0) {
+            continue;
+        }
+
+        $snapshotQuantity = $row['Snapshot_Quantity'] ?? null;
+        if ($snapshotQuantity === null && array_key_exists('Current_Quantity', $row)) {
+            $snapshotQuantity = $row['Current_Quantity'];
+        }
+
+        $normalizedQuantity = normalizeInventoryQuantity($snapshotQuantity);
+
+        $insert->execute([
+            ':snapshot_date' => $normalizedDate,
+            ':product_id' => $productId,
+            ':quantity' => $normalizedQuantity,
+        ]);
+
+        $persisted++;
+    }
+
+    return $persisted;
+}
+
 function getInventoryWithProducts($pdo, $snapshotDate = null) {
     if ($snapshotDate === null) {
         $stmt = $pdo->query(
@@ -213,44 +287,27 @@ function getInventoryWithProducts($pdo, $snapshotDate = null) {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    ensureOrderInventoryLogs($pdo, $snapshotDate, $snapshotDate);
+    ensureInventoryDailySnapshot($pdo, $snapshotDate);
 
-    $endOfDay = $snapshotDate . ' 23:59:59';
+    $stmt = $pdo->prepare(
+        "SELECT\n"
+        . "    p.Product_ID,\n"
+        . "    p.Name,\n"
+        . "    p.Category,\n"
+        . "    CASE\n"
+        . "        WHEN ids.Snapshot_ID IS NOT NULL THEN ids.Quantity\n"
+        . "        ELSE i.Stock_Quantity\n"
+        . "    END AS Stock_Quantity\n"
+        . "FROM inventory i\n"
+        . "JOIN product p ON i.Product_ID = p.Product_ID\n"
+        . "LEFT JOIN inventory_daily_snapshot ids\n"
+        . "  ON ids.Product_ID = i.Product_ID\n"
+        . " AND ids.Snapshot_Date = :snapshot_date"
+    );
 
-    $sql = "
-        SELECT
-            p.Product_ID,
-            p.Name,
-            p.Category,
-            i.Stock_Quantity,
-            (
-                SELECT isl.New_Quantity
-                FROM inventory_stock_log isl
-                WHERE isl.Product_ID = p.Product_ID
-                  AND isl.Created_At <= :end_of_day
-                ORDER BY isl.Created_At DESC, isl.Log_ID DESC
-                LIMIT 1
-            ) AS Snapshot_Quantity
-        FROM inventory i
-        JOIN product p ON i.Product_ID = p.Product_ID
-    ";
+    $stmt->execute([':snapshot_date' => $snapshotDate]);
 
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([':end_of_day' => $endOfDay]);
-
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    foreach ($rows as &$row) {
-        $snapshotQuantity = array_key_exists('Snapshot_Quantity', $row) ? $row['Snapshot_Quantity'] : null;
-        if ($snapshotQuantity === null && array_key_exists('Stock_Quantity', $row)) {
-            $snapshotQuantity = $row['Stock_Quantity'];
-        }
-        $row['Stock_Quantity'] = $snapshotQuantity;
-        unset($row['Snapshot_Quantity']);
-    }
-    unset($row);
-
-    return $rows;
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 // 3c) Get inventory change log entries
