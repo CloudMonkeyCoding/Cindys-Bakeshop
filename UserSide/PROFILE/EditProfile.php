@@ -258,9 +258,24 @@
             <label for="email">Email</label>
             <input type="email" id="email" placeholder="Email" required readonly />
           </div>
+          <div>
+            <label for="addressStreet">Street</label>
+            <input type="text" id="addressStreet" placeholder="Street" />
+          </div>
+          <div>
+            <label for="addressBarangay">Barangay</label>
+            <input type="text" id="addressBarangay" placeholder="Barangay" />
+          </div>
+          <div>
+            <label for="addressCity">City / Municipality</label>
+            <input type="text" id="addressCity" placeholder="City or municipality" />
+          </div>
+          <div>
+            <label for="addressProvince">Province</label>
+            <input type="text" id="addressProvince" placeholder="Province" />
+          </div>
           <div class="form-actions" style="grid-column: 1 / -1;">
             <button type="submit">Save changes</button>
-            <a href="Settings.php">Account security</a>
           </div>
           <div id="serverMessage" style="grid-column: 1 / -1;"></div>
         </form>
@@ -279,20 +294,19 @@
     const lastNameField = document.getElementById('lastName');
     const emailField = document.getElementById('email');
     const serverMessage = document.getElementById('serverMessage');
+    const addressStreetField = document.getElementById('addressStreet');
+    const addressBarangayField = document.getElementById('addressBarangay');
+    const addressCityField = document.getElementById('addressCity');
+    const addressProvinceField = document.getElementById('addressProvince');
     const displayName = document.getElementById('displayName');
     const displayEmail = document.getElementById('displayEmail');
     const statName = document.getElementById('statName');
     const statEmail = document.getElementById('statEmail');
-    const accountLink = document.querySelector('.form-actions a');
-
     onAuthStateChanged(auth, user => {
       if (user) {
         emailField.value = user.email;
         displayEmail.textContent = user.email;
         statEmail.textContent = user.email;
-        if (accountLink) {
-          accountLink.href = `Settings.php?email=${encodeURIComponent(user.email)}`;
-        }
         fetch(`../../PHP/user_api.php?action=get_profile&email=${encodeURIComponent(user.email)}`)
           .then(res => res.json())
           .then(data => {
@@ -310,6 +324,10 @@
             if (data.face_image_path) {
               profilePic.src = data.face_image_path;
             }
+            addressStreetField.value = data.address_street || '';
+            addressBarangayField.value = data.address_barangay || '';
+            addressCityField.value = data.address_city || '';
+            addressProvinceField.value = data.address_province || '';
           });
       }
     });
@@ -329,6 +347,10 @@
       formData.append('first_name', firstNameField.value.trim());
       formData.append('last_name', lastNameField.value.trim());
       formData.append('email', emailField.value.trim());
+      formData.append('address_street', addressStreetField.value.trim());
+      formData.append('address_barangay', addressBarangayField.value.trim());
+      formData.append('address_city', addressCityField.value.trim());
+      formData.append('address_province', addressProvinceField.value.trim());
       if (profilePicFile) {
         formData.append('profile_picture', profilePicFile);
       }

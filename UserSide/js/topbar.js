@@ -15,7 +15,6 @@ if (header) {
   const defaultAvatar = header.dataset.imagesBase ? `${header.dataset.imagesBase}logo.png` : '';
   const apiBase = header.dataset.apiBase || '';
   const userPrefix = header.dataset.userPrefix || '';
-  const settingsLink = header.querySelector('[data-settings-link]');
 
   if (navToggle && navContainer) {
     navToggle.addEventListener('click', () => {
@@ -112,9 +111,6 @@ if (header) {
         } else if (defaultAvatar) {
           profileAvatar.src = defaultAvatar;
         }
-        if (settingsLink) {
-          settingsLink.href = `${userPrefix}PROFILE/Settings.php?email=${encodeURIComponent(email)}`;
-        }
       } catch (error) {
         console.error('Failed to fetch profile info', error);
         if (defaultAvatar) {
@@ -127,9 +123,6 @@ if (header) {
       profileEmail.textContent = 'Sign in';
       if (defaultAvatar) {
         profileAvatar.src = defaultAvatar;
-      }
-      if (settingsLink) {
-        settingsLink.href = `${userPrefix}PROFILE/Settings.php`;
       }
     }
   });
