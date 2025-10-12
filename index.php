@@ -423,14 +423,82 @@ $productBase = $userPrefix . 'PRODUCT/';
         z-index: 1;
       }
 
-      .products-grid {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 2.5rem;
+      .products-carousel {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
         margin-top: 4rem;
-        justify-items: center;
         position: relative;
         z-index: 2;
+      }
+
+      .products-carousel.is-static {
+        justify-content: center;
+      }
+
+      .carousel-track-wrapper {
+        overflow: hidden;
+        flex: 1;
+      }
+
+      .carousel-track {
+        display: flex;
+        gap: 2.5rem;
+        transition: transform 0.6s ease;
+        will-change: transform;
+      }
+
+      .carousel-btn {
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        border: none;
+        background: linear-gradient(135deg, #8b4513, #a0522d);
+        color: #fff;
+        font-size: 1.3rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 12px 30px rgba(139, 69, 19, 0.25);
+        cursor: pointer;
+        transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+      }
+
+      .carousel-btn:hover {
+        transform: translateY(-4px) scale(1.05);
+        box-shadow: 0 18px 45px rgba(139, 69, 19, 0.35);
+      }
+
+      .products-carousel.is-static .carousel-btn,
+      .carousel-btn:disabled {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .carousel-indicators {
+        display: flex;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-top: 2.5rem;
+        position: relative;
+        z-index: 2;
+      }
+
+      .carousel-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        border: none;
+        background: rgba(139, 69, 19, 0.25);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        padding: 0;
+      }
+
+      .carousel-indicator.is-active {
+        width: 34px;
+        background: linear-gradient(135deg, #8b4513, #a0522d);
+        box-shadow: 0 8px 20px rgba(139, 69, 19, 0.3);
       }
 
       .product-card {
@@ -443,6 +511,8 @@ $productBase = $userPrefix . 'PRODUCT/';
         border: 3px solid rgba(139, 69, 19, 0.08);
         -webkit-backdrop-filter: blur(10px);
         backdrop-filter: blur(10px);
+        flex: 0 0 clamp(260px, 24vw, 320px);
+        max-width: clamp(260px, 24vw, 320px);
       }
 
       .product-card:hover {
@@ -884,14 +954,24 @@ $productBase = $userPrefix . 'PRODUCT/';
           padding: 6rem 5%;
         }
 
-        .products-grid {
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-          gap: 2rem;
-          justify-items: center;
+        .products-carousel {
+          margin-top: 3rem;
+          gap: 1rem;
+        }
+
+        .carousel-track {
+          gap: 1.5rem;
+        }
+
+        .carousel-btn {
+          width: 50px;
+          height: 50px;
+          font-size: 1.1rem;
         }
 
         .product-card {
-          max-width: 320px;
+          flex: 0 0 70%;
+          max-width: 70%;
         }
 
         .product-info {
@@ -934,13 +1014,27 @@ $productBase = $userPrefix . 'PRODUCT/';
           justify-content: center;
         }
 
-        .products-grid {
-          grid-template-columns: 1fr;
+        .products-carousel {
+          flex-direction: column;
+          align-items: center;
           gap: 1.5rem;
         }
 
+        .carousel-track-wrapper {
+          width: 100%;
+        }
+
+        .carousel-track {
+          gap: 1.25rem;
+        }
+
+        .carousel-btn {
+          display: none;
+        }
+
         .product-card {
-          max-width: 100%;
+          flex: 0 0 90%;
+          max-width: 90%;
         }
 
         .product-info {
@@ -1055,73 +1149,84 @@ $productBase = $userPrefix . 'PRODUCT/';
           These signature creations represent the perfect balance of tradition, quality, and innovation.
         </p>
       </div>
-      <div class="products-grid">
-        <div class="product-card">
-          <div class="product-image">
-            <a href="<?= htmlspecialchars($productBase . 'product.php?id=1', ENT_QUOTES) ?>">
-              <img src="<?= htmlspecialchars($imagesBase . 'cakes/cake1.png', ENT_QUOTES) ?>" alt="Choco Mousse Cake" />
-            </a>
-            <div class="product-badge">Best Seller</div>
-          </div>
-          <div class="product-info">
-            <h4>Choco Mousse Cake</h4>
-            <p>Layers of moist chocolate sponge with velvety mousse and a glossy fudge finish.</p>
-            <div class="product-price">₱450</div>
+      <div class="products-carousel">
+        <button class="carousel-btn prev" type="button" aria-label="Previous favorite">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="carousel-track-wrapper">
+          <div class="carousel-track">
+            <div class="product-card">
+              <div class="product-image">
+                <a href="<?= htmlspecialchars($productBase . 'product.php?id=1', ENT_QUOTES) ?>">
+                  <img src="<?= htmlspecialchars($imagesBase . 'cakes/cake1.png', ENT_QUOTES) ?>" alt="Choco Mousse Cake" />
+                </a>
+                <div class="product-badge">Best Seller</div>
+              </div>
+              <div class="product-info">
+                <h4>Choco Mousse Cake</h4>
+                <p>Layers of moist chocolate sponge with velvety mousse and a glossy fudge finish.</p>
+                <div class="product-price">₱450</div>
+              </div>
+            </div>
+            <div class="product-card">
+              <div class="product-image">
+                <a href="<?= htmlspecialchars($productBase . 'product.php?id=7', ENT_QUOTES) ?>">
+                  <img src="<?= htmlspecialchars($imagesBase . 'cakes/cake2.png', ENT_QUOTES) ?>" alt="Creamy Choco Cake" />
+                </a>
+                <div class="product-badge">Best Seller</div>
+              </div>
+              <div class="product-info">
+                <h4>Creamy Choco Cake</h4>
+                <p>Chocolate sponge layered with whipped cream, chocolate shavings, and silky ganache.</p>
+                <div class="product-price">₱420</div>
+              </div>
+            </div>
+            <div class="product-card">
+              <div class="product-image">
+                <a href="<?= htmlspecialchars($productBase . 'product.php?id=3', ENT_QUOTES) ?>">
+                  <img src="<?= htmlspecialchars($imagesBase . 'cakes/cake3.png', ENT_QUOTES) ?>" alt="Choco Cherry Cake" />
+                </a>
+                <div class="product-badge">New</div>
+              </div>
+              <div class="product-info">
+                <h4>Choco Cherry Cake</h4>
+                <p>Dark chocolate cake with cherry compote layers topped with chocolate curls.</p>
+                <div class="product-price">₱430</div>
+              </div>
+            </div>
+            <div class="product-card">
+              <div class="product-image">
+                <a href="<?= htmlspecialchars($productBase . 'product.php?id=4', ENT_QUOTES) ?>">
+                  <img src="<?= htmlspecialchars($imagesBase . 'cakes/cake4.png', ENT_QUOTES) ?>" alt="Pastel Delight Cake" />
+                </a>
+                <div class="product-badge">Best Seller</div>
+              </div>
+              <div class="product-info">
+                <h4>Pastel Delight Cake</h4>
+                <p>Classic vanilla chiffon iced with pastel buttercream and candy sprinkles.</p>
+                <div class="product-price">₱410</div>
+              </div>
+            </div>
+            <div class="product-card">
+              <div class="product-image">
+                <a href="<?= htmlspecialchars($productBase . 'product.php?id=5', ENT_QUOTES) ?>">
+                  <img src="<?= htmlspecialchars($imagesBase . 'cakes/cake5.png', ENT_QUOTES) ?>" alt="Choco Caramel Cake" />
+                </a>
+                <div class="product-badge">New</div>
+              </div>
+              <div class="product-info">
+                <h4>Choco Caramel Cake</h4>
+                <p>Chocolate sponge layered with caramel cream and finished with caramel drizzle.</p>
+                <div class="product-price">₱420</div>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="product-card">
-          <div class="product-image">
-            <a href="<?= htmlspecialchars($productBase . 'product.php?id=7', ENT_QUOTES) ?>">
-              <img src="<?= htmlspecialchars($imagesBase . 'cakes/cake2.png', ENT_QUOTES) ?>" alt="Creamy Choco Cake" />
-            </a>
-            <div class="product-badge">Best Seller</div>
-          </div>
-          <div class="product-info">
-            <h4>Creamy Choco Cake</h4>
-            <p>Chocolate sponge layered with whipped cream, chocolate shavings, and silky ganache.</p>
-            <div class="product-price">₱420</div>
-          </div>
-        </div>
-        <div class="product-card">
-          <div class="product-image">
-            <a href="<?= htmlspecialchars($productBase . 'product.php?id=3', ENT_QUOTES) ?>">
-              <img src="<?= htmlspecialchars($imagesBase . 'cakes/cake3.png', ENT_QUOTES) ?>" alt="Choco Cherry Cake" />
-            </a>
-            <div class="product-badge">New</div>
-          </div>
-          <div class="product-info">
-            <h4>Choco Cherry Cake</h4>
-            <p>Dark chocolate cake with cherry compote layers topped with chocolate curls.</p>
-            <div class="product-price">₱430</div>
-          </div>
-        </div>
-        <div class="product-card">
-          <div class="product-image">
-            <a href="<?= htmlspecialchars($productBase . 'product.php?id=4', ENT_QUOTES) ?>">
-              <img src="<?= htmlspecialchars($imagesBase . 'cakes/cake4.png', ENT_QUOTES) ?>" alt="Pastel Delight Cake" />
-            </a>
-            <div class="product-badge">Best Seller</div>
-          </div>
-          <div class="product-info">
-            <h4>Pastel Delight Cake</h4>
-            <p>Classic vanilla chiffon iced with pastel buttercream and candy sprinkles.</p>
-            <div class="product-price">₱410</div>
-          </div>
-        </div>
-        <div class="product-card">
-          <div class="product-image">
-            <a href="<?= htmlspecialchars($productBase . 'product.php?id=5', ENT_QUOTES) ?>">
-              <img src="<?= htmlspecialchars($imagesBase . 'cakes/cake5.png', ENT_QUOTES) ?>" alt="Choco Caramel Cake" />
-            </a>
-            <div class="product-badge">New</div>
-          </div>
-          <div class="product-info">
-            <h4>Choco Caramel Cake</h4>
-            <p>Chocolate sponge layered with caramel cream and finished with caramel drizzle.</p>
-            <div class="product-price">₱420</div>
-          </div>
-        </div>
+        <button class="carousel-btn next" type="button" aria-label="Next favorite">
+          <i class="fas fa-chevron-right"></i>
+        </button>
       </div>
+      <div class="carousel-indicators" aria-hidden="true"></div>
     </section>
 
     <!-- About Us -->
@@ -1304,6 +1409,174 @@ $productBase = $userPrefix . 'PRODUCT/';
           element.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
           observer.observe(element);
         });
+
+        const carouselElement = document.querySelector('.products-carousel');
+        if (carouselElement) {
+          const track = carouselElement.querySelector('.carousel-track');
+          const wrapper = carouselElement.querySelector('.carousel-track-wrapper');
+          const prevBtn = carouselElement.querySelector('.carousel-btn.prev');
+          const nextBtn = carouselElement.querySelector('.carousel-btn.next');
+          const indicatorsContainerCandidate = carouselElement.nextElementSibling;
+          const indicatorsContainer = indicatorsContainerCandidate && indicatorsContainerCandidate.classList.contains('carousel-indicators')
+            ? indicatorsContainerCandidate
+            : null;
+          const slides = track ? Array.from(track.children) : [];
+
+          if (!track || !wrapper || slides.length === 0) {
+            carouselElement.classList.add('is-static');
+            if (prevBtn) prevBtn.disabled = true;
+            if (nextBtn) nextBtn.disabled = true;
+          } else {
+            const totalSlides = slides.length;
+            let currentIndex = 0;
+            let slidesPerView = 1;
+            let maxIndex = 0;
+            let slideWidth = 0;
+            let gap = 0;
+            let autoPlayTimer = null;
+            const autoPlayDelay = 6000;
+
+            const updateButtonsState = () => {
+              const disableNav = maxIndex === 0;
+              if (prevBtn) prevBtn.disabled = disableNav;
+              if (nextBtn) nextBtn.disabled = disableNav;
+              carouselElement.classList.toggle('is-static', disableNav);
+            };
+
+            const setPosition = () => {
+              track.style.transform = `translateX(-${currentIndex * (slideWidth + gap)}px)`;
+            };
+
+            const updateIndicatorsActive = () => {
+              if (!indicatorsContainer) return;
+              const indicators = indicatorsContainer.querySelectorAll('.carousel-indicator');
+              indicators.forEach((indicator, idx) => {
+                indicator.classList.toggle('is-active', idx === currentIndex);
+              });
+            };
+
+            const refreshIndicators = () => {
+              if (!indicatorsContainer) return;
+              indicatorsContainer.innerHTML = '';
+              const steps = maxIndex + 1;
+              if (steps <= 1) {
+                indicatorsContainer.style.display = 'none';
+                return;
+              }
+
+              indicatorsContainer.style.display = '';
+              for (let i = 0; i < steps; i++) {
+                const indicatorButton = document.createElement('button');
+                indicatorButton.type = 'button';
+                indicatorButton.className = `carousel-indicator${i === currentIndex ? ' is-active' : ''}`;
+                indicatorButton.setAttribute('aria-label', `Go to favorite set ${i + 1}`);
+                indicatorButton.addEventListener('click', () => moveToSlide(i));
+                indicatorsContainer.appendChild(indicatorButton);
+              }
+            };
+
+            const stopAutoPlay = () => {
+              if (autoPlayTimer) {
+                clearInterval(autoPlayTimer);
+                autoPlayTimer = null;
+              }
+            };
+
+            const startAutoPlay = () => {
+              stopAutoPlay();
+              if (maxIndex === 0) return;
+              autoPlayTimer = setInterval(() => {
+                moveToSlide(currentIndex + 1, true);
+              }, autoPlayDelay);
+            };
+
+            const restartAutoPlay = () => {
+              stopAutoPlay();
+              startAutoPlay();
+            };
+
+            const applyPosition = () => {
+              setPosition();
+              updateIndicatorsActive();
+            };
+
+            const updateMeasurements = () => {
+              if (!slides.length) return;
+              const wrapperWidth = wrapper.getBoundingClientRect().width;
+              const trackStyles = window.getComputedStyle(track);
+              const gapValue = (trackStyles.gap || trackStyles.columnGap || '0').split(' ')[0];
+              gap = parseFloat(gapValue) || 0;
+              slideWidth = slides[0].getBoundingClientRect().width;
+              slidesPerView = Math.max(1, Math.floor((wrapperWidth + gap) / (slideWidth + gap)));
+              maxIndex = Math.max(0, totalSlides - slidesPerView);
+              if (currentIndex > maxIndex) {
+                currentIndex = maxIndex;
+              }
+              updateButtonsState();
+              refreshIndicators();
+            };
+
+            function moveToSlide(index, isAuto = false) {
+              if (maxIndex === 0) return;
+              if (index < 0) {
+                currentIndex = maxIndex;
+              } else if (index > maxIndex) {
+                currentIndex = 0;
+              } else {
+                currentIndex = index;
+              }
+              applyPosition();
+              if (!isAuto) {
+                restartAutoPlay();
+              }
+            }
+
+            if (prevBtn) {
+              prevBtn.addEventListener('click', () => moveToSlide(currentIndex - 1));
+            }
+
+            if (nextBtn) {
+              nextBtn.addEventListener('click', () => moveToSlide(currentIndex + 1));
+            }
+
+            carouselElement.addEventListener('mouseenter', stopAutoPlay);
+            carouselElement.addEventListener('mouseleave', startAutoPlay);
+
+            document.addEventListener('visibilitychange', () => {
+              if (document.hidden) {
+                stopAutoPlay();
+              } else {
+                startAutoPlay();
+              }
+            });
+
+            let resizeTimer = null;
+            const handleResize = () => {
+              if (resizeTimer) {
+                clearTimeout(resizeTimer);
+              }
+              resizeTimer = setTimeout(() => {
+                const previousMaxIndex = maxIndex;
+                updateMeasurements();
+                applyPosition();
+                if (maxIndex !== previousMaxIndex) {
+                  restartAutoPlay();
+                }
+              }, 150);
+            };
+
+            window.addEventListener('resize', handleResize);
+
+            updateMeasurements();
+            applyPosition();
+            startAutoPlay();
+            window.addEventListener('load', () => {
+              updateMeasurements();
+              applyPosition();
+              startAutoPlay();
+            });
+          }
+        }
 
         const heroImages = [
           {

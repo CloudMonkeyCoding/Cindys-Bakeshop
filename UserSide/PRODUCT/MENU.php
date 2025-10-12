@@ -48,7 +48,6 @@ $pageData = [
     'all' => $payloadProducts,
     'bestSellers' => $bestSellers,
     'categories' => $categoryBuckets,
-    'preorder' => $preorderItems,
 ];
 
 $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
@@ -161,8 +160,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.18);
     }
 
-    .best-sellers,
-    .preorder-section {
+    .best-sellers {
       max-width: 1200px;
       margin: 2rem auto;
       background: #ffffff;
@@ -172,36 +170,25 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       border: 1px solid rgba(139, 69, 19, 0.12);
     }
 
-    .best-sellers h2,
-    .preorder-section h2 {
+    .best-sellers h2 {
       font-size: 1.8rem;
       font-weight: 700;
       color: #8b4513;
       margin-bottom: 1.2rem;
     }
 
-    .preorder-note {
-      font-size: 0.95rem;
-      color: #d63031;
-      margin-bottom: 1rem;
-      font-weight: 600;
-    }
-
-    .best-seller-list,
-    .preorder-list {
+    .best-seller-list {
       display: flex;
       gap: 1.2rem;
       overflow-x: auto;
       padding-bottom: 0.5rem;
     }
 
-    .best-seller-list::-webkit-scrollbar,
-    .preorder-list::-webkit-scrollbar {
+    .best-seller-list::-webkit-scrollbar {
       height: 6px;
     }
 
-    .best-seller-list::-webkit-scrollbar-thumb,
-    .preorder-list::-webkit-scrollbar-thumb {
+    .best-seller-list::-webkit-scrollbar-thumb {
       background: #8b4513;
       border-radius: 8px;
     }
@@ -468,27 +455,12 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       box-shadow: 0 12px 30px rgba(231, 76, 60, 0.3);
     }
 
-    .preorder-badge {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      background: #2c2c2c;
-      color: #fff;
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 0.35rem 1rem;
-      border-radius: 999px;
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
-    }
-
-    .best-seller-list .menu-item,
-    .preorder-list .menu-item {
+    .best-seller-list .menu-item {
       min-width: 260px;
       flex: 0 0 260px;
     }
 
-    .best-seller-list .menu-item img,
-    .preorder-list .menu-item img {
+    .best-seller-list .menu-item img {
       height: 160px;
     }
 
@@ -643,8 +615,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
         height: 170px;
       }
 
-      .best-sellers,
-      .preorder-section {
+      .best-sellers {
         margin: 1.2rem auto;
         padding: 1.25rem;
       }
@@ -752,11 +723,6 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       </div>
     </section>
 
-    <section class="preorder-section" aria-labelledby="preorder-title" id="preorderSection" hidden>
-      <h2 id="preorder-title">📅 Pre-order Specialties</h2>
-      <p class="preorder-note">Order these special items 2+ days in advance!</p>
-      <div class="preorder-list" id="preorderList"></div>
-    </section>
   </main>
 
   <footer>© <?= date('Y') ?> Cindy's Bakeshop • Freshness Guaranteed</footer>
@@ -786,7 +752,6 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     const rawData = dataElement ? JSON.parse(dataElement.textContent || '{}') : {};
     const products = Array.isArray(rawData.all) ? rawData.all : [];
     const bestSellers = Array.isArray(rawData.bestSellers) ? rawData.bestSellers : [];
-    const preorderItems = Array.isArray(rawData.preorder) ? rawData.preorder : [];
 
     const menuGrid = document.getElementById('menuGrid');
     const menuEmpty = document.getElementById('menuEmpty');
@@ -797,8 +762,6 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     const nextPageButton = document.getElementById('nextPage');
     const bestSellerList = document.getElementById('bestSellerList');
     const bestSellersSection = document.getElementById('bestSellersSection');
-    const preorderSection = document.getElementById('preorderSection');
-    const preorderList = document.getElementById('preorderList');
     const categoryPills = document.getElementById('categoryPills');
     const searchInput = document.getElementById('searchInput');
     const toast = document.getElementById('menuToast');
@@ -815,6 +778,9 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     const auth = getAuth();
     let userEmail = null;
     let favorites = new Map();
+    let cartItems = new Map();
+    let cartId = null;
+    let cartSyncPromise = null;
     let activeCategory = 'all';
     let currentProduct = null;
     let currentQuantity = 1;
@@ -856,14 +822,82 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       })[char] || char);
     }
 
+    function hydrateCart(email) {
+      if (!email) {
+        cartItems.clear();
+        cartId = null;
+        cartSyncPromise = null;
+        return Promise.resolve();
+      }
+
+      if (cartSyncPromise) {
+        return cartSyncPromise;
+      }
+
+      const url = `../../PHP/cart_api.php?action=list&email=${encodeURIComponent(email)}`;
+      cartSyncPromise = fetch(url)
+        .then(res => {
+          if (!res.ok) {
+            throw new Error('Failed to fetch cart');
+          }
+          return res.json();
+        })
+        .then(data => {
+          cartItems.clear();
+          cartId = Number.isFinite(Number(data.cart_id)) && Number(data.cart_id) > 0
+            ? Number(data.cart_id)
+            : null;
+
+          if (Array.isArray(data.items)) {
+            data.items.forEach(item => {
+              const productId = Number(item.Product_ID);
+              const cartItemId = Number(item.Cart_Item_ID);
+              const quantity = Math.floor(Number(item.Quantity));
+              if (Number.isFinite(productId) && productId > 0 && Number.isFinite(cartItemId) && cartItemId > 0) {
+                cartItems.set(productId, {
+                  cartItemId,
+                  quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 0,
+                });
+              }
+            });
+          }
+
+          return cartItems;
+        })
+        .catch(error => {
+          cartItems.clear();
+          cartId = null;
+          throw error;
+        })
+        .finally(() => {
+          cartSyncPromise = null;
+        });
+
+      return cartSyncPromise;
+    }
+
     function openModal(product) {
       currentProduct = product;
-      currentQuantity = 1;
+      const available = Number.isFinite(product.stock) && product.stock > 0 ? product.stock : 0;
+      const existing = cartItems.get(product.id);
+      const existingQuantity = existing && Number.isFinite(existing.quantity) && existing.quantity > 0
+        ? existing.quantity
+        : 0;
+      const maxSelectable = available > 0 ? available : 1;
+      const startingQuantity = existingQuantity > 0 ? existingQuantity : 1;
+      currentQuantity = Math.min(Math.max(1, startingQuantity), maxSelectable);
+
       if (modalTitle) {
         modalTitle.textContent = `Add ${product.name}`;
       }
       if (modalSubtitle) {
-        modalSubtitle.textContent = product.isPreorder ? 'Select how many you would like to pre-order.' : `Maximum available: ${product.stock > 0 ? product.stock : 1}`;
+        if (available > 0) {
+          modalSubtitle.textContent = existingQuantity > 0
+            ? `Maximum available: ${available} · In cart: ${existingQuantity}`
+            : `Maximum available: ${available}`;
+        } else {
+          modalSubtitle.textContent = 'This item is currently out of stock.';
+        }
       }
       if (currentQty) {
         currentQty.textContent = currentQuantity;
@@ -873,10 +907,13 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
         modal.setAttribute('aria-hidden', 'false');
       }
       if (decreaseQty) {
-        decreaseQty.disabled = true;
+        decreaseQty.disabled = currentQuantity <= 1;
       }
       if (increaseQty) {
-        increaseQty.disabled = product.isPreorder ? false : product.stock <= 1;
+        increaseQty.disabled = !(available > 1) || currentQuantity >= available;
+      }
+      if (confirmAdd) {
+        confirmAdd.disabled = !(available > 0);
       }
     }
 
@@ -890,7 +927,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
 
     function updateQuantity(delta) {
       if (!currentProduct) return;
-      const max = currentProduct.isPreorder ? 10 : Math.max(1, currentProduct.stock);
+      const max = Math.max(1, Number.isFinite(currentProduct.stock) ? currentProduct.stock : 1);
       currentQuantity = Math.min(Math.max(1, currentQuantity + delta), max);
       if (currentQty) {
         currentQty.textContent = currentQuantity;
@@ -899,7 +936,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
         decreaseQty.disabled = currentQuantity <= 1;
       }
       if (increaseQty) {
-        increaseQty.disabled = !currentProduct.isPreorder && currentQuantity >= max;
+        increaseQty.disabled = currentQuantity >= max;
       }
     }
 
@@ -947,16 +984,14 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       card.className = 'menu-item';
       card.dataset.productId = product.id;
       card.dataset.category = product.category;
-      if (product.isPreorder) {
-        card.classList.add('preorder');
-      }
 
       const safeName = escapeHtml(product.name);
       const safeDescription = escapeHtml(product.description || "Freshly baked goodness from Cindy's kitchen.");
-      const stockLabel = product.isPreorder ? 'Available for pre-order' : (product.stock > 0 ? `Stock: ${product.stock}` : 'Out of stock');
+      const available = Number.isFinite(product.stock) ? Math.max(0, product.stock) : 0;
+      const inStock = available > 0;
+      const stockLabel = inStock ? `Stock: ${available}` : 'Out of stock';
 
       card.innerHTML = `
-        ${product.isPreorder ? '<span class="preorder-badge">Pre-order</span>' : ''}
         <button type="button" class="favorite-btn" aria-label="Toggle favorite">♡</button>
         <img src="${product.image}" alt="${safeName}" loading="lazy">
         <div class="menu-content">
@@ -968,13 +1003,17 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
               <span class="stock">${stockLabel}</span>
               <span class="price">${formatCurrency(product.price)}</span>
             </div>
-            <button type="button" class="add-btn">${product.isPreorder ? 'Pre-order' : 'Add to Cart'}</button>
+            <button type="button" class="add-btn">${inStock ? 'Add to Cart' : 'Unavailable'}</button>
           </div>
         </div>
       `;
 
-      if (!product.isPreorder && product.stock <= 0) {
+      if (!inStock) {
         card.classList.add('out-of-stock');
+        const addBtn = card.querySelector('.add-btn');
+        if (addBtn) {
+          addBtn.disabled = true;
+        }
       }
 
       const favBtn = card.querySelector('.favorite-btn');
@@ -992,11 +1031,16 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
           showToast('Please sign in to add items to your cart.', 'warn');
           return;
         }
-        if (!product.isPreorder && product.stock <= 0) {
+        if (!inStock) {
           showToast('This item is currently unavailable.', 'warn');
           return;
         }
-        openModal(product);
+
+        const waitForCart = cartSyncPromise
+          ? cartSyncPromise.catch(() => {})
+          : Promise.resolve();
+
+        waitForCart.finally(() => openModal(product));
       });
 
       return card;
@@ -1009,9 +1053,6 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
         const card = renderCard(product);
         container.appendChild(card);
       });
-      if (container === preorderList && preorderSection) {
-        preorderSection.hidden = list.length === 0;
-      }
     }
 
     function renderPagination(totalItems, totalPages) {
@@ -1182,7 +1223,6 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
           });
           refreshMenu();
           populateSection(bestSellerList, bestSellers);
-          populateSection(preorderList, preorderItems);
         })
         .catch(() => {
           favorites.clear();
@@ -1209,34 +1249,121 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     }
 
     if (confirmAdd) {
-      confirmAdd.addEventListener('click', () => {
+      confirmAdd.addEventListener('click', async () => {
         if (!currentProduct || !userEmail) {
           closeModal();
           return;
         }
-        const body = new URLSearchParams({
-          product_id: currentProduct.id,
-          quantity: currentQuantity,
-          email: userEmail,
-        });
-        fetch('../../PHP/cart_api.php?action=add', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body,
-        })
-          .then(res => res.json())
-          .then(result => {
-            if (result.error) {
-              throw new Error(result.error);
+
+        if (cartSyncPromise) {
+          try {
+            await cartSyncPromise;
+          } catch (error) {
+            console.error('Unable to sync cart before adding item.', error);
+          }
+        }
+
+        const available = Number.isFinite(currentProduct.stock) ? currentProduct.stock : 0;
+        if (available <= 0) {
+          showToast('This item is currently unavailable.', 'warn');
+          closeModal();
+          return;
+        }
+
+        const desiredQuantity = Math.min(Math.max(1, Math.floor(currentQuantity)), available);
+        const existing = cartItems.get(currentProduct.id);
+
+        if (existing && desiredQuantity === existing.quantity) {
+          showToast('Cart already has this quantity.');
+          closeModal();
+          return;
+        }
+
+        const body = new URLSearchParams();
+        body.set('email', userEmail);
+
+        let endpoint = '../../PHP/cart_api.php?action=add';
+        if (existing) {
+          endpoint = '../../PHP/cart_api.php?action=update';
+          body.set('cart_item_id', existing.cartItemId);
+          body.set('quantity', desiredQuantity.toString());
+        } else {
+          if (cartId) {
+            body.set('cart_id', cartId);
+          }
+          body.set('product_id', currentProduct.id);
+          body.set('quantity', desiredQuantity.toString());
+        }
+
+        try {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body,
+          });
+
+          if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+          }
+
+          let result;
+          try {
+            result = await response.json();
+          } catch (parseError) {
+            throw new Error('Invalid response format');
+          }
+
+          if (result.error) {
+            throw new Error(result.error);
+          }
+
+          const parsedQuantity = Math.floor(Number(result.quantity));
+          const actualQuantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0
+            ? parsedQuantity
+            : desiredQuantity;
+
+          if (existing) {
+            if (!result.updated) {
+              throw new Error('Unable to update cart item');
             }
-            if (!currentProduct.isPreorder && currentProduct.stock > 0) {
-              currentProduct.stock = Math.max(0, currentProduct.stock - currentQuantity);
-              refreshMenu();
+
+            cartItems.set(currentProduct.id, {
+              cartItemId: existing.cartItemId,
+              quantity: actualQuantity,
+            });
+
+            const tone = result.capped ? 'warn' : 'success';
+            const message = result.capped
+              ? 'Cart quantity adjusted to available stock.'
+              : 'Cart quantity updated!';
+            showToast(message, tone);
+          } else {
+            const cartItemId = Number(result.cart_item_id);
+            if (!cartItemId) {
+              throw new Error('Unable to add cart item');
             }
-            showToast('Added to cart!');
-          })
-          .catch(() => showToast('Unable to add to cart.', 'error'))
-          .finally(() => closeModal());
+
+            if (Number.isFinite(Number(result.cart_id)) && Number(result.cart_id) > 0) {
+              cartId = Number(result.cart_id);
+            }
+
+            cartItems.set(currentProduct.id, {
+              cartItemId,
+              quantity: actualQuantity,
+            });
+
+            const tone = result.capped ? 'warn' : 'success';
+            const message = result.capped
+              ? 'Added to cart, adjusted to available stock.'
+              : 'Added to cart!';
+            showToast(message, tone);
+          }
+        } catch (error) {
+          console.error('Add to cart failed.', error);
+          showToast('Unable to add to cart.', 'error');
+        } finally {
+          closeModal();
+        }
       });
     }
 
@@ -1246,7 +1373,6 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
 
     buildCategoryFilters();
     populateSection(bestSellerList, bestSellers);
-    populateSection(preorderList, preorderItems);
     refreshMenu({ resetPage: true });
 
     if (prevPageButton) {
@@ -1271,12 +1397,17 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     onAuthStateChanged(auth, (user) => {
       userEmail = user ? user.email : null;
       if (userEmail) {
+        hydrateCart(userEmail).catch(error => {
+          console.error('Unable to load cart items.', error);
+        });
         hydrateFavorites(userEmail);
       } else {
         favorites.clear();
+        cartItems.clear();
+        cartId = null;
+        cartSyncPromise = null;
         refreshMenu();
         populateSection(bestSellerList, bestSellers);
-        populateSection(preorderList, preorderItems);
       }
     });
   </script>

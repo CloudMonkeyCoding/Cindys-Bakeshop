@@ -846,6 +846,145 @@ const errors = {
 };
 
 let mediaStream = null;
+let nativeFaceDetector = null;
+let fallbackDetectorPromise = null;
+let loadingFallbackDetector = false;
+
+const OPENCV_SCRIPT_URL = 'https://docs.opencv.org/4.x/opencv.js';
+const OPENCV_CASCADE_URL = 'https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml';
+const OPENCV_CASCADE_FILE = 'haarcascade_frontalface_default.xml';
+
+function loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) {
+      resolve();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+    document.head.appendChild(script);
+  });
+}
+
+async function waitForOpenCvReady() {
+  if (!window.cv) {
+    throw new Error('OpenCV.js failed to initialize.');
+  }
+
+  if (typeof cv.Mat !== 'function') {
+    await new Promise((resolve) => {
+      const previous = cv['onRuntimeInitialized'];
+      cv['onRuntimeInitialized'] = () => {
+        if (typeof previous === 'function') {
+          previous();
+        }
+        resolve();
+      };
+    });
+  }
+}
+
+async function loadCascadeFile() {
+  if (!cv || !cv.FS || typeof cv.FS_createDataFile !== 'function') {
+    throw new Error('OpenCV virtual file system is unavailable.');
+  }
+
+  const cascadeExists = (() => {
+    try {
+      return cv.FS.stat(`/${OPENCV_CASCADE_FILE}`).isFile();
+    } catch (error) {
+      return false;
+    }
+  })();
+
+  if (!cascadeExists) {
+    const response = await fetch(OPENCV_CASCADE_URL);
+    if (!response.ok) {
+      throw new Error('Failed to download OpenCV cascade for face detection.');
+    }
+    const buffer = await response.arrayBuffer();
+    const data = new Uint8Array(buffer);
+    cv.FS_createDataFile('/', OPENCV_CASCADE_FILE, data, true, false, false);
+  }
+}
+
+async function getFallbackFaceDetector() {
+  if (fallbackDetectorPromise) {
+    return fallbackDetectorPromise;
+  }
+
+  fallbackDetectorPromise = (async () => {
+    try {
+      loadingFallbackDetector = true;
+      await loadScriptOnce(OPENCV_SCRIPT_URL);
+      await waitForOpenCvReady();
+      await loadCascadeFile();
+
+      const classifier = new cv.CascadeClassifier();
+      const loaded = classifier.load(OPENCV_CASCADE_FILE);
+      if (!loaded) {
+        throw new Error('Failed to load OpenCV face detection cascade.');
+      }
+
+      return {
+        detect(canvas) {
+          const src = cv.imread(canvas);
+          const gray = new cv.Mat();
+          cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+
+          const faces = new cv.RectVector();
+          classifier.detectMultiScale(gray, faces, 1.2, 5, 0, new cv.Size(80, 80));
+          const hasFace = faces.size() > 0;
+
+          src.delete();
+          gray.delete();
+          faces.delete();
+
+          return hasFace;
+        }
+      };
+    } catch (error) {
+      fallbackDetectorPromise = null;
+      throw error;
+    } finally {
+      loadingFallbackDetector = false;
+    }
+  })();
+
+  return fallbackDetectorPromise;
+}
+
+async function detectFaceWithFallback(canvas) {
+  if (loadingFallbackDetector) {
+    setErrorMessage(
+      faceError,
+      'Loading face detection support. This may take a moment on your first attempt.'
+    );
+  }
+  try {
+    const detector = await getFallbackFaceDetector();
+    const hasFace = detector.detect(canvas);
+    if (!hasFace) {
+      setErrorMessage(
+        faceError,
+        'No face detected. Please ensure your face is clearly visible in the frame and try again.'
+      );
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Fallback face detection failed:', error);
+    setErrorMessage(
+      faceError,
+      'We could not verify your face automatically. Please check your connection and lighting, then try again using a supported browser.'
+    );
+    return false;
+  }
+}
 
 function setErrorMessage(element, message) {
   if (!element) return;
@@ -1075,13 +1214,60 @@ function stopCamera() {
   }
 }
 
-function captureFace() {
-  if (!video || !faceImageInput || !capturedImage) return;
+async function detectFaceFromCanvas(canvas) {
+  if ('FaceDetector' in window) {
+    try {
+      if (!nativeFaceDetector) {
+        nativeFaceDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+      }
+      const faces = await nativeFaceDetector.detect(canvas);
+      if (!faces.length) {
+        setErrorMessage(
+          faceError,
+          'No face detected. Please ensure your face is clearly visible in the frame and try again.'
+        );
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.warn('Native face detection failed, attempting fallback:', error);
+      return detectFaceWithFallback(canvas);
+    }
+  }
+
+  if (!loadingFallbackDetector) {
+    setErrorMessage(
+      faceError,
+      'Face detection support is loading. This may take a moment on your first attempt.'
+    );
+  }
+
+  return detectFaceWithFallback(canvas);
+}
+
+async function captureFace() {
+  if (!video || !faceImageInput || !capturedImage) return false;
   const canvas = document.createElement('canvas');
   canvas.width = video.videoWidth || 640;
   canvas.height = video.videoHeight || 480;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  const hasFace = await detectFaceFromCanvas(canvas);
+  if (!hasFace) {
+    if (capturedImage) {
+      capturedImage.src = '';
+      capturedImage.style.display = 'none';
+    }
+    if (video) {
+      video.style.display = 'block';
+    }
+    if (captureBtn) {
+      captureBtn.disabled = false;
+    }
+    return false;
+  }
+
   const dataUrl = canvas.toDataURL('image/png');
   faceImageInput.value = dataUrl;
   capturedImage.src = dataUrl;
@@ -1095,6 +1281,7 @@ function captureFace() {
     retakeBtn.style.display = 'block';
   }
   setErrorMessage(faceError, '');
+  return true;
 }
 
 function resetCapture() {
@@ -1116,13 +1303,24 @@ function resetCapture() {
 }
 
 if (captureBtn) {
-  captureBtn.addEventListener('click', () => {
+  captureBtn.addEventListener('click', async () => {
+    captureBtn.disabled = true;
+    captureBtn.textContent = 'Detecting face...';
+
     if (!mediaStream) {
-      startCamera().then(() => {
-        setTimeout(captureFace, 300);
-      });
-    } else {
-      captureFace();
+      await startCamera();
+      if (!mediaStream) {
+        captureBtn.disabled = false;
+        captureBtn.textContent = 'Capture Face';
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+
+    const captured = await captureFace();
+    if (!captured) {
+      captureBtn.textContent = 'Capture Face';
+      captureBtn.disabled = false;
     }
   });
 }

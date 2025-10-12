@@ -73,6 +73,11 @@
       color: var(--primary-brown);
     }
 
+    .detail-card .multiline {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -171,6 +176,10 @@
           <span>Payment status</span>
           <strong id="paymentStatus">—</strong>
         </div>
+        <div class="detail-card" id="specialInstructionsCard" style="display:none;">
+          <span>Special instructions</span>
+          <strong id="specialInstructions" class="multiline">—</strong>
+        </div>
       </div>
 
       <table>
@@ -208,6 +217,17 @@
       document.getElementById('mop').textContent = transaction.Payment_Method || '—';
       document.getElementById('paymentStatus').textContent = transaction.Payment_Status || '—';
       document.getElementById('date').textContent = order.Order_Date || '—';
+
+      const instructionsCard = document.getElementById('specialInstructionsCard');
+      const instructionsValue = document.getElementById('specialInstructions');
+      const instructions = (order.Special_Instructions || '').trim();
+      if (instructions) {
+        instructionsValue.textContent = instructions;
+        instructionsCard.style.display = '';
+      } else {
+        instructionsCard.style.display = 'none';
+        instructionsValue.textContent = '—';
+      }
 
       const tbody = document.getElementById('items-list');
       tbody.innerHTML = '';

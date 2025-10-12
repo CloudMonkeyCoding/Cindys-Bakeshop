@@ -71,6 +71,8 @@ foreach ($normalizedOrders as $order) {
 
 $lastOrderDate = $normalizedOrders[0]['date'] ?? null;
 
+$addressParts = getUserAddressParts($user);
+
 $response = [
     'success' => true,
     'user' => [
@@ -78,6 +80,10 @@ $response = [
         'name' => $user['Name'] ?? '',
         'email' => $user['Email'] ?? '',
         'address' => $user['Address'] ?? '',
+        'address_street' => $addressParts['street'],
+        'address_barangay' => $addressParts['barangay'],
+        'address_city' => $addressParts['city'],
+        'address_province' => $addressParts['province'],
         'warning_count' => isset($user['Warning_Count']) ? (int)$user['Warning_Count'] : 0,
         'face_image_path' => normalizeFacePath($user['Face_Image_Path'] ?? null),
         'is_employee' => $staffRecord ? true : false,
