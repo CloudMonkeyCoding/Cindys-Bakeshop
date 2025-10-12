@@ -596,6 +596,153 @@ table tbody tr:hover {
   font-size: 14px;
 }
 
+.inventory-calendar-wrapper {
+  margin: 16px 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inventory-calendar {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.04);
+  max-width: 360px;
+}
+
+.inventory-calendar .calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.inventory-calendar .calendar-title {
+  font-weight: 600;
+  font-size: 16px;
+  color: #2c3e50;
+}
+
+.inventory-calendar .calendar-nav {
+  background: transparent;
+  border: 1px solid #dcdde1;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #2c3e50;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.inventory-calendar .calendar-nav:hover,
+.inventory-calendar .calendar-nav:focus {
+  background: var(--primary);
+  color: #fff;
+}
+
+.inventory-calendar .calendar-weekdays,
+.inventory-calendar .calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.inventory-calendar .calendar-weekdays span {
+  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: #7f8c8d;
+  padding-bottom: 4px;
+}
+
+.inventory-calendar .calendar-day {
+  position: relative;
+  border: none;
+  background: none;
+  height: 44px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #2c3e50;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.inventory-calendar .calendar-day:hover,
+.inventory-calendar .calendar-day:focus {
+  background: rgba(231, 76, 60, 0.12);
+  color: #c0392b;
+}
+
+.inventory-calendar .calendar-day.is-outside {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.inventory-calendar .calendar-day.is-outside:hover,
+.inventory-calendar .calendar-day.is-outside:focus {
+  background: none;
+  color: inherit;
+}
+
+.inventory-calendar .calendar-day.is-selected {
+  background: #e74c3c;
+  color: #fff;
+  box-shadow: 0 8px 16px rgba(231, 76, 60, 0.25);
+}
+
+.inventory-calendar .calendar-day.is-today:not(.is-selected) {
+  border: 1px solid rgba(231, 76, 60, 0.65);
+}
+
+.inventory-calendar .calendar-day.has-entries::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #27ae60;
+}
+
+.inventory-calendar .calendar-day .calendar-count {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(39, 174, 96, 0.12);
+  color: #27ae60;
+  border-radius: 999px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.inventory-calendar .calendar-day.is-selected .calendar-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.inventory-calendar .calendar-loading {
+  text-align: center;
+  font-size: 13px;
+  color: #7f8c8d;
+  padding: 12px 0;
+}
+
+.calendar-noscript {
+  font-size: 13px;
+  color: #7f8c8d;
+  margin: 0;
+}
+
 .btn,
 button,
 .button {

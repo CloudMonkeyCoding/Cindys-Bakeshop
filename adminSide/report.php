@@ -12,6 +12,7 @@ $totalTracked = 0;
 $preOrderCount = 0;
 $lowStockCount = 0;
 $inventoryLogEntries = [];
+$inventoryLogDateCounts = [];
 $reportDateInput = isset($_GET['report_date']) ? trim((string)$_GET['report_date']) : '';
 $reportDate = null;
 if ($reportDateInput !== '') {
@@ -116,6 +117,18 @@ if ($pdo) {
             'change_source' => $source,
         ];
     }
+
+    $logDateCountRows = getInventoryLogDateCounts($pdo);
+    foreach ($logDateCountRows as $countRow) {
+        $rawDate = $countRow['Report_Date'] ?? null;
+        $changes = isset($countRow['Change_Count']) ? (int)$countRow['Change_Count'] : 0;
+        if ($rawDate !== null) {
+            $normalizedDate = date('Y-m-d', strtotime((string)$rawDate));
+            $inventoryLogDateCounts[$normalizedDate] = (
+                ($inventoryLogDateCounts[$normalizedDate] ?? 0) + $changes
+            );
+        }
+    }
 }
 
 $inventoryJson = json_encode($inventoryData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
@@ -126,6 +139,11 @@ if ($inventoryJson === '[]' || $inventoryJson === 'null') {
 $inventoryLogJson = json_encode($inventoryLogEntries, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 if ($inventoryLogJson === 'null') {
     $inventoryLogJson = '[]';
+}
+
+$inventoryLogDateCountsJson = json_encode($inventoryLogDateCounts, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+if ($inventoryLogDateCountsJson === 'null') {
+    $inventoryLogDateCountsJson = '{}';
 }
 
 $extraHead = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>';
@@ -231,6 +249,14 @@ include 'includes/sidebar.php';
       </div>
       <input type="text" id="inventoryLogSearch" placeholder="🔍 Search change log...">
     </div>
+    <div class="inventory-calendar-wrapper">
+      <div id="inventoryCalendar" class="inventory-calendar" data-selected-date="<?= htmlspecialchars($reportDate ?? ''); ?>">
+        <div class="calendar-loading">Loading calendar…</div>
+      </div>
+      <noscript>
+        <p class="calendar-noscript">Enable JavaScript to browse daily inventory activity using the calendar. You can still pick a date using the field above.</p>
+      </noscript>
+    </div>
     <table class="inventory-log-table" id="inventoryLogTable">
       <thead>
         <tr>
@@ -279,6 +305,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const exportBtn = document.getElementById('exportInventory');
   const logSearchInput = document.getElementById('inventoryLogSearch');
   const logTableBody = document.getElementById('inventoryLogBody');
+  const reportForm = document.querySelector('.inventory-log-filter');
+  const reportDateInput = document.getElementById('reportDate');
+  const logCalendarContainer = document.getElementById('inventoryCalendar');
   const statsEls = {
     categoryCount: document.getElementById('inventoryCategoryCount'),
     skuCount: document.getElementById('inventorySkuCount'),
@@ -301,6 +330,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let inventoryIndex = new Map();
   let inventoryData = {};
   let inventoryLogEntries = [];
+  let logDateCountsByDate = new Map();
+  let calendarFocusYear = null;
+  let calendarFocusMonth = null;
 
   if (searchInput) {
     currentSearchTerm = searchInput.value.toLowerCase();
@@ -1242,10 +1274,336 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function normalizeLogDateCounts(raw) {
+    const counts = new Map();
+
+    if (!raw) {
+      return counts;
+    }
+
+    const assignCount = (dateKey, countValue) => {
+      if (!dateKey) {
+        return;
+      }
+      const normalizedDate = sanitizeIsoDate(dateKey);
+      if (!normalizedDate) {
+        return;
+      }
+      const numericCount = Number.parseInt(countValue, 10);
+      if (Number.isNaN(numericCount)) {
+        return;
+      }
+      counts.set(normalizedDate, (counts.get(normalizedDate) || 0) + Math.max(0, numericCount));
+    };
+
+    if (Array.isArray(raw)) {
+      raw.forEach((entry) => {
+        assignCount(
+          entry?.report_date
+            ?? entry?.Report_Date
+            ?? entry?.date
+            ?? entry?.Date,
+          entry?.change_count
+            ?? entry?.Change_Count
+            ?? entry?.count
+            ?? entry?.Count
+            ?? 0,
+        );
+      });
+    } else if (typeof raw === 'object') {
+      Object.entries(raw).forEach(([dateKey, countValue]) => {
+        assignCount(dateKey, countValue);
+      });
+    }
+
+    return counts;
+  }
+
+  function sanitizeIsoDate(raw) {
+    if (typeof raw !== 'string') {
+      return '';
+    }
+    const trimmed = raw.trim();
+    const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+    if (isoMatch) {
+      const [, year, month, day] = isoMatch;
+      return `${year}-${month}-${day}`;
+    }
+    const parsed = createDateFromISO(trimmed);
+    return parsed ? formatDateToISO(parsed) : '';
+  }
+
+  function createDateFromISO(value) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+    if (!match) {
+      return null;
+    }
+    const [, yearStr, monthStr, dayStr] = match;
+    const year = Number.parseInt(yearStr, 10);
+    const monthIndex = Number.parseInt(monthStr, 10) - 1;
+    const day = Number.parseInt(dayStr, 10);
+    if (Number.isNaN(year) || Number.isNaN(monthIndex) || Number.isNaN(day)) {
+      return null;
+    }
+    const date = new Date(Date.UTC(year, monthIndex, day));
+    if (Number.isNaN(date.getTime())) {
+      return null;
+    }
+    return date;
+  }
+
+  function formatDateToISO(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+      return '';
+    }
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function getTodayIso() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function initializeInventoryCalendar() {
+    if (!logCalendarContainer) {
+      return;
+    }
+
+    const selectedDateIso = sanitizeIsoDate(
+      reportDateInput?.value
+        ?? logCalendarContainer.dataset.selectedDate
+        ?? '',
+    );
+
+    const selectedDate = createDateFromISO(selectedDateIso);
+    let focusDate = selectedDate;
+
+    if (!focusDate) {
+      const sortedDates = Array.from(logDateCountsByDate.keys()).sort();
+      if (sortedDates.length) {
+        focusDate = createDateFromISO(sortedDates[sortedDates.length - 1]);
+      }
+    }
+
+    if (!focusDate) {
+      focusDate = new Date();
+    }
+
+    calendarFocusYear = focusDate.getUTCFullYear();
+    calendarFocusMonth = focusDate.getUTCMonth();
+    logCalendarContainer.dataset.selectedDate = selectedDateIso;
+
+    renderInventoryCalendar();
+  }
+
+  function shiftCalendarMonth(delta) {
+    if (typeof delta !== 'number' || Number.isNaN(delta)) {
+      return;
+    }
+    if (calendarFocusYear === null || calendarFocusMonth === null) {
+      return;
+    }
+    const target = new Date(Date.UTC(calendarFocusYear, calendarFocusMonth + delta, 1));
+    if (Number.isNaN(target.getTime())) {
+      return;
+    }
+    calendarFocusYear = target.getUTCFullYear();
+    calendarFocusMonth = target.getUTCMonth();
+  }
+
+  function renderInventoryCalendar() {
+    if (!logCalendarContainer) {
+      return;
+    }
+    if (calendarFocusYear === null || calendarFocusMonth === null) {
+      return;
+    }
+
+    const focusDate = new Date(Date.UTC(calendarFocusYear, calendarFocusMonth, 1));
+    if (Number.isNaN(focusDate.getTime())) {
+      return;
+    }
+
+    const monthLabel = new Intl.DateTimeFormat(undefined, {
+      month: 'long',
+      year: 'numeric',
+    }).format(focusDate);
+
+    const selectedDateIso = sanitizeIsoDate(
+      reportDateInput?.value
+        ?? logCalendarContainer.dataset.selectedDate
+        ?? '',
+    );
+    logCalendarContainer.dataset.selectedDate = selectedDateIso;
+
+    const todayIso = getTodayIso();
+
+    logCalendarContainer.innerHTML = '';
+
+    const header = document.createElement('div');
+    header.className = 'calendar-header';
+
+    const prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.className = 'calendar-nav calendar-prev';
+    prevBtn.setAttribute('aria-label', 'Previous month');
+    prevBtn.innerHTML = '&lsaquo;';
+    prevBtn.addEventListener('click', () => {
+      shiftCalendarMonth(-1);
+      renderInventoryCalendar();
+    });
+
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.className = 'calendar-nav calendar-next';
+    nextBtn.setAttribute('aria-label', 'Next month');
+    nextBtn.innerHTML = '&rsaquo;';
+    nextBtn.addEventListener('click', () => {
+      shiftCalendarMonth(1);
+      renderInventoryCalendar();
+    });
+
+    const title = document.createElement('div');
+    title.className = 'calendar-title';
+    title.textContent = monthLabel;
+
+    header.append(prevBtn, title, nextBtn);
+    logCalendarContainer.appendChild(header);
+
+    const weekdayRow = document.createElement('div');
+    weekdayRow.className = 'calendar-weekdays';
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    weekdays.forEach((weekday) => {
+      const span = document.createElement('span');
+      span.textContent = weekday;
+      weekdayRow.appendChild(span);
+    });
+    logCalendarContainer.appendChild(weekdayRow);
+
+    const grid = document.createElement('div');
+    grid.className = 'calendar-grid';
+
+    const firstOfMonth = new Date(Date.UTC(calendarFocusYear, calendarFocusMonth, 1));
+    const startDay = firstOfMonth.getUTCDay();
+    const daysInMonth = new Date(Date.UTC(calendarFocusYear, calendarFocusMonth + 1, 0)).getUTCDate();
+    const daysInPrevMonth = new Date(Date.UTC(calendarFocusYear, calendarFocusMonth, 0)).getUTCDate();
+    const totalCells = Math.ceil((startDay + daysInMonth) / 7) * 7;
+
+    for (let index = 0; index < totalCells; index += 1) {
+      const dayButton = document.createElement('button');
+      dayButton.type = 'button';
+      dayButton.className = 'calendar-day';
+
+      let displayDay;
+      let cellDate;
+      let isOutside = false;
+
+      if (index < startDay) {
+        displayDay = daysInPrevMonth - (startDay - index) + 1;
+        cellDate = new Date(Date.UTC(calendarFocusYear, calendarFocusMonth - 1, displayDay));
+        isOutside = true;
+      } else if (index >= startDay + daysInMonth) {
+        displayDay = index - (startDay + daysInMonth) + 1;
+        cellDate = new Date(Date.UTC(calendarFocusYear, calendarFocusMonth + 1, displayDay));
+        isOutside = true;
+      } else {
+        displayDay = index - startDay + 1;
+        cellDate = new Date(Date.UTC(calendarFocusYear, calendarFocusMonth, displayDay));
+      }
+
+      const isoValue = formatDateToISO(cellDate);
+      if (!isoValue) {
+        dayButton.disabled = true;
+        grid.appendChild(dayButton);
+        continue;
+      }
+
+      dayButton.textContent = String(displayDay);
+      dayButton.setAttribute(
+        'aria-label',
+        new Intl.DateTimeFormat(undefined, {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        }).format(cellDate),
+      );
+
+      const changeCount = logDateCountsByDate.get(isoValue) ?? 0;
+      if (changeCount > 0) {
+        dayButton.classList.add('has-entries');
+        const badge = document.createElement('span');
+        badge.className = 'calendar-count';
+        badge.textContent = String(changeCount);
+        dayButton.appendChild(badge);
+      }
+
+      if (isoValue === selectedDateIso) {
+        dayButton.classList.add('is-selected');
+      }
+
+      if (isoValue === todayIso) {
+        dayButton.classList.add('is-today');
+      }
+
+      if (isOutside) {
+        dayButton.classList.add('is-outside');
+        dayButton.addEventListener('click', () => {
+          handleCalendarDaySelection(isoValue, true);
+        });
+      } else {
+        dayButton.addEventListener('click', () => {
+          handleCalendarDaySelection(isoValue, false);
+        });
+      }
+
+      grid.appendChild(dayButton);
+    }
+
+    logCalendarContainer.appendChild(grid);
+  }
+
+  function handleCalendarDaySelection(isoValue, adjustFocus) {
+    if (!isoValue) {
+      return;
+    }
+
+    if (adjustFocus) {
+      const targetDate = createDateFromISO(isoValue);
+      if (targetDate) {
+        calendarFocusYear = targetDate.getUTCFullYear();
+        calendarFocusMonth = targetDate.getUTCMonth();
+        renderInventoryCalendar();
+      }
+    } else if (logCalendarContainer) {
+      logCalendarContainer.dataset.selectedDate = isoValue;
+      renderInventoryCalendar();
+    }
+
+    if (reportDateInput) {
+      reportDateInput.value = isoValue;
+    }
+
+    if (reportForm) {
+      reportForm.submit();
+    }
+  }
+
   inventoryData = normalizeInventoryData(<?= $inventoryJson; ?>);
   inventoryLogEntries = normalizeInventoryLog(<?= $inventoryLogJson; ?>);
+  logDateCountsByDate = normalizeLogDateCounts(<?= $inventoryLogDateCountsJson; ?>);
   renderInventoryUI();
   renderInventoryLogTable();
+  initializeInventoryCalendar();
 });
 </script>
 <?php

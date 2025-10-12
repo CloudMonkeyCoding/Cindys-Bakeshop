@@ -189,6 +189,42 @@ function getInventoryChangeLog($pdo, $startDate = null, $endDate = null) {
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+function getInventoryLogDateCounts($pdo, $startDate = null, $endDate = null)
+{
+    $conditions = ['isl.Created_At IS NOT NULL'];
+    $params = [];
+
+    if ($startDate !== null) {
+        $conditions[] = 'DATE(isl.Created_At) >= :start_date';
+        $params[':start_date'] = $startDate;
+    }
+
+    if ($endDate !== null) {
+        $conditions[] = 'DATE(isl.Created_At) <= :end_date';
+        $params[':end_date'] = $endDate;
+    }
+
+    $whereClause = '';
+    if (!empty($conditions)) {
+        $whereClause = 'WHERE ' . implode(' AND ', $conditions);
+    }
+
+    $sql = "
+        SELECT
+            DATE(isl.Created_At) AS Report_Date,
+            COUNT(*) AS Change_Count
+        FROM inventory_stock_log isl
+        {$whereClause}
+        GROUP BY DATE(isl.Created_At)
+        ORDER BY Report_Date DESC
+    ";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 // 4) Update stock quantity for a product
 function updateInventoryStock($pdo, $productId, $stockQuantity, array $logOptions = []) {
     $current = getInventoryByProductId($pdo, $productId);
