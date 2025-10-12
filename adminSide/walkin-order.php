@@ -461,8 +461,15 @@ $scriptTemplate = <<<'JS'
     renderProductResults(filtered);
   }
 
-  async function callApi(params) {
-    const body = new URLSearchParams(params);
+  async function callApi(action, params = {}) {
+    const body = new URLSearchParams();
+    body.set('action', action);
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null) {
+        return;
+      }
+      body.set(key, String(value));
+    });
     body.set('csrf_token', csrfToken);
     const debugPayload = {};
     body.forEach((value, key) => {
@@ -516,7 +523,6 @@ $scriptTemplate = <<<'JS'
     log('debug', 'Items prepared for submission', { items });
 
     const payload = {
-      action: 'create_order',
       customer_mode: 'guest',
       fulfillment_type: fulfillmentTypeSelect.value,
       order_status: orderStatusInput ? orderStatusInput.value : 'Confirmed',
@@ -527,11 +533,14 @@ $scriptTemplate = <<<'JS'
       items: JSON.stringify(items)
     };
 
-    const payloadPreview = Object.assign({ csrf_token: '[redacted]' }, payload);
+    const payloadPreview = Object.assign({
+      action: 'create_order',
+      csrf_token: '[redacted]'
+    }, payload);
     log('debug', 'Payload built', payloadPreview);
 
     try {
-      const result = await callApi(payload);
+      const result = await callApi('create_order', payload);
       if (!result.success) {
         throw new Error(result.message || 'Failed to create order.');
       }
