@@ -32,6 +32,19 @@ switch ($action) {
 
         sendJsonResponse($orders);
 
+    case 'list_all':
+        $orders = getAllOrdersWithSummary($pdo);
+        $orders = array_map(static function ($order) {
+            $imageMeta = [
+                'Image_Path' => $order['Image_Path'] ?? '',
+                'Category' => $order['Category'] ?? '',
+            ];
+            $order['Image_Url'] = getProductImageUrl($imageMeta, '/');
+            return $order;
+        }, $orders);
+
+        sendJsonResponse($orders);
+
     case 'create':
         [$userId, $user] = resolveUserContext($pdo, $_POST, ['includeUser' => true]);
         $items = json_decode($_POST['items'] ?? '[]', true);
