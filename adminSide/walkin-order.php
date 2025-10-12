@@ -89,32 +89,7 @@ include 'includes/sidebar.php';
 
           <section class="pos-card">
             <h2>Customer</h2>
-            <div class="pos-customer-mode">
-              <label class="pos-radio">
-                <input type="radio" name="customer_mode" value="guest" checked>
-                Walk-in
-              </label>
-              <label class="pos-radio">
-                <input type="radio" name="customer_mode" value="existing">
-                Existing
-              </label>
-              <label class="pos-radio">
-                <input type="radio" name="customer_mode" value="new">
-                New
-              </label>
-            </div>
-            <div id="customerSummary" class="pos-customer-summary">
-              <p>This sale will be saved as a walk-in guest.</p>
-            </div>
-            <div id="existingCustomerSection" class="pos-customer-fields is-hidden">
-              <input type="search" id="customerSearch" placeholder="Search by name or email" disabled>
-              <ul id="customerResults" class="pos-search-results" aria-live="polite"></ul>
-            </div>
-            <div id="newCustomerSection" class="pos-customer-fields is-hidden">
-              <input type="text" id="newCustomerName" placeholder="Customer name">
-              <input type="email" id="newCustomerEmail" placeholder="Email (optional)">
-              <textarea id="newCustomerAddress" placeholder="Address (optional)" rows="2"></textarea>
-            </div>
+            <p class="pos-customer-note">Walk-in sales are always recorded under a guest profile.</p>
           </section>
 
           <section class="pos-card pos-checkout">
@@ -168,16 +143,6 @@ $scriptTemplate = <<<'JS'
   const ordersUrl = %s;
   const productCatalog = %s;
   const form = document.getElementById('walkinOrderForm');
-  const customerModeRadios = form.querySelectorAll('input[name="customer_mode"]');
-  const existingSection = document.getElementById('existingCustomerSection');
-  const newCustomerSection = document.getElementById('newCustomerSection');
-  const customerSearchInput = document.getElementById('customerSearch');
-  const customerResults = document.getElementById('customerResults');
-  const customerSummary = document.getElementById('customerSummary');
-  const newCustomerNameInput = document.getElementById('newCustomerName');
-  const newCustomerEmailInput = document.getElementById('newCustomerEmail');
-  const newCustomerAddressInput = document.getElementById('newCustomerAddress');
-  let currentCustomerMode = 'guest';
   const fulfillmentTypeSelect = document.getElementById('fulfillmentType');
   const orderStatusInput = document.getElementById('orderStatus');
   const paymentMethodSelect = document.getElementById('paymentMethod');
@@ -205,8 +170,6 @@ $scriptTemplate = <<<'JS'
   const peso = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
   const selectedItems = new Map();
-  let selectedCustomer = null;
-  let customerSearchTimer = null;
   let productSearchTimer = null;
 
   function setMessage(target, type, text) {
@@ -227,90 +190,6 @@ $scriptTemplate = <<<'JS'
     target.textContent = '';
     target.classList.add('is-hidden');
     target.classList.remove('is-success', 'is-error');
-  }
-
-  function renderCustomerSummary() {
-    if (!customerSummary) return;
-    log('debug', 'Rendering customer summary', {
-      mode: currentCustomerMode,
-      selectedCustomer,
-      newCustomerDraft: {
-        name: newCustomerNameInput ? newCustomerNameInput.value : '',
-        email: newCustomerEmailInput ? newCustomerEmailInput.value : '',
-        address: newCustomerAddressInput ? newCustomerAddressInput.value : '',
-      },
-    });
-    customerSummary.innerHTML = '';
-    if (currentCustomerMode === 'guest') {
-      customerSummary.innerHTML = '<p>This sale will be saved as a walk-in guest.</p>';
-      return;
-    }
-
-    if (currentCustomerMode === 'existing') {
-      if (!selectedCustomer) {
-        customerSummary.innerHTML = '<p>Select an account to attach (optional).</p>';
-        return;
-      }
-      const list = document.createElement('div');
-      list.className = 'customer-details';
-      const name = document.createElement('strong');
-      name.textContent = selectedCustomer.name;
-      list.appendChild(name);
-      if (selectedCustomer.email) {
-        const email = document.createElement('span');
-        email.textContent = selectedCustomer.email;
-        list.appendChild(email);
-      }
-      if (selectedCustomer.address) {
-        const address = document.createElement('span');
-        address.textContent = selectedCustomer.address;
-        list.appendChild(address);
-      }
-      const clearBtn = document.createElement('button');
-      clearBtn.type = 'button';
-      clearBtn.className = 'btn btn-muted btn-small';
-      clearBtn.textContent = 'Clear';
-      clearBtn.addEventListener('click', () => {
-        selectedCustomer = null;
-        if (customerResults) {
-          customerResults.innerHTML = '';
-        }
-        if (customerSearchInput) {
-          customerSearchInput.value = '';
-          customerSearchInput.focus();
-        }
-        renderCustomerSummary();
-      });
-      customerSummary.appendChild(list);
-      customerSummary.appendChild(clearBtn);
-      return;
-    }
-
-    if (currentCustomerMode === 'new') {
-      const nameValue = newCustomerNameInput ? newCustomerNameInput.value.trim() : '';
-      const emailValue = newCustomerEmailInput ? newCustomerEmailInput.value.trim() : '';
-      const addressValue = newCustomerAddressInput ? newCustomerAddressInput.value.trim() : '';
-      if (!nameValue) {
-        customerSummary.innerHTML = '<p>Enter the customer details to create a new account.</p>';
-        return;
-      }
-      const info = document.createElement('div');
-      info.className = 'customer-details';
-      const nameEl = document.createElement('strong');
-      nameEl.textContent = nameValue;
-      info.appendChild(nameEl);
-      if (emailValue) {
-        const emailEl = document.createElement('span');
-        emailEl.textContent = emailValue;
-        info.appendChild(emailEl);
-      }
-      if (addressValue) {
-        const addressEl = document.createElement('span');
-        addressEl.textContent = addressValue;
-        info.appendChild(addressEl);
-      }
-      customerSummary.appendChild(info);
-    }
   }
 
   function isFiniteStock(value) {
@@ -582,48 +461,6 @@ $scriptTemplate = <<<'JS'
     renderProductResults(filtered);
   }
 
-  async function fetchCustomers(term) {
-    if (term.length === 0) {
-      if (customerResults) {
-        customerResults.innerHTML = '';
-      }
-      return;
-    }
-    try {
-      log('debug', 'Fetching customers', { term });
-      const response = await callApi({ action: 'search_customers', query: term, limit: '10' });
-      log('debug', 'Customer search response', { count: (response.customers || []).length });
-      renderCustomerResults(response.customers || []);
-    } catch (error) {
-      log('error', 'Failed to fetch customers', error);
-    }
-  }
-
-  function renderCustomerResults(customers) {
-    if (!customerResults) return;
-    log('debug', 'Rendering customer results', { count: customers.length });
-    customerResults.innerHTML = '';
-    if (!customers.length) {
-      const empty = document.createElement('li');
-      empty.className = 'empty-state';
-      empty.textContent = 'No customers found.';
-      customerResults.appendChild(empty);
-      return;
-    }
-    customers.forEach((customer) => {
-      const item = document.createElement('li');
-      item.className = 'search-result';
-      item.innerHTML = `<strong>${customer.name}</strong><span>${customer.email || 'No email on file'}</span>`;
-      item.addEventListener('click', () => {
-        log('debug', 'Existing customer selected', customer);
-        selectedCustomer = customer;
-        customerResults.innerHTML = '';
-        renderCustomerSummary();
-      });
-      customerResults.appendChild(item);
-    });
-  }
-
   async function callApi(params) {
     const body = new URLSearchParams(params);
     body.set('csrf_token', csrfToken);
@@ -661,11 +498,7 @@ $scriptTemplate = <<<'JS'
     clearMessage(formErrors);
     clearMessage(messages);
 
-    const modeInput = form.querySelector('input[name="customer_mode"]:checked');
-    const mode = modeInput ? modeInput.value : 'guest';
-    currentCustomerMode = mode;
     log('debug', 'Form submission initiated', {
-      mode,
       itemCount: selectedItems.size,
       paymentStatus: PAYMENT_STATUS,
     });
@@ -676,27 +509,6 @@ $scriptTemplate = <<<'JS'
       return;
     }
 
-    if (mode === 'existing' && !selectedCustomer) {
-      log('warn', 'Submission blocked: existing customer not selected');
-      setMessage(formErrors, 'error', 'Select a customer or switch to walk-in.');
-      return;
-    }
-
-    if (mode === 'new') {
-      const nameValue = newCustomerNameInput ? newCustomerNameInput.value.trim() : '';
-      const emailValue = newCustomerEmailInput ? newCustomerEmailInput.value.trim() : '';
-      if (!nameValue) {
-        log('warn', 'Submission blocked: missing new customer name');
-        setMessage(formErrors, 'error', 'Enter a customer name or record the sale as a walk-in.');
-        return;
-      }
-      if (newCustomerEmailInput && emailValue && !newCustomerEmailInput.checkValidity()) {
-        log('warn', 'Submission blocked: invalid email for new customer', { emailValue });
-        newCustomerEmailInput.reportValidity();
-        return;
-      }
-    }
-
     const items = Array.from(selectedItems.values()).map((item) => ({
       product_id: item.id,
       quantity: item.quantity
@@ -705,7 +517,7 @@ $scriptTemplate = <<<'JS'
 
     const payload = {
       action: 'create_order',
-      customer_mode: mode,
+      customer_mode: 'guest',
       fulfillment_type: fulfillmentTypeSelect.value,
       order_status: orderStatusInput ? orderStatusInput.value : 'Confirmed',
       payment_method: paymentMethodSelect.value,
@@ -714,21 +526,6 @@ $scriptTemplate = <<<'JS'
       reference_number: referenceNumberInput.value.trim(),
       items: JSON.stringify(items)
     };
-
-    if (mode === 'existing' && selectedCustomer) {
-      payload.user_id = String(selectedCustomer.id);
-    } else if (mode === 'new') {
-      const nameValue = newCustomerNameInput ? newCustomerNameInput.value.trim() : '';
-      const emailValue = newCustomerEmailInput ? newCustomerEmailInput.value.trim() : '';
-      const addressValue = newCustomerAddressInput ? newCustomerAddressInput.value.trim() : '';
-      payload.new_customer_name = nameValue;
-      if (emailValue) {
-        payload.new_customer_email = emailValue;
-      }
-      if (addressValue) {
-        payload.new_customer_address = addressValue;
-      }
-    }
 
     const payloadPreview = Object.assign({ csrf_token: '[redacted]' }, payload);
     log('debug', 'Payload built', payloadPreview);
@@ -753,16 +550,6 @@ $scriptTemplate = <<<'JS'
       selectedItems.clear();
       renderSelectedItems();
 
-      selectedCustomer = null;
-      if (customerResults) {
-        customerResults.innerHTML = '';
-      }
-      if (customerSearchInput) {
-        customerSearchInput.value = '';
-      }
-      if (newCustomerNameInput) newCustomerNameInput.value = '';
-      if (newCustomerEmailInput) newCustomerEmailInput.value = '';
-      if (newCustomerAddressInput) newCustomerAddressInput.value = '';
       referenceNumberInput.value = '';
       paymentMethodSelect.value = 'Cash';
       if (fulfillmentTypeSelect) {
@@ -771,95 +558,11 @@ $scriptTemplate = <<<'JS'
       if (orderStatusInput) {
         orderStatusInput.value = 'Confirmed';
       }
-
-      const guestRadio = form.querySelector('input[name="customer_mode"][value="guest"]');
-      if (guestRadio) {
-        guestRadio.checked = true;
-      }
-      toggleCustomerSections('guest');
       log('debug', 'Form reset after successful submission');
     } catch (error) {
       log('error', 'Order submission failed', error);
       setMessage(messages, 'error', error.message || 'Something went wrong while creating the order.');
     }
-  }
-
-  function toggleCustomerSections(mode) {
-    currentCustomerMode = mode;
-    log('debug', 'Customer mode toggled', { mode });
-
-    if (mode === 'existing') {
-      if (existingSection) {
-        existingSection.classList.remove('is-hidden');
-      }
-      if (newCustomerSection) {
-        newCustomerSection.classList.add('is-hidden');
-      }
-      if (customerSearchInput) {
-        customerSearchInput.disabled = false;
-        customerSearchInput.focus();
-      }
-    } else if (mode === 'new') {
-      if (newCustomerSection) {
-        newCustomerSection.classList.remove('is-hidden');
-      }
-      if (existingSection) {
-        existingSection.classList.add('is-hidden');
-      }
-      if (customerSearchInput) {
-        customerSearchInput.value = '';
-        customerSearchInput.disabled = true;
-      }
-    } else {
-      if (existingSection) {
-        existingSection.classList.add('is-hidden');
-      }
-      if (newCustomerSection) {
-        newCustomerSection.classList.add('is-hidden');
-      }
-      if (customerSearchInput) {
-        customerSearchInput.value = '';
-        customerSearchInput.disabled = true;
-      }
-      if (customerResults) {
-        customerResults.innerHTML = '';
-      }
-      selectedCustomer = null;
-    }
-    renderCustomerSummary();
-  }
-
-  customerModeRadios.forEach((radio) => {
-    radio.addEventListener('change', () => {
-      toggleCustomerSections(radio.value);
-    });
-  });
-
-  if (customerSearchInput) {
-    customerSearchInput.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        log('debug', 'Prevented Enter key default in customer search input');
-      }
-    });
-    customerSearchInput.addEventListener('input', () => {
-      if (customerSearchTimer) {
-        clearTimeout(customerSearchTimer);
-      }
-      const term = customerSearchInput.value.trim();
-      log('debug', 'Customer search term updated', { term });
-      customerSearchTimer = setTimeout(() => fetchCustomers(term), 250);
-    });
-  }
-
-  if (newCustomerNameInput) {
-    newCustomerNameInput.addEventListener('input', renderCustomerSummary);
-  }
-  if (newCustomerEmailInput) {
-    newCustomerEmailInput.addEventListener('input', renderCustomerSummary);
-  }
-  if (newCustomerAddressInput) {
-    newCustomerAddressInput.addEventListener('input', renderCustomerSummary);
   }
 
   productSearchInput.addEventListener('keydown', (event) => {
@@ -890,8 +593,6 @@ $scriptTemplate = <<<'JS'
 
   form.addEventListener('submit', submitForm);
 
-  toggleCustomerSections('guest');
-  renderCustomerSummary();
   renderSelectedItems();
   fetchProducts('');
 })();
