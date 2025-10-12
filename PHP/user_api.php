@@ -1,6 +1,7 @@
 <?php
-require_once 'db_connect.php';
-require_once 'user_functions.php';
+require_once __DIR__ . '/db_connect.php';
+require_once __DIR__ . '/user_functions.php';
+require_once __DIR__ . '/audit_log_functions.php';
 
 header('Content-Type: application/json');
 
@@ -12,6 +13,10 @@ function normalizeFacePath($path) {
 }
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
+
+record_api_call($pdo, 'user_api', [
+    'action' => $action,
+]);
 
 switch ($action) {
     case 'get_face':

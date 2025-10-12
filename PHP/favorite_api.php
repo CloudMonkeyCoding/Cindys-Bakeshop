@@ -2,11 +2,16 @@
 require_once __DIR__ . '/db_connect.php';
 require_once __DIR__ . '/favorite_functions.php';
 require_once __DIR__ . '/user_request_helpers.php';
+require_once __DIR__ . '/audit_log_functions.php';
 
 startJsonResponse();
 requireDatabaseConnection($pdo);
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
+
+record_api_call($pdo, 'favorite_api', [
+    'action' => $action,
+]);
 
 switch ($action) {
     case 'list':

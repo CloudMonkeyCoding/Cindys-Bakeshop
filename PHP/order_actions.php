@@ -15,6 +15,23 @@ $token = filter_input(INPUT_POST, 'csrf_token', FILTER_SANITIZE_SPECIAL_CHARS) ?
 
 requireCsrfToken($token);
 
+$adminId = null;
+$adminEmail = null;
+if (session_status() === PHP_SESSION_ACTIVE) {
+    if (isset($_SESSION['admin_user_id']) && is_numeric($_SESSION['admin_user_id'])) {
+        $adminId = (int) $_SESSION['admin_user_id'];
+    }
+    if (!empty($_SESSION['admin_email'])) {
+        $adminEmail = (string) $_SESSION['admin_email'];
+    }
+}
+
+record_api_call($pdo, 'order_actions', [
+    'action' => $action,
+    'actor_id' => $adminId,
+    'actor_email' => $adminEmail,
+]);
+
 switch ($action) {
     case 'update_status':
         $orderId = filter_input(INPUT_POST, 'order_id', FILTER_VALIDATE_INT);
@@ -27,8 +44,6 @@ switch ($action) {
             sendJsonResponse(['success' => false, 'message' => 'Unsupported status value'], 422);
         }
         updateOrderStatus($pdo, $orderId, $status);
-        $adminId = isset($_SESSION['admin_user_id']) ? (int) $_SESSION['admin_user_id'] : null;
-        $adminEmail = $_SESSION['admin_email'] ?? null;
         record_audit_log($pdo, 'order_status_updated', "Order #{$orderId} status updated to {$status}.", [
             'actor_id' => $adminId ?: null,
             'actor_email' => $adminEmail,

@@ -476,12 +476,34 @@ function deleteInventoryByProductId($pdo, $productId) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['product_id'], $_POST['stock_quantity'])) {
-    require_once 'db_connect.php';
+    require_once __DIR__ . '/db_connect.php';
     header('Content-Type: application/json');
     if (!$pdo) {
         echo json_encode(['success' => false, 'error' => 'Database connection failed']);
         exit;
     }
+
+    require_once __DIR__ . '/audit_log_functions.php';
+
+    $actorId = null;
+    $actorEmail = null;
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        if (isset($_SESSION['admin_user_id']) && is_numeric($_SESSION['admin_user_id'])) {
+            $actorId = (int) $_SESSION['admin_user_id'];
+        }
+        if (!empty($_SESSION['admin_email'])) {
+            $actorEmail = (string) $_SESSION['admin_email'];
+        }
+    }
+
+    record_api_call($pdo, 'inventory_functions', [
+        'action' => 'update_stock',
+        'actor_id' => $actorId,
+        'actor_email' => $actorEmail,
+        'metadata' => [
+            'product_id' => isset($_POST['product_id']) ? (int) $_POST['product_id'] : null,
+        ],
+    ]);
 
     $productId = (int)$_POST['product_id'];
     $stockInput = trim($_POST['stock_quantity']);

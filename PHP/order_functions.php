@@ -59,7 +59,49 @@ function getAllOrders($pdo) {
     return $stmt->fetchAll();
 }
 
-// 3) Get all orders for a specific user along with a product image
+// 3) Get all orders for all users along with product images and summaries
+function getAllOrdersWithSummary($pdo)
+{
+    $sql = "
+        SELECT o.Order_ID,
+               o.User_ID,
+               u.Email AS User_Email,
+               u.Name AS User_Name,
+               o.Order_Date,
+               o.Source,
+               o.Fulfillment_Type,
+               o.Status,
+               o.Special_Instructions,
+               MIN(p.Image_Path) AS Image_Path,
+               MIN(p.Category) AS Category,
+               COALESCE(SUM(oi.Quantity), 0) AS Item_Count,
+               COALESCE(SUM(oi.Subtotal), 0) AS Total_Amount,
+               GROUP_CONCAT(
+                   CONCAT(p.Name, ' x', oi.Quantity)
+                   ORDER BY p.Name SEPARATOR ', '
+               ) AS Item_Summary
+        FROM `order` o
+        LEFT JOIN user u ON o.User_ID = u.User_ID
+        LEFT JOIN order_item oi ON o.Order_ID = oi.Order_ID
+        LEFT JOIN product p ON oi.Product_ID = p.Product_ID
+        GROUP BY o.Order_ID,
+                 o.User_ID,
+                 u.Email,
+                 u.Name,
+                 o.Order_Date,
+                 o.Source,
+                 o.Fulfillment_Type,
+                 o.Status,
+                 o.Special_Instructions
+        ORDER BY o.Order_Date DESC, o.Order_ID DESC
+    ";
+
+    $stmt = $pdo->query($sql);
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// 4) Get all orders for a specific user along with a product image
 function getOrdersByUserId($pdo, $userId) {
     $stmt = $pdo->prepare("
         SELECT o.Order_ID,
@@ -88,7 +130,7 @@ function getOrdersByUserId($pdo, $userId) {
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// 4) Get a single order by ID
+// 5) Get a single order by ID
 function getOrderById($pdo, $orderId) {
     $stmt = $pdo->prepare("
         SELECT * FROM `order` WHERE Order_ID = :order_id
@@ -97,7 +139,7 @@ function getOrderById($pdo, $orderId) {
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-// 5) Update order status
+// 6) Update order status
 function updateOrderStatus($pdo, $orderId, $status) {
     $stmt = $pdo->prepare("
         UPDATE `order`
@@ -111,7 +153,7 @@ function updateOrderStatus($pdo, $orderId, $status) {
     return $stmt->rowCount();
 }
 
-// 6) Delete an order by ID
+// 7) Delete an order by ID
 function deleteOrderById($pdo, $orderId) {
     $stmt = $pdo->prepare("
         DELETE FROM `order` WHERE Order_ID = :order_id
@@ -120,7 +162,7 @@ function deleteOrderById($pdo, $orderId) {
     return $stmt->rowCount();
 }
 
-// 7) Count total orders
+// 8) Count total orders
 function countOrders($pdo, $startDate = null, $endDate = null) {
     if ($startDate && $endDate) {
         $stmt = $pdo->prepare("
@@ -138,7 +180,7 @@ function countOrders($pdo, $startDate = null, $endDate = null) {
     return $stmt->fetchColumn();
 }
 
-// 8) Get orders by status
+// 9) Get orders by status
 function getOrdersByStatus($pdo, $status, $startDate = null, $endDate = null) {
     $query = "SELECT * FROM `order` WHERE Status = :status";
     $params = [':status' => $status];
@@ -166,7 +208,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
     header('Content-Type: application/json');
+    require_once __DIR__ . '/audit_log_functions.php';
     $action = filter_input(INPUT_POST, 'action', FILTER_SANITIZE_SPECIAL_CHARS);
+
+    $actorId = null;
+    $actorEmail = null;
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        if (isset($_SESSION['admin_user_id']) && is_numeric($_SESSION['admin_user_id'])) {
+            $actorId = (int) $_SESSION['admin_user_id'];
+        }
+        if (!empty($_SESSION['admin_email'])) {
+            $actorEmail = (string) $_SESSION['admin_email'];
+        }
+    }
+
+    record_api_call($pdo, 'order_functions', [
+        'action' => $action,
+        'actor_id' => $actorId,
+        'actor_email' => $actorEmail,
+    ]);
 
     switch ($action) {
         case 'updateStatus':

@@ -1,9 +1,14 @@
 <?php
-require_once 'db_connect.php';
-require_once 'notification_functions.php';
+require_once __DIR__ . '/db_connect.php';
+require_once __DIR__ . '/notification_functions.php';
+require_once __DIR__ . '/audit_log_functions.php';
 
 header('Content-Type: application/json');
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
+
+record_api_call($pdo, 'notification_api', [
+    'action' => $action,
+]);
 
 switch ($action) {
     case 'unread':

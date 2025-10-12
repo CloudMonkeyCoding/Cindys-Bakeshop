@@ -157,6 +157,14 @@ if (!$data) {
 $email = isset($data['email']) ? trim((string) $data['email']) : '';
 $password = isset($data['password']) ? (string) $data['password'] : '';
 
+record_api_call($pdo, 'admin_auth', [
+    'action' => 'login',
+    'actor_email' => $email !== '' ? $email : null,
+    'metadata' => [
+        'payload_keys' => array_keys($data),
+    ],
+]);
+
 if ($email === '' || $password === '') {
     logAdminAuthEvent($pdo, 'admin_login_validation_failed', 'Login blocked: missing email or password.', [
         'actor_email' => $email,
