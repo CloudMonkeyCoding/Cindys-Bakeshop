@@ -34,147 +34,151 @@ $todayDate = date('Y-m-d');
 $inventoryEditingLocked = $reportDate !== null && $reportDate < $todayDate;
 
 if ($pdo) {
-    $rows = getInventoryWithProducts($pdo, $reportDate);
-    foreach ($rows as $row) {
-        $category = $row['Category'] ?? 'Uncategorized';
-        $stockRaw = $row['Stock_Quantity'];
-        $stockValue = max(0, (int)$stockRaw);
+    try {
+        $rows = getInventoryWithProducts($pdo, $reportDate);
+        foreach ($rows as $row) {
+            $category = $row['Category'] ?? 'Uncategorized';
+            $stockRaw = $row['Stock_Quantity'];
+            $stockValue = max(0, (int)$stockRaw);
 
-        if (!array_key_exists($category, $inventoryData)) {
-            $inventoryData[$category] = [];
-        }
-        if (!array_key_exists($category, $categoryTotals)) {
-            $categoryTotals[$category] = 0;
-        }
+            if (!array_key_exists($category, $inventoryData)) {
+                $inventoryData[$category] = [];
+            }
+            if (!array_key_exists($category, $categoryTotals)) {
+                $categoryTotals[$category] = 0;
+            }
 
-        $inventoryData[$category][] = [
-            'id' => $row['Product_ID'],
-            'name' => $row['Name'],
-            'stock' => $stockValue
-        ];
+            $inventoryData[$category][] = [
+                'id' => $row['Product_ID'],
+                'name' => $row['Name'],
+                'stock' => $stockValue
+            ];
 
-        $totalTracked++;
+            $totalTracked++;
 
-        $categoryTotals[$category] += $stockValue;
-        if ($stockValue <= 10) {
-            $lowStockCount++;
-        }
-    }
-
-    ksort($inventoryData);
-    ksort($categoryTotals);
-
-    $logRows = getInventoryChangeLog($pdo, $reportDate, $reportDate);
-    foreach ($logRows as $logRow) {
-        $orderId = isset($logRow['Order_ID']) ? (int)$logRow['Order_ID'] : 0;
-        $rawDate = $logRow['Created_At'] ?? null;
-        $logDateRaw = $logRow['Log_Date'] ?? null;
-        $normalizedLogDate = null;
-
-        if ($logDateRaw) {
-            $logDateTimestamp = strtotime((string)$logDateRaw);
-            if ($logDateTimestamp !== false) {
-                $normalizedLogDate = date('Y-m-d', $logDateTimestamp);
+            $categoryTotals[$category] += $stockValue;
+            if ($stockValue <= 10) {
+                $lowStockCount++;
             }
         }
 
-        $rawDateTimestamp = false;
-        if ($rawDate) {
-            $rawDateTimestamp = strtotime((string)$rawDate);
-            if ($rawDateTimestamp !== false && $normalizedLogDate === null) {
-                $normalizedLogDate = date('Y-m-d', $rawDateTimestamp);
+        ksort($inventoryData);
+        ksort($categoryTotals);
+
+        $logRows = getInventoryChangeLog($pdo, $reportDate, $reportDate);
+        foreach ($logRows as $logRow) {
+            $orderId = isset($logRow['Order_ID']) ? (int)$logRow['Order_ID'] : 0;
+            $rawDate = $logRow['Created_At'] ?? null;
+            $logDateRaw = $logRow['Log_Date'] ?? null;
+            $normalizedLogDate = null;
+
+            if ($logDateRaw) {
+                $logDateTimestamp = strtotime((string)$logDateRaw);
+                if ($logDateTimestamp !== false) {
+                    $normalizedLogDate = date('Y-m-d', $logDateTimestamp);
+                }
+            }
+
+            $rawDateTimestamp = false;
+            if ($rawDate) {
+                $rawDateTimestamp = strtotime((string)$rawDate);
+                if ($rawDateTimestamp !== false && $normalizedLogDate === null) {
+                    $normalizedLogDate = date('Y-m-d', $rawDateTimestamp);
+                }
+            }
+
+            if ($normalizedLogDate === null && !empty($logRow['Order_Date'])) {
+                $orderDateTimestamp = strtotime((string)$logRow['Order_Date']);
+                if ($orderDateTimestamp !== false) {
+                    $normalizedLogDate = date('Y-m-d', $orderDateTimestamp);
+                }
+            }
+
+            if ($reportDate !== null && $normalizedLogDate !== $reportDate) {
+                continue;
+            }
+
+            if (($rawDate === null || $rawDate === '') && $normalizedLogDate !== null) {
+                $rawDate = $normalizedLogDate . ' 00:00:00';
+                $rawDateTimestamp = strtotime($rawDate);
+            }
+
+            if (($rawDate === null || $rawDate === '') && !empty($logRow['Order_Date'])) {
+                $rawDate = (string)$logRow['Order_Date'];
+                $rawDateTimestamp = strtotime($rawDate);
+            }
+
+            $formattedDate = null;
+            if ($rawDateTimestamp !== false) {
+                $formattedDate = date('M j, Y g:i A', $rawDateTimestamp);
+            } elseif ($normalizedLogDate !== null) {
+                $dateOnlyTimestamp = strtotime($normalizedLogDate);
+                if ($dateOnlyTimestamp !== false) {
+                    $formattedDate = date('M j, Y', $dateOnlyTimestamp);
+                }
+            }
+
+            $source = $logRow['Change_Source'] ?? '';
+            $note = $logRow['Note'] ?? '';
+            $referenceType = $logRow['Reference_Type'] ?? '';
+            $referenceLabel = null;
+
+            if ($referenceType === 'order' && $orderId > 0) {
+                $referenceLabel = '#' . str_pad((string)$orderId, 5, '0', STR_PAD_LEFT);
+            }
+
+            if ($referenceLabel === null || $referenceLabel === '') {
+                $referenceLabel = $note !== '' ? $note : ucwords(str_replace('_', ' ', $source !== '' ? $source : 'Stock Update'));
+            }
+
+            $changeTypeMap = [
+                'order' => 'Order Placement',
+                'manual_adjustment' => 'Manual Adjustment',
+                'initial_entry' => 'Inventory Seed',
+                'adjustment' => 'Stock Adjustment',
+            ];
+            $changeType = $changeTypeMap[$source] ?? 'Stock Update';
+
+            $previousQuantityRaw = $logRow['Previous_Quantity'] ?? null;
+            $previousQuantity = $previousQuantityRaw !== null ? (int)$previousQuantityRaw : null;
+            $newQuantityRaw = $logRow['New_Quantity'] ?? null;
+            $newQuantity = $newQuantityRaw !== null ? (int)$newQuantityRaw : null;
+            $changeValueRaw = $logRow['Change_Amount'] ?? null;
+            $changeValue = $changeValueRaw !== null ? (int)$changeValueRaw : 0;
+
+            $inventoryLogEntries[] = [
+                'log_id' => (int)($logRow['Log_ID'] ?? 0),
+                'order_id' => $orderId,
+                'order_code' => $referenceLabel,
+                'product_id' => (int)($logRow['Product_ID'] ?? 0),
+                'product_name' => $logRow['Product_Name'] ?? '',
+                'change' => $changeValue,
+                'change_type' => $changeType,
+                'created_at' => $rawDate,
+                'created_at_formatted' => $formattedDate,
+                'customer_name' => $logRow['Customer_Name'] ?? '',
+                'previous_quantity' => $previousQuantity,
+                'new_quantity' => $newQuantity,
+                'note' => $note,
+                'reference_label' => $referenceLabel,
+                'change_source' => $source,
+                'log_date' => $normalizedLogDate,
+            ];
+        }
+
+        $logDateCountRows = getInventoryLogDateCounts($pdo);
+        foreach ($logDateCountRows as $countRow) {
+            $rawDate = $countRow['Report_Date'] ?? null;
+            $changes = isset($countRow['Change_Count']) ? (int)$countRow['Change_Count'] : 0;
+            if ($rawDate !== null) {
+                $normalizedDate = date('Y-m-d', strtotime((string)$rawDate));
+                $inventoryLogDateCounts[$normalizedDate] = (
+                    ($inventoryLogDateCounts[$normalizedDate] ?? 0) + $changes
+                );
             }
         }
-
-        if ($normalizedLogDate === null && !empty($logRow['Order_Date'])) {
-            $orderDateTimestamp = strtotime((string)$logRow['Order_Date']);
-            if ($orderDateTimestamp !== false) {
-                $normalizedLogDate = date('Y-m-d', $orderDateTimestamp);
-            }
-        }
-
-        if ($reportDate !== null && $normalizedLogDate !== $reportDate) {
-            continue;
-        }
-
-        if (($rawDate === null || $rawDate === '') && $normalizedLogDate !== null) {
-            $rawDate = $normalizedLogDate . ' 00:00:00';
-            $rawDateTimestamp = strtotime($rawDate);
-        }
-
-        if (($rawDate === null || $rawDate === '') && !empty($logRow['Order_Date'])) {
-            $rawDate = (string)$logRow['Order_Date'];
-            $rawDateTimestamp = strtotime($rawDate);
-        }
-
-        $formattedDate = null;
-        if ($rawDateTimestamp !== false) {
-            $formattedDate = date('M j, Y g:i A', $rawDateTimestamp);
-        } elseif ($normalizedLogDate !== null) {
-            $dateOnlyTimestamp = strtotime($normalizedLogDate);
-            if ($dateOnlyTimestamp !== false) {
-                $formattedDate = date('M j, Y', $dateOnlyTimestamp);
-            }
-        }
-
-        $source = $logRow['Change_Source'] ?? '';
-        $note = $logRow['Note'] ?? '';
-        $referenceType = $logRow['Reference_Type'] ?? '';
-        $referenceLabel = null;
-
-        if ($referenceType === 'order' && $orderId > 0) {
-            $referenceLabel = '#' . str_pad((string)$orderId, 5, '0', STR_PAD_LEFT);
-        }
-
-        if ($referenceLabel === null || $referenceLabel === '') {
-            $referenceLabel = $note !== '' ? $note : ucwords(str_replace('_', ' ', $source !== '' ? $source : 'Stock Update'));
-        }
-
-        $changeTypeMap = [
-            'order' => 'Order Placement',
-            'manual_adjustment' => 'Manual Adjustment',
-            'initial_entry' => 'Inventory Seed',
-            'adjustment' => 'Stock Adjustment',
-        ];
-        $changeType = $changeTypeMap[$source] ?? 'Stock Update';
-
-        $previousQuantityRaw = $logRow['Previous_Quantity'] ?? null;
-        $previousQuantity = $previousQuantityRaw !== null ? (int)$previousQuantityRaw : null;
-        $newQuantityRaw = $logRow['New_Quantity'] ?? null;
-        $newQuantity = $newQuantityRaw !== null ? (int)$newQuantityRaw : null;
-        $changeValueRaw = $logRow['Change_Amount'] ?? null;
-        $changeValue = $changeValueRaw !== null ? (int)$changeValueRaw : 0;
-
-        $inventoryLogEntries[] = [
-            'log_id' => (int)($logRow['Log_ID'] ?? 0),
-            'order_id' => $orderId,
-            'order_code' => $referenceLabel,
-            'product_id' => (int)($logRow['Product_ID'] ?? 0),
-            'product_name' => $logRow['Product_Name'] ?? '',
-            'change' => $changeValue,
-            'change_type' => $changeType,
-            'created_at' => $rawDate,
-            'created_at_formatted' => $formattedDate,
-            'customer_name' => $logRow['Customer_Name'] ?? '',
-            'previous_quantity' => $previousQuantity,
-            'new_quantity' => $newQuantity,
-            'note' => $note,
-            'reference_label' => $referenceLabel,
-            'change_source' => $source,
-            'log_date' => $normalizedLogDate,
-        ];
-    }
-
-    $logDateCountRows = getInventoryLogDateCounts($pdo);
-    foreach ($logDateCountRows as $countRow) {
-        $rawDate = $countRow['Report_Date'] ?? null;
-        $changes = isset($countRow['Change_Count']) ? (int)$countRow['Change_Count'] : 0;
-        if ($rawDate !== null) {
-            $normalizedDate = date('Y-m-d', strtotime((string)$rawDate));
-            $inventoryLogDateCounts[$normalizedDate] = (
-                ($inventoryLogDateCounts[$normalizedDate] ?? 0) + $changes
-            );
-        }
+    } catch (Throwable $e) {
+        echo 'Error: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
     }
 }
 
