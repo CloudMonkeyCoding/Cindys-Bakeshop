@@ -236,6 +236,10 @@
       resize: vertical;
     }
 
+    .checkout-form textarea {
+      min-height: 120px;
+    }
+
     .input-wrapper {
       display: flex;
       align-items: center;
@@ -286,6 +290,12 @@
 
     .done-btn {
       display: none;
+    }
+
+    .optional-hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
     }
 
     .confirmation {
@@ -415,6 +425,14 @@
             </select>
           </div>
 
+          <div>
+            <div class="field-header">
+              <label for="special-instructions">Special instructions</label>
+              <span class="optional-hint">Optional</span>
+            </div>
+            <textarea id="special-instructions" placeholder="Let us know about delivery notes or allergy information." maxlength="500"></textarea>
+          </div>
+
           <button type="submit" class="primary-btn">Place order</button>
         </form>
         <div class="confirmation" id="confirmationMsg"></div>
@@ -460,6 +478,7 @@
     const addrDoneBtn = document.getElementById('done-address');
     const orderTypeSelect = document.getElementById('order-type');
     const mopSelect = document.getElementById('mop');
+    const specialInstructionsField = document.getElementById('special-instructions');
     const cartStatus = document.getElementById('cartStatus');
 
     function getAddressParts() {
@@ -918,6 +937,7 @@
       const address = composeAddress();
       const orderType = document.getElementById('order-type').value;
       const mop = document.getElementById('mop').value;
+      const specialInstructions = specialInstructionsField.value.trim();
 
       if (orderType === 'Delivery' && !isDeliveryAreaValid()) {
         alert('Delivery is only available within Hagonoy, Bulacan. Please choose Pick up for orders outside this area.');
@@ -958,6 +978,7 @@
           address,
           order_type: orderType,
           mop,
+          special_instructions: specialInstructions,
           email: userEmail,
           items: JSON.stringify(checkoutData),
         });

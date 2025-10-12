@@ -85,6 +85,7 @@ CREATE TABLE `order` (
   `Order_Date` date DEFAULT NULL,
   `Source` enum('online','walk-in') DEFAULT 'online',
   `Fulfillment_Type` enum('Delivery','Pick up') DEFAULT 'Delivery',
+  `Special_Instructions` text DEFAULT NULL,
   `Status` enum('Pending','Confirmed','Shipped','Delivered') DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
