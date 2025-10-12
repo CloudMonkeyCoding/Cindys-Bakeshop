@@ -108,12 +108,6 @@ function isDropdownActive(array $pages, $activePage) {
         </a>
       </li>
     <?php endif; ?>
-    <li>
-      <a href="settings.php" class="<?= isActive('settings', $activePage); ?>">
-        <span><i class="fa-solid fa-gear"></i></span>
-        Settings
-      </a>
-    </li>
   </ul>
 </div>
 <script>
