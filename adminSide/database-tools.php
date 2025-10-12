@@ -207,18 +207,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restore'])) {
                 if (empty($statements)) {
                     $restoreError = 'The uploaded file does not contain any SQL statements.';
                 } else {
+                    $transactionActive = false;
+
                     try {
-                        $pdo->beginTransaction();
+                        $transactionActive = $pdo->beginTransaction() && $pdo->inTransaction();
+                    } catch (Throwable $transactionError) {
+                        $transactionActive = false;
+                    }
+
+                    try {
                         foreach ($statements as $statement) {
                             $pdo->exec($statement);
+                            if ($transactionActive && !$pdo->inTransaction()) {
+                                $transactionActive = false;
+                            }
                         }
-                        $pdo->commit();
-                        $restoreMessage = 'Database restored successfully.';
+
+                        if ($transactionActive && $pdo->inTransaction()) {
+                            try {
+                                $pdo->commit();
+                            } catch (Throwable $commitError) {
+                                $restoreError = 'Database restored but failed to finalize transaction: ' . htmlspecialchars($commitError->getMessage());
+                            }
+                        }
+
+                        if (!$restoreError) {
+                            $restoreMessage = 'Database restored successfully.';
+                        }
                     } catch (Throwable $e) {
-                        if ($pdo->inTransaction()) {
-                            $pdo->rollBack();
+                        if ($transactionActive && $pdo->inTransaction()) {
+                            try {
+                                $pdo->rollBack();
+                            } catch (Throwable $rollbackError) {
+                                // Swallow rollback errors and surface the original exception message.
+                            }
                         }
-                        $restoreError = 'Failed to restore database: ' . htmlspecialchars($e->getMessage());
+
+                        if (!$restoreError) {
+                            $restoreError = 'Failed to restore database: ' . htmlspecialchars($e->getMessage());
+                        }
                     }
                 }
             }
