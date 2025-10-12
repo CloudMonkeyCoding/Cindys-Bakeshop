@@ -260,7 +260,6 @@
           </div>
           <div class="form-actions" style="grid-column: 1 / -1;">
             <button type="submit">Save changes</button>
-            <a href="Settings.php">Account security</a>
           </div>
           <div id="serverMessage" style="grid-column: 1 / -1;"></div>
         </form>
@@ -283,16 +282,11 @@
     const displayEmail = document.getElementById('displayEmail');
     const statName = document.getElementById('statName');
     const statEmail = document.getElementById('statEmail');
-    const accountLink = document.querySelector('.form-actions a');
-
     onAuthStateChanged(auth, user => {
       if (user) {
         emailField.value = user.email;
         displayEmail.textContent = user.email;
         statEmail.textContent = user.email;
-        if (accountLink) {
-          accountLink.href = `Settings.php?email=${encodeURIComponent(user.email)}`;
-        }
         fetch(`../../PHP/user_api.php?action=get_profile&email=${encodeURIComponent(user.email)}`)
           .then(res => res.json())
           .then(data => {

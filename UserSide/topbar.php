@@ -73,7 +73,7 @@ $currentScript = basename($_SERVER['SCRIPT_NAME'] ?? '');
 
 $menuScripts = array('MENU.php', 'bread.php', 'cakes.php', 'pastry.php', 'product.php');
 $favoriteScripts = array('my favorite.php');
-$profileScripts = array('EditProfile.php', 'Settings.php');
+$profileScripts = array('EditProfile.php');
 $purchasesScripts = array('MyPurchase.php');
 
 $navItems = [
@@ -145,7 +145,6 @@ $activeResolver = function (array $needles) use ($currentScript): string {
         </button>
         <ul class="dropdown-menu" id="profileMenu">
           <li><a href="<?= htmlspecialchars($userPrefix . 'PROFILE/EditProfile.php', ENT_QUOTES) ?>">Edit Profile</a></li>
-          <li><a href="<?= htmlspecialchars($userPrefix . 'PROFILE/Settings.php', ENT_QUOTES) ?>" data-settings-link="true">Account Settings</a></li>
           <li><a href="<?= htmlspecialchars($userPrefix . 'PURCHASES/MyPurchase.php', ENT_QUOTES) ?>">Order History</a></li>
           <li><a href="<?= htmlspecialchars($userPrefix . 'logout.html', ENT_QUOTES) ?>">Logout</a></li>
         </ul>
