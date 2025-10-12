@@ -71,6 +71,7 @@ include 'includes/sidebar.php';
 
       <div class="profile-actions">
         <a href="edit-profile.php" class="btn btn-primary">Edit Profile</a>
+        <a href="logout.php" class="btn btn-muted">Log Out</a>
       </div>
     <?php else: ?>
       <p class="table-empty">We couldn't load your profile details right now. Please try again later.</p>
