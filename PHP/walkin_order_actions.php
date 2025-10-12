@@ -25,6 +25,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+$action = filter_input(INPUT_POST, 'action', FILTER_SANITIZE_SPECIAL_CHARS) ?: '';
+$token = filter_input(INPUT_POST, 'csrf_token', FILTER_SANITIZE_SPECIAL_CHARS) ?: '';
+
+if (isset($_POST['action'])) {
+    unset($_POST['action']);
+}
+if (isset($_REQUEST['action'])) {
+    unset($_REQUEST['action']);
+}
+
 require_once __DIR__ . '/db_connect.php';
 require_once __DIR__ . '/order_functions.php';
 require_once __DIR__ . '/order_item_functions.php';
@@ -44,9 +54,6 @@ if (!$pdo) {
     echo json_encode(['success' => false, 'message' => 'Database connection failed']);
     exit;
 }
-
-$action = filter_input(INPUT_POST, 'action', FILTER_SANITIZE_SPECIAL_CHARS) ?: '';
-$token = filter_input(INPUT_POST, 'csrf_token', FILTER_SANITIZE_SPECIAL_CHARS) ?: '';
 
 if (!hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
     walkin_order_log('CSRF token mismatch', ['session_token_present' => isset($_SESSION['csrf_token'])]);
