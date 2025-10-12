@@ -1075,13 +1075,59 @@ function stopCamera() {
   }
 }
 
-function captureFace() {
-  if (!video || !faceImageInput || !capturedImage) return;
+async function detectFaceFromCanvas(canvas) {
+  if (!('FaceDetector' in window)) {
+    setErrorMessage(
+      faceError,
+      'Face detection is not supported in this browser. Please try using the latest version of Chrome or Edge.'
+    );
+    return false;
+  }
+
+  try {
+    const detector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+    const faces = await detector.detect(canvas);
+    if (!faces.length) {
+      setErrorMessage(
+        faceError,
+        'No face detected. Please ensure your face is clearly visible in the frame and try again.'
+      );
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Face detection failed:', error);
+    setErrorMessage(
+      faceError,
+      'We could not verify your face. Adjust lighting or remove obstructions and capture again.'
+    );
+    return false;
+  }
+}
+
+async function captureFace() {
+  if (!video || !faceImageInput || !capturedImage) return false;
   const canvas = document.createElement('canvas');
   canvas.width = video.videoWidth || 640;
   canvas.height = video.videoHeight || 480;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  const hasFace = await detectFaceFromCanvas(canvas);
+  if (!hasFace) {
+    if (capturedImage) {
+      capturedImage.src = '';
+      capturedImage.style.display = 'none';
+    }
+    if (video) {
+      video.style.display = 'block';
+    }
+    if (captureBtn) {
+      captureBtn.disabled = false;
+    }
+    return false;
+  }
+
   const dataUrl = canvas.toDataURL('image/png');
   faceImageInput.value = dataUrl;
   capturedImage.src = dataUrl;
@@ -1095,6 +1141,7 @@ function captureFace() {
     retakeBtn.style.display = 'block';
   }
   setErrorMessage(faceError, '');
+  return true;
 }
 
 function resetCapture() {
@@ -1116,13 +1163,24 @@ function resetCapture() {
 }
 
 if (captureBtn) {
-  captureBtn.addEventListener('click', () => {
+  captureBtn.addEventListener('click', async () => {
+    captureBtn.disabled = true;
+    captureBtn.textContent = 'Detecting face...';
+
     if (!mediaStream) {
-      startCamera().then(() => {
-        setTimeout(captureFace, 300);
-      });
-    } else {
-      captureFace();
+      await startCamera();
+      if (!mediaStream) {
+        captureBtn.disabled = false;
+        captureBtn.textContent = 'Capture Face';
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+
+    const captured = await captureFace();
+    if (!captured) {
+      captureBtn.textContent = 'Capture Face';
+      captureBtn.disabled = false;
     }
   });
 }
