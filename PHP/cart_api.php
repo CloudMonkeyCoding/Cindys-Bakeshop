@@ -25,8 +25,18 @@ switch ($action) {
         } else {
             $cartId = $cart['Cart_ID'];
             $stmt = $pdo->prepare(
-                'SELECT ci.Cart_Item_ID, ci.Product_ID, ci.Quantity, p.Name, p.Price, p.Stock_Quantity, p.Image_Path, p.Category '
-                . 'FROM cart_item ci JOIN product p ON ci.Product_ID = p.Product_ID WHERE ci.Cart_ID = :cart_id'
+                'SELECT ci.Cart_Item_ID,
+                        ci.Product_ID,
+                        ci.Quantity,
+                        p.Name,
+                        p.Price,
+                        COALESCE(i.Stock_Quantity, p.Stock_Quantity) AS Stock_Quantity,
+                        p.Image_Path,
+                        p.Category
+                 FROM cart_item ci
+                 JOIN product p ON ci.Product_ID = p.Product_ID
+                 LEFT JOIN inventory i ON i.Product_ID = p.Product_ID
+                 WHERE ci.Cart_ID = :cart_id'
             );
             $stmt->execute([':cart_id' => $cartId]);
             $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
