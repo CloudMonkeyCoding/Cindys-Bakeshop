@@ -1,9 +1,11 @@
 <?php
-require_once 'db_connect.php';
-require_once 'notification_functions.php';
+require_once __DIR__ . '/action_helpers.php';
+require_once __DIR__ . '/db_connect.php';
+require_once __DIR__ . '/notification_functions.php';
 
 header('Content-Type: application/json');
-$action = $_GET['action'] ?? $_POST['action'] ?? '';
+$request = getRequestPayload();
+$action = $_GET['action'] ?? $request['action'] ?? '';
 
 switch ($action) {
     case 'unread':

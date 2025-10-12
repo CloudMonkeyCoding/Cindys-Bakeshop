@@ -9,10 +9,11 @@ require_once __DIR__ . '/blacklist_functions.php';
 
 requireDatabaseConnection($pdo);
 
-$action = filter_input(INPUT_POST, 'action', FILTER_SANITIZE_SPECIAL_CHARS);
+$request = getRequestPayload();
+$action = isset($request['action']) ? (string)$request['action'] : '';
 if ($action === 'unblock') {
-    $id = filter_input(INPUT_POST, 'blacklist_id', FILTER_VALIDATE_INT);
-    if ($id) {
+    $id = isset($request['blacklist_id']) ? (int)$request['blacklist_id'] : 0;
+    if ($id > 0) {
         $deleted = deleteBlacklistById($pdo, $id);
         if ($deleted) {
             sendJsonResponse(['success' => true]);

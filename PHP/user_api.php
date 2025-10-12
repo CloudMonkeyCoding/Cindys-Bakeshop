@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/action_helpers.php';
 require_once 'db_connect.php';
 require_once 'user_functions.php';
 
@@ -11,11 +12,13 @@ function normalizeFacePath($path) {
     return $path[0] === '/' ? $path : '/' . ltrim($path, '/');
 }
 
-$action = $_GET['action'] ?? $_POST['action'] ?? '';
+$request = getRequestPayload();
+$action = $_GET['action'] ?? $request['action'] ?? '';
 
 switch ($action) {
     case 'get_face':
-        $email = $_GET['email'] ?? '';
+        $emailValue = $request['email'] ?? $_GET['email'] ?? '';
+        $email = is_string($emailValue) ? $emailValue : '';
         if ($email) {
             $user = getUserByEmail($pdo, $email);
             if (!$user) {
@@ -26,14 +29,15 @@ switch ($action) {
             $path = normalizeFacePath($user['Face_Image_Path'] ?? null);
             echo json_encode(['face_image_path' => $path]);
         } else {
-            $userId = (int)($_GET['user_id'] ?? 0);
+            $userId = isset($request['user_id']) ? (int)$request['user_id'] : (int)($_GET['user_id'] ?? 0);
             $user = getUserById($pdo, $userId);
             $path = normalizeFacePath($user['Face_Image_Path'] ?? null);
             echo json_encode(['face_image_path' => $path]);
         }
         break;
     case 'set_face':
-        $email = $_POST['email'] ?? '';
+        $emailValue = $request['email'] ?? '';
+        $email = is_string($emailValue) ? $emailValue : '';
         if ($email) {
             $user = getUserByEmail($pdo, $email);
             if (!$user) {
@@ -43,15 +47,17 @@ switch ($action) {
             }
             $userId = (int)$user['User_ID'];
         } else {
-            $userId = (int)($_POST['user_id'] ?? 0);
+            $userId = isset($request['user_id']) ? (int)$request['user_id'] : 0;
         }
-        $path = $_POST['face_image_path'] ?? '';
+        $pathValue = $request['face_image_path'] ?? '';
+        $path = is_string($pathValue) ? $pathValue : '';
         $stmt = $pdo->prepare('UPDATE user SET Face_Image_Path = :path WHERE User_ID = :id');
         $stmt->execute([':path' => $path, ':id' => $userId]);
         echo json_encode(['updated' => $stmt->rowCount()]);
         break;
     case 'get_profile':
-        $email = $_GET['email'] ?? '';
+        $emailValue = $request['email'] ?? $_GET['email'] ?? '';
+        $email = is_string($emailValue) ? $emailValue : '';
         if (!$email) {
             http_response_code(400);
             echo json_encode(['error' => 'Email required']);
@@ -78,9 +84,12 @@ switch ($action) {
         ]);
         break;
     case 'set_profile':
-        $email = $_POST['email'] ?? '';
-        $name = $_POST['name'] ?? '';
-        $address = $_POST['address'] ?? '';
+        $emailValue = $request['email'] ?? '';
+        $nameValue = $request['name'] ?? '';
+        $addressValue = $request['address'] ?? '';
+        $email = is_string($emailValue) ? $emailValue : '';
+        $name = is_string($nameValue) ? $nameValue : '';
+        $address = is_string($addressValue) ? $addressValue : '';
         if (!$email) {
             http_response_code(400);
             echo json_encode(['error' => 'Email required']);
@@ -96,10 +105,15 @@ switch ($action) {
         echo json_encode(['updated' => true]);
         break;
     case 'update_profile':
-        $firstName = $_POST['first_name'] ?? '';
-        $lastName = $_POST['last_name'] ?? '';
-        $email = $_POST['email'] ?? '';
-        $password = $_POST['password'] ?? '';
+        $firstNameValue = $request['first_name'] ?? '';
+        $lastNameValue = $request['last_name'] ?? '';
+        $emailValue = $request['email'] ?? '';
+        $passwordValue = $request['password'] ?? '';
+
+        $firstName = is_string($firstNameValue) ? $firstNameValue : '';
+        $lastName = is_string($lastNameValue) ? $lastNameValue : '';
+        $email = is_string($emailValue) ? $emailValue : '';
+        $password = is_string($passwordValue) ? $passwordValue : '';
 
         if (!$firstName || !$lastName || !$email) {
             http_response_code(400);

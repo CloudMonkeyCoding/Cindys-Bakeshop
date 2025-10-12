@@ -15,11 +15,13 @@ require_once __DIR__ . '/audit_log_functions.php';
 startJsonResponse();
 requireDatabaseConnection($pdo);
 
-$action = $_GET['action'] ?? $_POST['action'] ?? '';
+$request = getRequestPayload();
+$action = $_GET['action'] ?? $request['action'] ?? '';
 
 switch ($action) {
     case 'list':
-        [$userId] = resolveUserContext($pdo, $_GET, ['allowMissing' => true]);
+        $context = array_merge($_GET, $request);
+        [$userId] = resolveUserContext($pdo, $context, ['allowMissing' => true]);
         $orders = $userId > 0 ? getOrdersByUserId($pdo, $userId) : [];
         $orders = array_map(static function ($order) {
             $imageMeta = [
@@ -33,15 +35,21 @@ switch ($action) {
         sendJsonResponse($orders);
 
     case 'create':
-        [$userId, $user] = resolveUserContext($pdo, $_POST, ['includeUser' => true]);
-        $items = json_decode($_POST['items'] ?? '[]', true);
-        if (!is_array($items)) {
+        [$userId, $user] = resolveUserContext($pdo, $request, ['includeUser' => true]);
+        $itemsRaw = $request['items'] ?? [];
+        if (is_string($itemsRaw)) {
+            $decodedItems = json_decode($itemsRaw, true);
+            $items = is_array($decodedItems) ? $decodedItems : [];
+        } elseif (is_array($itemsRaw)) {
+            $items = $itemsRaw;
+        } else {
             $items = [];
         }
 
-        $orderTypeInput = isset($_POST['order_type']) ? trim((string)$_POST['order_type']) : '';
+        $orderTypeValue = $request['order_type'] ?? '';
+        $orderTypeInput = is_string($orderTypeValue) ? trim($orderTypeValue) : '';
         $orderType = in_array($orderTypeInput, ['Delivery', 'Pick up'], true) ? $orderTypeInput : 'Delivery';
-        $mop = $_POST['mop'] ?? '';
+        $mop = isset($request['mop']) ? (string)$request['mop'] : '';
 
         foreach ($items as $it) {
             $productId = (int)($it['product_id'] ?? 0);
