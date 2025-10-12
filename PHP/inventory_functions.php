@@ -130,6 +130,79 @@ function getAllInventory($pdo) {
 }
 
 // 3b) Get inventory with product details
+function ensureOrderInventoryLogs(PDO $pdo, $startDate = null, $endDate = null)
+{
+    $params = [];
+
+    $sql = "
+        SELECT
+            oi.Order_ID,
+            oi.Product_ID,
+            COALESCE(oi.Quantity, 0) AS Quantity,
+            o.Order_Date
+        FROM order_item oi
+        INNER JOIN `order` o ON oi.Order_ID = o.Order_ID
+        LEFT JOIN inventory_stock_log isl
+            ON isl.Reference_Type = 'order'
+           AND isl.Reference_ID = oi.Order_ID
+           AND isl.Product_ID = oi.Product_ID
+        WHERE isl.Log_ID IS NULL
+    ";
+
+    if ($startDate !== null) {
+        $sql .= " AND o.Order_Date >= :sync_start";
+        $params[':sync_start'] = $startDate;
+    }
+
+    if ($endDate !== null) {
+        $sql .= " AND o.Order_Date <= :sync_end";
+        $params[':sync_end'] = $endDate;
+    }
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (!$rows) {
+        return 0;
+    }
+
+    $insert = $pdo->prepare(""
+        . "INSERT INTO inventory_stock_log "
+        . "(Product_ID, Change_Amount, Previous_Quantity, New_Quantity, Change_Source, Reference_Type, Reference_ID, Note, Created_At) "
+        . "VALUES (:product_id, :change_amount, :previous_quantity, :new_quantity, :change_source, :reference_type, :reference_id, :note, :created_at)"
+    );
+
+    $inserted = 0;
+    foreach ($rows as $row) {
+        $productId = isset($row['Product_ID']) ? (int)$row['Product_ID'] : 0;
+        $orderId = isset($row['Order_ID']) ? (int)$row['Order_ID'] : 0;
+        $quantity = isset($row['Quantity']) ? (int)$row['Quantity'] : 0;
+        if ($productId <= 0 || $orderId <= 0 || $quantity <= 0) {
+            continue;
+        }
+
+        $orderDate = $row['Order_Date'] ?? null;
+        $createdAt = $orderDate ? ($orderDate . ' 12:00:00') : date('Y-m-d H:i:s');
+
+        $insert->execute([
+            ':product_id' => $productId,
+            ':change_amount' => -abs($quantity),
+            ':previous_quantity' => null,
+            ':new_quantity' => null,
+            ':change_source' => 'order',
+            ':reference_type' => 'order',
+            ':reference_id' => $orderId,
+            ':note' => 'Order purchase',
+            ':created_at' => $createdAt,
+        ]);
+
+        $inserted++;
+    }
+
+    return $inserted;
+}
+
 function getInventoryWithProducts($pdo, $snapshotDate = null) {
     if ($snapshotDate === null) {
         $stmt = $pdo->query(
@@ -139,6 +212,8 @@ function getInventoryWithProducts($pdo, $snapshotDate = null) {
         );
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    ensureOrderInventoryLogs($pdo, $snapshotDate, $snapshotDate);
 
     $endOfDay = $snapshotDate . ' 23:59:59';
 
@@ -180,6 +255,8 @@ function getInventoryWithProducts($pdo, $snapshotDate = null) {
 
 // 3c) Get inventory change log entries
 function getInventoryChangeLog($pdo, $startDate = null, $endDate = null) {
+    ensureOrderInventoryLogs($pdo, $startDate, $endDate);
+
     $conditions = [];
     $params = [];
 
@@ -230,6 +307,8 @@ function getInventoryChangeLog($pdo, $startDate = null, $endDate = null) {
 
 function getInventoryLogDateCounts($pdo, $startDate = null, $endDate = null)
 {
+    ensureOrderInventoryLogs($pdo, $startDate, $endDate);
+
     $conditions = ['isl.Created_At IS NOT NULL'];
     $params = [];
 
