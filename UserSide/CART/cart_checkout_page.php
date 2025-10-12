@@ -236,6 +236,41 @@
       resize: vertical;
     }
 
+    .checkout-form textarea {
+      min-height: 120px;
+    }
+
+    .input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .address-wrapper {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .address-grid {
+      display: grid;
+      gap: 0.75rem;
+      width: 100%;
+    }
+
+    .address-grid .wide {
+      grid-column: 1 / -1;
+    }
+
+    .address-wrapper .done-btn {
+      align-self: flex-end;
+    }
+
+    @media (min-width: 640px) {
+      .address-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
     .field-header {
       display: flex;
       justify-content: space-between;
@@ -255,6 +290,12 @@
 
     .done-btn {
       display: none;
+    }
+
+    .optional-hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
     }
 
     .confirmation {
@@ -354,11 +395,16 @@
 
           <div>
             <div class="field-header">
-              <label for="address">Delivery Address</label>
+              <label for="address-street">Delivery Address</label>
               <button type="button" id="edit-address" class="edit-field-btn">Edit</button>
             </div>
-            <div class="input-wrapper">
-              <textarea id="address" rows="3" required readonly></textarea>
+            <div class="input-wrapper address-wrapper">
+              <div class="address-grid">
+                <input type="text" id="address-street" class="wide" placeholder="House No., Street" required readonly />
+                <input type="text" id="address-barangay" class="wide" placeholder="Barangay" required readonly />
+                <input type="text" id="address-city" placeholder="City / Municipality" required readonly />
+                <input type="text" id="address-province" placeholder="Province" required readonly />
+              </div>
               <button type="button" id="done-address" class="done-btn">Done</button>
             </div>
           </div>
@@ -377,6 +423,14 @@
             <select id="mop" required disabled>
               <option value="">-- Select --</option>
             </select>
+          </div>
+
+          <div>
+            <div class="field-header">
+              <label for="special-instructions">Special instructions</label>
+              <span class="optional-hint">Optional</span>
+            </div>
+            <textarea id="special-instructions" placeholder="Let us know about delivery notes or allergy information." maxlength="500"></textarea>
           </div>
 
           <button type="submit" class="primary-btn">Place order</button>
@@ -413,14 +467,107 @@
     let checkoutData = [];
     let userEmail = null;
     const nameField = document.getElementById('name');
-    const addressField = document.getElementById('address');
+    const addressStreetField = document.getElementById('address-street');
+    const addressBarangayField = document.getElementById('address-barangay');
+    const addressCityField = document.getElementById('address-city');
+    const addressProvinceField = document.getElementById('address-province');
+    const addressFields = [addressStreetField, addressBarangayField, addressCityField, addressProvinceField];
     const nameEditBtn = document.getElementById('edit-name');
     const addrEditBtn = document.getElementById('edit-address');
     const nameDoneBtn = document.getElementById('done-name');
     const addrDoneBtn = document.getElementById('done-address');
     const orderTypeSelect = document.getElementById('order-type');
     const mopSelect = document.getElementById('mop');
+    const specialInstructionsField = document.getElementById('special-instructions');
     const cartStatus = document.getElementById('cartStatus');
+
+    function getAddressParts() {
+      return {
+        street: addressStreetField.value.trim(),
+        barangay: addressBarangayField.value.trim(),
+        city: addressCityField.value.trim(),
+        province: addressProvinceField.value.trim(),
+      };
+    }
+
+    function composeAddress() {
+      const parts = getAddressParts();
+      return [parts.street, parts.barangay, parts.city, parts.province]
+        .filter(part => part)
+        .join(', ');
+    }
+
+    function parseAddressString(addressString) {
+      if (typeof addressString !== 'string') {
+        return { street: '', barangay: '', city: '', province: '' };
+      }
+
+      const parts = addressString
+        .split(/\r?\n|,/)
+        .map(part => part.trim())
+        .filter(part => part.length > 0);
+
+      const result = { street: '', barangay: '', city: '', province: '' };
+
+      if (parts.length >= 4) {
+        [result.street, result.barangay, result.city, result.province] = parts;
+      } else if (parts.length === 3) {
+        [result.street, result.city, result.province] = parts;
+      } else if (parts.length === 2) {
+        [result.street, result.city] = parts;
+      } else if (parts.length === 1) {
+        [result.street] = parts;
+      }
+
+      return result;
+    }
+
+    function setAddressFieldsReadOnly(isReadOnly) {
+      addressFields.forEach(field => {
+        field.readOnly = isReadOnly;
+      });
+    }
+
+    function isDeliveryAreaValid() {
+      const { city, province } = getAddressParts();
+      if (!city || !province) {
+        return false;
+      }
+
+      return city.toLowerCase() === 'hagonoy' && province.toLowerCase() === 'bulacan';
+    }
+
+    function updateMopOptions() {
+      mopSelect.innerHTML = '<option value="">-- Select --</option>';
+
+      if (orderTypeSelect.value === 'Delivery') {
+        mopSelect.innerHTML += '<option value="GCash">GCash</option>';
+      } else if (orderTypeSelect.value === 'Pick up') {
+        mopSelect.innerHTML += '<option value="Cash on Pick Up">Cash on Pick Up</option>';
+        mopSelect.innerHTML += '<option value="GCash">GCash</option>';
+      }
+
+      mopSelect.disabled = orderTypeSelect.value === '';
+    }
+
+    function updateDeliveryAvailability(showAlert = false) {
+      const deliveryOption = orderTypeSelect.querySelector('option[value="Delivery"]');
+      const deliveryAllowed = isDeliveryAreaValid();
+
+      if (deliveryOption) {
+        deliveryOption.disabled = !deliveryAllowed;
+      }
+
+      if (!deliveryAllowed && orderTypeSelect.value === 'Delivery') {
+        orderTypeSelect.value = '';
+        updateMopOptions();
+        if (showAlert) {
+          alert('We currently deliver only within Hagonoy, Bulacan. Please choose Pick up for other areas.');
+        }
+      }
+
+      return deliveryAllowed;
+    }
 
     function resolveImagePath(imagePath, category) {
       if (!imagePath) {
@@ -486,14 +633,14 @@
     }
 
     orderTypeSelect.addEventListener('change', () => {
-      mopSelect.innerHTML = '<option value="">-- Select --</option>';
       if (orderTypeSelect.value === 'Delivery') {
-        mopSelect.innerHTML += '<option value="GCash">GCash</option>';
-      } else if (orderTypeSelect.value === 'Pick up') {
-        mopSelect.innerHTML += '<option value="Cash on Pick Up">Cash on Pick Up</option>';
-        mopSelect.innerHTML += '<option value="GCash">GCash</option>';
+        const canDeliver = updateDeliveryAvailability(true);
+        if (!canDeliver) {
+          return;
+        }
       }
-      mopSelect.disabled = orderTypeSelect.value === '';
+
+      updateMopOptions();
     });
 
     nameEditBtn.addEventListener('click', () => {
@@ -509,16 +656,27 @@
     });
 
     addrEditBtn.addEventListener('click', () => {
-      addressField.readOnly = false;
+      setAddressFieldsReadOnly(false);
       addrDoneBtn.style.display = 'inline-flex';
-      addressField.focus();
+      addressStreetField.focus();
     });
 
     addrDoneBtn.addEventListener('click', () => {
-      addressField.readOnly = true;
+      setAddressFieldsReadOnly(true);
       addrDoneBtn.style.display = 'none';
       saveProfile();
+
+      const parts = getAddressParts();
+      const hasAddress = Object.values(parts).some(value => value.length > 0);
+      if (hasAddress && !isDeliveryAreaValid()) {
+        alert('We currently deliver only within Hagonoy, Bulacan. Orders to other areas are available for pick up only.');
+      }
+
+      updateDeliveryAvailability();
     });
+
+    updateDeliveryAvailability();
+    updateMopOptions();
 
     const auth = getAuth();
     onAuthStateChanged(auth, user => {
@@ -534,7 +692,25 @@
       const res = await fetch(`${apiBase}user_api.php?action=get_profile&email=${encodeURIComponent(userEmail)}`);
       const data = await res.json();
       nameField.value = data.name || '';
-      addressField.value = data.address || '';
+
+      const street = data.address_street || data.addressStreet || '';
+      const barangay = data.address_barangay || data.addressBarangay || '';
+      const city = data.address_city || data.addressCity || '';
+      const province = data.address_province || data.addressProvince || '';
+
+      if (street || barangay || city || province) {
+        addressStreetField.value = street;
+        addressBarangayField.value = barangay;
+        addressCityField.value = city;
+        addressProvinceField.value = province;
+      } else {
+        const parsedAddress = parseAddressString(data.address || '');
+        addressStreetField.value = parsedAddress.street;
+        addressBarangayField.value = parsedAddress.barangay;
+        addressCityField.value = parsedAddress.city;
+        addressProvinceField.value = parsedAddress.province;
+      }
+      updateDeliveryAvailability();
     }
 
     async function loadCart() {
@@ -600,10 +776,23 @@
 
     function saveProfile() {
       if (!userEmail) return;
+      const parts = getAddressParts();
+      const addressValue = composeAddress();
+      updateDeliveryAvailability();
+      const body = new URLSearchParams({
+        email: userEmail,
+        name: nameField.value,
+        address: addressValue,
+        address_street: parts.street,
+        address_barangay: parts.barangay,
+        address_city: parts.city,
+        address_province: parts.province,
+      });
+
       fetch(`${apiBase}user_api.php?action=set_profile`, {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: `email=${encodeURIComponent(userEmail)}&name=${encodeURIComponent(nameField.value)}&address=${encodeURIComponent(addressField.value)}`
+        body: body.toString()
       });
     }
 
@@ -745,9 +934,16 @@
     async function placeOrder(e) {
       e.preventDefault();
       const name = document.getElementById('name').value;
-      const address = document.getElementById('address').value;
+      const address = composeAddress();
       const orderType = document.getElementById('order-type').value;
       const mop = document.getElementById('mop').value;
+      const specialInstructions = specialInstructionsField.value.trim();
+
+      if (orderType === 'Delivery' && !isDeliveryAreaValid()) {
+        alert('Delivery is only available within Hagonoy, Bulacan. Please choose Pick up for orders outside this area.');
+        updateDeliveryAvailability(true);
+        return;
+      }
 
       try {
         const res = await fetch(`${apiBase}cart_api.php?action=list&email=${encodeURIComponent(userEmail)}`);
@@ -782,6 +978,7 @@
           address,
           order_type: orderType,
           mop,
+          special_instructions: specialInstructions,
           email: userEmail,
           items: JSON.stringify(checkoutData),
         });

@@ -68,12 +68,18 @@ switch ($action) {
         $first = $parts[0] ?? '';
         $last = count($parts) > 1 ? implode(' ', array_slice($parts, 1)) : '';
         $path = normalizeFacePath($user['Face_Image_Path'] ?? null);
+        $addressParts = getUserAddressParts($user);
+
         echo json_encode([
             'user_id' => $user['User_ID'],
             'name' => $fullName,
             'first_name' => $first,
             'last_name' => $last,
             'address' => $user['Address'],
+            'address_street' => $addressParts['street'],
+            'address_barangay' => $addressParts['barangay'],
+            'address_city' => $addressParts['city'],
+            'address_province' => $addressParts['province'],
             'face_image_path' => $path
         ]);
         break;
@@ -81,6 +87,10 @@ switch ($action) {
         $email = $_POST['email'] ?? '';
         $name = $_POST['name'] ?? '';
         $address = $_POST['address'] ?? '';
+        $addressStreet = $_POST['address_street'] ?? null;
+        $addressBarangay = $_POST['address_barangay'] ?? null;
+        $addressCity = $_POST['address_city'] ?? null;
+        $addressProvince = $_POST['address_province'] ?? null;
         if (!$email) {
             http_response_code(400);
             echo json_encode(['error' => 'Email required']);
@@ -92,7 +102,7 @@ switch ($action) {
             echo json_encode(['error' => 'User not found']);
             break;
         }
-        updateUserNameAddress($pdo, $user['User_ID'], $name, $address);
+        updateUserNameAddress($pdo, $user['User_ID'], $name, $address, $addressStreet, $addressBarangay, $addressCity, $addressProvince);
         echo json_encode(['updated' => true]);
         break;
     case 'update_profile':

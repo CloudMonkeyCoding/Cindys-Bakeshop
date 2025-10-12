@@ -85,6 +85,7 @@ CREATE TABLE `order` (
   `Order_Date` date DEFAULT NULL,
   `Source` enum('online','walk-in') DEFAULT 'online',
   `Fulfillment_Type` enum('Delivery','Pick up') DEFAULT 'Delivery',
+  `Special_Instructions` text DEFAULT NULL,
   `Status` enum('Pending','Confirmed','Shipped','Delivered') DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -169,6 +170,10 @@ CREATE TABLE `user` (
   `Email` varchar(100) DEFAULT NULL,
   `Password` varchar(255) DEFAULT NULL,
   `Address` text DEFAULT NULL,
+  `Address_Street` varchar(255) DEFAULT NULL,
+  `Address_Barangay` varchar(255) DEFAULT NULL,
+  `Address_City` varchar(150) DEFAULT NULL,
+  `Address_Province` varchar(150) DEFAULT NULL,
   `Language` varchar(50) DEFAULT 'English',
   `Theme` varchar(20) DEFAULT 'Light',
   `Notify_Order_Status` tinyint(1) DEFAULT 0,
