@@ -23,7 +23,6 @@ function buildProductPayload(array $product): array
         'stock' => $stock,
         'category' => $category !== '' ? $category : 'other',
         'image' => getProductImageUrl($product, '../../'),
-        'isPreorder' => $stock <= 0,
     ];
 }
 
@@ -39,15 +38,10 @@ usort($bestSellers, static function ($a, $b) {
 });
 $bestSellers = array_slice($bestSellers, 0, 6);
 
-$preorderItems = array_values(array_filter($payloadProducts, static function ($product) {
-    return $product['isPreorder'];
-}));
-
 $pageData = [
     'all' => $payloadProducts,
     'bestSellers' => $bestSellers,
     'categories' => $categoryBuckets,
-    'preorder' => $preorderItems,
 ];
 
 $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
@@ -160,8 +154,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.18);
     }
 
-    .best-sellers,
-    .preorder-section {
+    .best-sellers {
       max-width: 1200px;
       margin: 2rem auto;
       background: #ffffff;
@@ -171,36 +164,25 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       border: 1px solid rgba(139, 69, 19, 0.12);
     }
 
-    .best-sellers h2,
-    .preorder-section h2 {
+    .best-sellers h2 {
       font-size: 1.8rem;
       font-weight: 700;
       color: #8b4513;
       margin-bottom: 1.2rem;
     }
 
-    .preorder-note {
-      font-size: 0.95rem;
-      color: #d63031;
-      margin-bottom: 1rem;
-      font-weight: 600;
-    }
-
-    .best-seller-list,
-    .preorder-list {
+    .best-seller-list {
       display: flex;
       gap: 1.2rem;
       overflow-x: auto;
       padding-bottom: 0.5rem;
     }
 
-    .best-seller-list::-webkit-scrollbar,
-    .preorder-list::-webkit-scrollbar {
+    .best-seller-list::-webkit-scrollbar {
       height: 6px;
     }
 
-    .best-seller-list::-webkit-scrollbar-thumb,
-    .preorder-list::-webkit-scrollbar-thumb {
+    .best-seller-list::-webkit-scrollbar-thumb {
       background: #8b4513;
       border-radius: 8px;
     }
@@ -467,27 +449,12 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       box-shadow: 0 12px 30px rgba(231, 76, 60, 0.3);
     }
 
-    .preorder-badge {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      background: #2c2c2c;
-      color: #fff;
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 0.35rem 1rem;
-      border-radius: 999px;
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
-    }
-
-    .best-seller-list .menu-item,
-    .preorder-list .menu-item {
+    .best-seller-list .menu-item {
       min-width: 260px;
       flex: 0 0 260px;
     }
 
-    .best-seller-list .menu-item img,
-    .preorder-list .menu-item img {
+    .best-seller-list .menu-item img {
       height: 160px;
     }
 
@@ -642,8 +609,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
         height: 170px;
       }
 
-      .best-sellers,
-      .preorder-section {
+      .best-sellers {
         margin: 1.2rem auto;
         padding: 1.25rem;
       }
@@ -751,11 +717,6 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       </div>
     </section>
 
-    <section class="preorder-section" aria-labelledby="preorder-title" id="preorderSection" hidden>
-      <h2 id="preorder-title">📅 Pre-order Specialties</h2>
-      <p class="preorder-note">Order these special items 2+ days in advance!</p>
-      <div class="preorder-list" id="preorderList"></div>
-    </section>
   </main>
 
   <footer>© <?= date('Y') ?> Cindy's Bakeshop • Freshness Guaranteed</footer>
@@ -785,7 +746,6 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     const rawData = dataElement ? JSON.parse(dataElement.textContent || '{}') : {};
     const products = Array.isArray(rawData.all) ? rawData.all : [];
     const bestSellers = Array.isArray(rawData.bestSellers) ? rawData.bestSellers : [];
-    const preorderItems = Array.isArray(rawData.preorder) ? rawData.preorder : [];
 
     const menuGrid = document.getElementById('menuGrid');
     const menuEmpty = document.getElementById('menuEmpty');
@@ -796,8 +756,6 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     const nextPageButton = document.getElementById('nextPage');
     const bestSellerList = document.getElementById('bestSellerList');
     const bestSellersSection = document.getElementById('bestSellersSection');
-    const preorderSection = document.getElementById('preorderSection');
-    const preorderList = document.getElementById('preorderList');
     const categoryPills = document.getElementById('categoryPills');
     const searchInput = document.getElementById('searchInput');
     const toast = document.getElementById('menuToast');
@@ -855,6 +813,19 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       })[char] || char);
     }
 
+    function syncCollectionsStock(productId, newStock) {
+      products.forEach(item => {
+        if (item.id === productId) {
+          item.stock = newStock;
+        }
+      });
+      bestSellers.forEach(item => {
+        if (item.id === productId) {
+          item.stock = newStock;
+        }
+      });
+    }
+
     function openModal(product) {
       currentProduct = product;
       currentQuantity = 1;
@@ -862,7 +833,10 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
         modalTitle.textContent = `Add ${product.name}`;
       }
       if (modalSubtitle) {
-        modalSubtitle.textContent = product.isPreorder ? 'Select how many you would like to pre-order.' : `Maximum available: ${product.stock > 0 ? product.stock : 1}`;
+        const available = Number.isFinite(product.stock) && product.stock > 0 ? product.stock : 0;
+        modalSubtitle.textContent = available > 0
+          ? `Maximum available: ${available}`
+          : 'This item is currently out of stock.';
       }
       if (currentQty) {
         currentQty.textContent = currentQuantity;
@@ -875,7 +849,10 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
         decreaseQty.disabled = true;
       }
       if (increaseQty) {
-        increaseQty.disabled = product.isPreorder ? false : product.stock <= 1;
+        increaseQty.disabled = !(Number.isFinite(product.stock) && product.stock > 1);
+      }
+      if (confirmAdd) {
+        confirmAdd.disabled = !(Number.isFinite(product.stock) && product.stock > 0);
       }
     }
 
@@ -889,7 +866,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
 
     function updateQuantity(delta) {
       if (!currentProduct) return;
-      const max = currentProduct.isPreorder ? 10 : Math.max(1, currentProduct.stock);
+      const max = Math.max(1, Number.isFinite(currentProduct.stock) ? currentProduct.stock : 1);
       currentQuantity = Math.min(Math.max(1, currentQuantity + delta), max);
       if (currentQty) {
         currentQty.textContent = currentQuantity;
@@ -898,7 +875,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
         decreaseQty.disabled = currentQuantity <= 1;
       }
       if (increaseQty) {
-        increaseQty.disabled = !currentProduct.isPreorder && currentQuantity >= max;
+        increaseQty.disabled = currentQuantity >= max;
       }
     }
 
@@ -946,16 +923,14 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       card.className = 'menu-item';
       card.dataset.productId = product.id;
       card.dataset.category = product.category;
-      if (product.isPreorder) {
-        card.classList.add('preorder');
-      }
 
       const safeName = escapeHtml(product.name);
       const safeDescription = escapeHtml(product.description || "Freshly baked goodness from Cindy's kitchen.");
-      const stockLabel = product.isPreorder ? 'Available for pre-order' : (product.stock > 0 ? `Stock: ${product.stock}` : 'Out of stock');
+      const available = Number.isFinite(product.stock) ? Math.max(0, product.stock) : 0;
+      const inStock = available > 0;
+      const stockLabel = inStock ? `Stock: ${available}` : 'Out of stock';
 
       card.innerHTML = `
-        ${product.isPreorder ? '<span class="preorder-badge">Pre-order</span>' : ''}
         <button type="button" class="favorite-btn" aria-label="Toggle favorite">♡</button>
         <img src="${product.image}" alt="${safeName}" loading="lazy">
         <div class="menu-content">
@@ -967,13 +942,17 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
               <span class="stock">${stockLabel}</span>
               <span class="price">${formatCurrency(product.price)}</span>
             </div>
-            <button type="button" class="add-btn">${product.isPreorder ? 'Pre-order' : 'Add to Cart'}</button>
+            <button type="button" class="add-btn">${inStock ? 'Add to Cart' : 'Unavailable'}</button>
           </div>
         </div>
       `;
 
-      if (!product.isPreorder && product.stock <= 0) {
+      if (!inStock) {
         card.classList.add('out-of-stock');
+        const addBtn = card.querySelector('.add-btn');
+        if (addBtn) {
+          addBtn.disabled = true;
+        }
       }
 
       const favBtn = card.querySelector('.favorite-btn');
@@ -991,7 +970,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
           showToast('Please sign in to add items to your cart.', 'warn');
           return;
         }
-        if (!product.isPreorder && product.stock <= 0) {
+        if (!inStock) {
           showToast('This item is currently unavailable.', 'warn');
           return;
         }
@@ -1008,9 +987,6 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
         const card = renderCard(product);
         container.appendChild(card);
       });
-      if (container === preorderList && preorderSection) {
-        preorderSection.hidden = list.length === 0;
-      }
     }
 
     function renderPagination(totalItems, totalPages) {
@@ -1181,7 +1157,6 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
           });
           refreshMenu();
           populateSection(bestSellerList, bestSellers);
-          populateSection(preorderList, preorderItems);
         })
         .catch(() => {
           favorites.clear();
@@ -1228,9 +1203,12 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
             if (result.error) {
               throw new Error(result.error);
             }
-            if (!currentProduct.isPreorder && currentProduct.stock > 0) {
-              currentProduct.stock = Math.max(0, currentProduct.stock - currentQuantity);
+            if (currentProduct.stock > 0) {
+              const updatedStock = Math.max(0, currentProduct.stock - currentQuantity);
+              currentProduct.stock = updatedStock;
+              syncCollectionsStock(currentProduct.id, updatedStock);
               refreshMenu();
+              populateSection(bestSellerList, bestSellers);
             }
             showToast('Added to cart!');
           })
@@ -1245,7 +1223,6 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
 
     buildCategoryFilters();
     populateSection(bestSellerList, bestSellers);
-    populateSection(preorderList, preorderItems);
     refreshMenu({ resetPage: true });
 
     if (prevPageButton) {
@@ -1275,7 +1252,6 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
         favorites.clear();
         refreshMenu();
         populateSection(bestSellerList, bestSellers);
-        populateSection(preorderList, preorderItems);
       }
     });
   </script>
