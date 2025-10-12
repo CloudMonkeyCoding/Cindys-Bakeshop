@@ -107,7 +107,8 @@ $productBase = $userPrefix . 'PRODUCT/';
          display: flex;
          align-items: center;
          justify-content: space-between;
-         padding: 8rem 8% 4rem;
+         padding: 5.5rem 4% 4rem;
+         width: 100%;
          background: linear-gradient(135deg, #faf8f5 0%, #f5f3f0 100%);
          position: relative;
          overflow: hidden;
@@ -256,8 +257,9 @@ $productBase = $userPrefix . 'PRODUCT/';
       }
 
       .hero-image img {
-        max-width: 550px;
+        max-width: min(550px, 90vw);
         width: 100%;
+        height: auto;
         border-radius: 40px;
         box-shadow: 0 40px 80px rgba(0, 0, 0, 0.4);
         animation: float 6s ease-in-out infinite;
@@ -265,6 +267,8 @@ $productBase = $userPrefix . 'PRODUCT/';
         -webkit-backdrop-filter: blur(10px);
         backdrop-filter: blur(10px);
         transition: all 0.3s ease;
+        object-fit: cover;
+        aspect-ratio: 1 / 1;
       }
 
       @keyframes float {
@@ -275,7 +279,8 @@ $productBase = $userPrefix . 'PRODUCT/';
 
       /* Categories */
       .categories {
-        padding: 8rem 8%;
+        padding: 8rem 4%;
+        width: 100%;
         background: linear-gradient(135deg, #faf8f5 0%, #f5f3f0 100%);
         position: relative;
       }
@@ -393,7 +398,8 @@ $productBase = $userPrefix . 'PRODUCT/';
 
       /* Products */
       .products {
-        padding: 8rem 8%;
+        padding: 8rem 4%;
+        width: 100%;
         background: linear-gradient(135deg, #faf8f5 0%, #f5f3f0 100%);
         position: relative;
         overflow: hidden;
@@ -542,8 +548,9 @@ $productBase = $userPrefix . 'PRODUCT/';
       .product-image {
         position: relative;
         overflow: hidden;
-        height: 220px;
+        height: clamp(180px, 25vw, 220px);
         border-radius: 25px 25px 0 0;
+        aspect-ratio: 4 / 3;
       }
 
       .product-image img {
@@ -661,7 +668,8 @@ $productBase = $userPrefix . 'PRODUCT/';
 
       /* About Us */
       .about {
-        padding: 6rem 8%;
+        padding: 6rem 4%;
+        width: 100%;
         background: #faf8f5;
         display: flex;
         align-items: center;
@@ -679,8 +687,12 @@ $productBase = $userPrefix . 'PRODUCT/';
 
       .about-image img {
         max-width: 100%;
+        width: 100%;
+        height: auto;
         border-radius: 20px;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        object-fit: cover;
+        aspect-ratio: 4 / 3;
       }
 
       .about h2 {
@@ -745,7 +757,8 @@ $productBase = $userPrefix . 'PRODUCT/';
 
        /* Visit Us */
        .visit {
-         padding: 6rem 8%;
+         padding: 6rem 4%;
+         width: 100%;
          background: linear-gradient(135deg, #faf8f5 0%, #f5f3f0 100%);
          text-align: center;
        }
@@ -801,7 +814,8 @@ $productBase = $userPrefix . 'PRODUCT/';
       .cta {
         background: linear-gradient(135deg, #8b4513, #a0522d);
         color: #faf8f5;
-        padding: 6rem 8%;
+        padding: 6rem 4%;
+        width: 100%;
         text-align: center;
         position: relative;
         overflow: hidden;
@@ -846,7 +860,8 @@ $productBase = $userPrefix . 'PRODUCT/';
       footer {
         background: #8b4513;
         color: #faf8f5;
-        padding: 3rem 8% 2rem;
+        padding: 3rem 4% 2rem;
+        width: 100%;
         text-align: center;
       }
 
@@ -920,7 +935,7 @@ $productBase = $userPrefix . 'PRODUCT/';
         .hero {
           flex-direction: column;
           text-align: center;
-          padding: 6rem 5% 4rem;
+          padding: 5rem 4% 4rem;
         }
 
         .hero h1 {
@@ -928,9 +943,12 @@ $productBase = $userPrefix . 'PRODUCT/';
         }
 
         .hero-image img {
-          max-width: 300px;
+          max-width: min(300px, 80vw);
+          width: 100%;
+          height: auto;
           border-radius: 20px;
           box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+          aspect-ratio: 1 / 1;
         }
 
         .hero-buttons {
@@ -951,7 +969,7 @@ $productBase = $userPrefix . 'PRODUCT/';
         }
 
         .products {
-          padding: 6rem 5%;
+          padding: 6rem 4%;
         }
 
         .products-carousel {
@@ -970,8 +988,12 @@ $productBase = $userPrefix . 'PRODUCT/';
         }
 
         .product-card {
-          flex: 0 0 70%;
-          max-width: 70%;
+          flex: 0 0 min(280px, 70%);
+          max-width: min(280px, 70%);
+        }
+
+        .product-image {
+          height: clamp(160px, 20vw, 180px);
         }
 
         .product-info {
@@ -993,9 +1015,12 @@ $productBase = $userPrefix . 'PRODUCT/';
         }
 
         .hero-image img {
-          max-width: 250px;
+          max-width: min(250px, 70vw);
+          width: 100%;
+          height: auto;
           border-radius: 15px;
           box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+          aspect-ratio: 1 / 1;
         }
 
         .section-title {
@@ -1033,8 +1058,12 @@ $productBase = $userPrefix . 'PRODUCT/';
         }
 
         .product-card {
-          flex: 0 0 90%;
-          max-width: 90%;
+          flex: 0 0 min(250px, 90%);
+          max-width: min(250px, 90%);
+        }
+
+        .product-image {
+          height: clamp(140px, 18vw, 160px);
         }
 
         .product-info {

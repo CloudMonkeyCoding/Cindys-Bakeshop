@@ -152,6 +152,24 @@ switch ($action) {
         $deleted = deleteCartItemById($pdo, $cartItemId);
         sendJsonResponse(['deleted' => $deleted]);
 
+    case 'get_count':
+        [$userId] = resolveUserContext($pdo, $_GET, ['allowMissing' => true]);
+        if ($userId <= 0) {
+            sendJsonResponse(['count' => 0]);
+        }
+
+        $cart = getCartByUserId($pdo, $userId);
+        if (!$cart) {
+            sendJsonResponse(['count' => 0]);
+        }
+
+        $stmt = $pdo->prepare('SELECT SUM(Quantity) as total FROM cart_item WHERE Cart_ID = :cart_id');
+        $stmt->execute([':cart_id' => $cart['Cart_ID']]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $count = $result ? (int)($result['total'] ?? 0) : 0;
+
+        sendJsonResponse(['count' => $count]);
+
     default:
         sendJsonResponse(['error' => 'Invalid action'], 400);
 }

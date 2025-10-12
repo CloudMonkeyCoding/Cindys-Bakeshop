@@ -124,16 +124,17 @@ $activeResolver = function (array $needles) use ($currentScript): string {
           <li><a href="<?= htmlspecialchars($item['href'], ENT_QUOTES) ?>" class="<?= $active ?>"><?= htmlspecialchars($item['label']) ?></a></li>
         <?php endforeach; ?>
       </ul>
-    </nav>
-
-    <div class="nav-right">
       <div class="auth-links" id="authLinks">
         <a class="auth-link" href="<?= htmlspecialchars($userPrefix . 'login.html', ENT_QUOTES) ?>">Log in</a>
         <a class="auth-link auth-primary" href="<?= htmlspecialchars($userPrefix . 'signup.html', ENT_QUOTES) ?>">Sign up</a>
       </div>
+    </nav>
+
+    <div class="nav-right">
       <a class="cart-link" href="<?= htmlspecialchars($userPrefix . 'CART/cart_checkout_page.php', ENT_QUOTES) ?>">
-        <span aria-hidden="true">🛒</span>
+        <i class="fas fa-shopping-cart"></i>
         <span>Cart</span>
+        <span class="cart-badge" id="cartBadge" style="display: none;">0</span>
       </a>
       <div class="profile-dropdown hidden">
         <button type="button" class="profile-trigger" id="profileToggle" aria-haspopup="true" aria-expanded="false">

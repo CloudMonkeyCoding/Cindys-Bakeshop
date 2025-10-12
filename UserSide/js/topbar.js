@@ -12,6 +12,7 @@ if (header) {
   const profileAvatar = header.querySelector('#profileAvatar');
   const profileName = header.querySelector('#profileName');
   const profileEmail = header.querySelector('#profileEmail');
+  const cartBadge = header.querySelector('#cartBadge');
   const defaultAvatar = header.dataset.imagesBase ? `${header.dataset.imagesBase}logo.png` : '';
   const apiBase = header.dataset.apiBase || '';
   const userPrefix = header.dataset.userPrefix || '';
@@ -23,14 +24,24 @@ if (header) {
       navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     });
 
+    const closeNav = () => {
+      if (navContainer.classList.contains('active')) {
+        navContainer.classList.remove('active');
+        navToggle.setAttribute('aria-expanded', 'false');
+      }
+    };
+
     navLinks.forEach(link => {
-      link.addEventListener('click', () => {
-        if (navContainer.classList.contains('active')) {
-          navContainer.classList.remove('active');
-          navToggle.setAttribute('aria-expanded', 'false');
-        }
-      });
+      link.addEventListener('click', closeNav);
     });
+
+    // Close nav when auth links are clicked
+    if (authLinks) {
+      const authLinkElements = authLinks.querySelectorAll('.auth-link');
+      authLinkElements.forEach(link => {
+        link.addEventListener('click', closeNav);
+      });
+    }
   }
 
   if (profileToggle && profileDropdown) {
@@ -55,6 +66,36 @@ if (header) {
       header.classList.remove('scrolled');
     }
   });
+
+  // Update cart count
+  const updateCartCount = async () => {
+    try {
+      const response = await fetch(`${apiBase}cart_api.php?action=get_count`);
+      if (response.ok) {
+        const data = await response.json();
+        const count = parseInt(data.count) || 0;
+        if (cartBadge) {
+          if (count > 0) {
+            cartBadge.textContent = count > 99 ? '99+' : count;
+            cartBadge.style.display = 'flex';
+          } else {
+            cartBadge.style.display = 'none';
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch cart count', error);
+    }
+  };
+
+  // Update cart count on page load
+  updateCartCount();
+
+  // Update cart count periodically (every 30 seconds)
+  setInterval(updateCartCount, 30000);
+
+  // Listen for custom cart update events
+  window.addEventListener('cartUpdated', updateCartCount);
 
   const updateAuthVisibility = (isAuthenticated) => {
     if (authLinks) {
