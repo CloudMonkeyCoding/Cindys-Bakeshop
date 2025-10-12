@@ -772,6 +772,9 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     const auth = getAuth();
     let userEmail = null;
     let favorites = new Map();
+    let cartItems = new Map();
+    let cartId = null;
+    let cartSyncPromise = null;
     let activeCategory = 'all';
     let currentProduct = null;
     let currentQuantity = 1;
@@ -813,30 +816,82 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       })[char] || char);
     }
 
-    function syncCollectionsStock(productId, newStock) {
-      products.forEach(item => {
-        if (item.id === productId) {
-          item.stock = newStock;
-        }
-      });
-      bestSellers.forEach(item => {
-        if (item.id === productId) {
-          item.stock = newStock;
-        }
-      });
+    function hydrateCart(email) {
+      if (!email) {
+        cartItems.clear();
+        cartId = null;
+        cartSyncPromise = null;
+        return Promise.resolve();
+      }
+
+      if (cartSyncPromise) {
+        return cartSyncPromise;
+      }
+
+      const url = `../../PHP/cart_api.php?action=list&email=${encodeURIComponent(email)}`;
+      cartSyncPromise = fetch(url)
+        .then(res => {
+          if (!res.ok) {
+            throw new Error('Failed to fetch cart');
+          }
+          return res.json();
+        })
+        .then(data => {
+          cartItems.clear();
+          cartId = Number.isFinite(Number(data.cart_id)) && Number(data.cart_id) > 0
+            ? Number(data.cart_id)
+            : null;
+
+          if (Array.isArray(data.items)) {
+            data.items.forEach(item => {
+              const productId = Number(item.Product_ID);
+              const cartItemId = Number(item.Cart_Item_ID);
+              const quantity = Math.floor(Number(item.Quantity));
+              if (Number.isFinite(productId) && productId > 0 && Number.isFinite(cartItemId) && cartItemId > 0) {
+                cartItems.set(productId, {
+                  cartItemId,
+                  quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 0,
+                });
+              }
+            });
+          }
+
+          return cartItems;
+        })
+        .catch(error => {
+          cartItems.clear();
+          cartId = null;
+          throw error;
+        })
+        .finally(() => {
+          cartSyncPromise = null;
+        });
+
+      return cartSyncPromise;
     }
 
     function openModal(product) {
       currentProduct = product;
-      currentQuantity = 1;
+      const available = Number.isFinite(product.stock) && product.stock > 0 ? product.stock : 0;
+      const existing = cartItems.get(product.id);
+      const existingQuantity = existing && Number.isFinite(existing.quantity) && existing.quantity > 0
+        ? existing.quantity
+        : 0;
+      const maxSelectable = available > 0 ? available : 1;
+      const startingQuantity = existingQuantity > 0 ? existingQuantity : 1;
+      currentQuantity = Math.min(Math.max(1, startingQuantity), maxSelectable);
+
       if (modalTitle) {
         modalTitle.textContent = `Add ${product.name}`;
       }
       if (modalSubtitle) {
-        const available = Number.isFinite(product.stock) && product.stock > 0 ? product.stock : 0;
-        modalSubtitle.textContent = available > 0
-          ? `Maximum available: ${available}`
-          : 'This item is currently out of stock.';
+        if (available > 0) {
+          modalSubtitle.textContent = existingQuantity > 0
+            ? `Maximum available: ${available} · In cart: ${existingQuantity}`
+            : `Maximum available: ${available}`;
+        } else {
+          modalSubtitle.textContent = 'This item is currently out of stock.';
+        }
       }
       if (currentQty) {
         currentQty.textContent = currentQuantity;
@@ -846,13 +901,13 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
         modal.setAttribute('aria-hidden', 'false');
       }
       if (decreaseQty) {
-        decreaseQty.disabled = true;
+        decreaseQty.disabled = currentQuantity <= 1;
       }
       if (increaseQty) {
-        increaseQty.disabled = !(Number.isFinite(product.stock) && product.stock > 1);
+        increaseQty.disabled = !(available > 1) || currentQuantity >= available;
       }
       if (confirmAdd) {
-        confirmAdd.disabled = !(Number.isFinite(product.stock) && product.stock > 0);
+        confirmAdd.disabled = !(available > 0);
       }
     }
 
@@ -974,7 +1029,12 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
           showToast('This item is currently unavailable.', 'warn');
           return;
         }
-        openModal(product);
+
+        const waitForCart = cartSyncPromise
+          ? cartSyncPromise.catch(() => {})
+          : Promise.resolve();
+
+        waitForCart.finally(() => openModal(product));
       });
 
       return card;
@@ -1183,37 +1243,121 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     }
 
     if (confirmAdd) {
-      confirmAdd.addEventListener('click', () => {
+      confirmAdd.addEventListener('click', async () => {
         if (!currentProduct || !userEmail) {
           closeModal();
           return;
         }
-        const body = new URLSearchParams({
-          product_id: currentProduct.id,
-          quantity: currentQuantity,
-          email: userEmail,
-        });
-        fetch('../../PHP/cart_api.php?action=add', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body,
-        })
-          .then(res => res.json())
-          .then(result => {
-            if (result.error) {
-              throw new Error(result.error);
+
+        if (cartSyncPromise) {
+          try {
+            await cartSyncPromise;
+          } catch (error) {
+            console.error('Unable to sync cart before adding item.', error);
+          }
+        }
+
+        const available = Number.isFinite(currentProduct.stock) ? currentProduct.stock : 0;
+        if (available <= 0) {
+          showToast('This item is currently unavailable.', 'warn');
+          closeModal();
+          return;
+        }
+
+        const desiredQuantity = Math.min(Math.max(1, Math.floor(currentQuantity)), available);
+        const existing = cartItems.get(currentProduct.id);
+
+        if (existing && desiredQuantity === existing.quantity) {
+          showToast('Cart already has this quantity.');
+          closeModal();
+          return;
+        }
+
+        const body = new URLSearchParams();
+        body.set('email', userEmail);
+
+        let endpoint = '../../PHP/cart_api.php?action=add';
+        if (existing) {
+          endpoint = '../../PHP/cart_api.php?action=update';
+          body.set('cart_item_id', existing.cartItemId);
+          body.set('quantity', desiredQuantity.toString());
+        } else {
+          if (cartId) {
+            body.set('cart_id', cartId);
+          }
+          body.set('product_id', currentProduct.id);
+          body.set('quantity', desiredQuantity.toString());
+        }
+
+        try {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body,
+          });
+
+          if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+          }
+
+          let result;
+          try {
+            result = await response.json();
+          } catch (parseError) {
+            throw new Error('Invalid response format');
+          }
+
+          if (result.error) {
+            throw new Error(result.error);
+          }
+
+          const parsedQuantity = Math.floor(Number(result.quantity));
+          const actualQuantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0
+            ? parsedQuantity
+            : desiredQuantity;
+
+          if (existing) {
+            if (!result.updated) {
+              throw new Error('Unable to update cart item');
             }
-            if (currentProduct.stock > 0) {
-              const updatedStock = Math.max(0, currentProduct.stock - currentQuantity);
-              currentProduct.stock = updatedStock;
-              syncCollectionsStock(currentProduct.id, updatedStock);
-              refreshMenu();
-              populateSection(bestSellerList, bestSellers);
+
+            cartItems.set(currentProduct.id, {
+              cartItemId: existing.cartItemId,
+              quantity: actualQuantity,
+            });
+
+            const tone = result.capped ? 'warn' : 'success';
+            const message = result.capped
+              ? 'Cart quantity adjusted to available stock.'
+              : 'Cart quantity updated!';
+            showToast(message, tone);
+          } else {
+            const cartItemId = Number(result.cart_item_id);
+            if (!cartItemId) {
+              throw new Error('Unable to add cart item');
             }
-            showToast('Added to cart!');
-          })
-          .catch(() => showToast('Unable to add to cart.', 'error'))
-          .finally(() => closeModal());
+
+            if (Number.isFinite(Number(result.cart_id)) && Number(result.cart_id) > 0) {
+              cartId = Number(result.cart_id);
+            }
+
+            cartItems.set(currentProduct.id, {
+              cartItemId,
+              quantity: actualQuantity,
+            });
+
+            const tone = result.capped ? 'warn' : 'success';
+            const message = result.capped
+              ? 'Added to cart, adjusted to available stock.'
+              : 'Added to cart!';
+            showToast(message, tone);
+          }
+        } catch (error) {
+          console.error('Add to cart failed.', error);
+          showToast('Unable to add to cart.', 'error');
+        } finally {
+          closeModal();
+        }
       });
     }
 
@@ -1247,9 +1391,15 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     onAuthStateChanged(auth, (user) => {
       userEmail = user ? user.email : null;
       if (userEmail) {
+        hydrateCart(userEmail).catch(error => {
+          console.error('Unable to load cart items.', error);
+        });
         hydrateFavorites(userEmail);
       } else {
         favorites.clear();
+        cartItems.clear();
+        cartId = null;
+        cartSyncPromise = null;
         refreshMenu();
         populateSection(bestSellerList, bestSellers);
       }
