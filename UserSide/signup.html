@@ -850,10 +850,9 @@ let nativeFaceDetector = null;
 let fallbackDetectorPromise = null;
 let loadingFallbackDetector = false;
 
-const FALLBACK_FACE_DETECTION_SCRIPTS = [
-  'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js',
-  'https://cdn.jsdelivr.net/npm/@tensorflow-models/face-detection@1.0.2/dist/face-detection.min.js'
-];
+const OPENCV_SCRIPT_URL = 'https://docs.opencv.org/4.x/opencv.js';
+const OPENCV_CASCADE_URL = 'https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml';
+const OPENCV_CASCADE_FILE = 'haarcascade_frontalface_default.xml';
 
 function loadScriptOnce(src) {
   return new Promise((resolve, reject) => {
@@ -871,6 +870,48 @@ function loadScriptOnce(src) {
   });
 }
 
+async function waitForOpenCvReady() {
+  if (!window.cv) {
+    throw new Error('OpenCV.js failed to initialize.');
+  }
+
+  if (typeof cv.Mat !== 'function') {
+    await new Promise((resolve) => {
+      const previous = cv['onRuntimeInitialized'];
+      cv['onRuntimeInitialized'] = () => {
+        if (typeof previous === 'function') {
+          previous();
+        }
+        resolve();
+      };
+    });
+  }
+}
+
+async function loadCascadeFile() {
+  if (!cv || !cv.FS || typeof cv.FS_createDataFile !== 'function') {
+    throw new Error('OpenCV virtual file system is unavailable.');
+  }
+
+  const cascadeExists = (() => {
+    try {
+      return cv.FS.stat(`/${OPENCV_CASCADE_FILE}`).isFile();
+    } catch (error) {
+      return false;
+    }
+  })();
+
+  if (!cascadeExists) {
+    const response = await fetch(OPENCV_CASCADE_URL);
+    if (!response.ok) {
+      throw new Error('Failed to download OpenCV cascade for face detection.');
+    }
+    const buffer = await response.arrayBuffer();
+    const data = new Uint8Array(buffer);
+    cv.FS_createDataFile('/', OPENCV_CASCADE_FILE, data, true, false, false);
+  }
+}
+
 async function getFallbackFaceDetector() {
   if (fallbackDetectorPromise) {
     return fallbackDetectorPromise;
@@ -879,19 +920,33 @@ async function getFallbackFaceDetector() {
   fallbackDetectorPromise = (async () => {
     try {
       loadingFallbackDetector = true;
-      for (const script of FALLBACK_FACE_DETECTION_SCRIPTS) {
-        await loadScriptOnce(script);
+      await loadScriptOnce(OPENCV_SCRIPT_URL);
+      await waitForOpenCvReady();
+      await loadCascadeFile();
+
+      const classifier = new cv.CascadeClassifier();
+      const loaded = classifier.load(OPENCV_CASCADE_FILE);
+      if (!loaded) {
+        throw new Error('Failed to load OpenCV face detection cascade.');
       }
 
-      if (!window.faceDetection || !faceDetection.SupportedModels || !faceDetection.createDetector) {
-        throw new Error('Face detection library is unavailable after loading scripts.');
-      }
+      return {
+        detect(canvas) {
+          const src = cv.imread(canvas);
+          const gray = new cv.Mat();
+          cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
 
-      return await faceDetection.createDetector(faceDetection.SupportedModels.MediaPipeFaceDetector, {
-        runtime: 'tfjs',
-        maxFaces: 1,
-        modelType: 'short',
-      });
+          const faces = new cv.RectVector();
+          classifier.detectMultiScale(gray, faces, 1.2, 5, 0, new cv.Size(80, 80));
+          const hasFace = faces.size() > 0;
+
+          src.delete();
+          gray.delete();
+          faces.delete();
+
+          return hasFace;
+        }
+      };
     } catch (error) {
       fallbackDetectorPromise = null;
       throw error;
@@ -912,8 +967,8 @@ async function detectFaceWithFallback(canvas) {
   }
   try {
     const detector = await getFallbackFaceDetector();
-    const faces = await detector.estimateFaces(canvas, { flipHorizontal: false });
-    if (!faces.length) {
+    const hasFace = detector.detect(canvas);
+    if (!hasFace) {
       setErrorMessage(
         faceError,
         'No face detected. Please ensure your face is clearly visible in the frame and try again.'
@@ -923,12 +978,9 @@ async function detectFaceWithFallback(canvas) {
     return true;
   } catch (error) {
     console.error('Fallback face detection failed:', error);
-    const supportHint = isSecureContext
-      ? 'Please try using a browser that supports camera-based face detection.'
-      : 'Face detection requires a secure (https) connection. Reload the page using https or try a supported browser.';
     setErrorMessage(
       faceError,
-      `Face detection is not supported in this environment. ${supportHint}`
+      'We could not verify your face automatically. Please check your connection and lighting, then try again using a supported browser.'
     );
     return false;
   }
