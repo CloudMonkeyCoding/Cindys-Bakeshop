@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/db_connect.php';
 require_once __DIR__ . '/user_functions.php';
+require_once __DIR__ . '/audit_log_functions.php';
 
 header('Content-Type: application/json');
 
@@ -11,6 +12,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $input = json_decode(file_get_contents('php://input'), true);
+$payloadKeys = is_array($input) ? array_keys($input) : [];
+
+record_api_call($pdo, 'register_user', [
+    'action' => 'register',
+    'metadata' => [
+        'payload_keys' => $payloadKeys,
+        'json_valid' => is_array($input),
+    ],
+]);
 
 if (!$input) {
     http_response_code(400);

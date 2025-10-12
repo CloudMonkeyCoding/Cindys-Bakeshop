@@ -6,6 +6,7 @@ requirePostRequest();
 
 require_once __DIR__ . '/db_connect.php';
 require_once __DIR__ . '/delivery_functions.php';
+require_once __DIR__ . '/audit_log_functions.php';
 
 requireDatabaseConnection($pdo);
 
@@ -13,6 +14,23 @@ $token = $_POST['csrf_token'] ?? '';
 requireCsrfToken($token);
 
 $action = $_POST['action'] ?? '';
+
+$actorId = null;
+$actorEmail = null;
+if (session_status() === PHP_SESSION_ACTIVE) {
+    if (isset($_SESSION['admin_user_id']) && is_numeric($_SESSION['admin_user_id'])) {
+        $actorId = (int) $_SESSION['admin_user_id'];
+    }
+    if (!empty($_SESSION['admin_email'])) {
+        $actorEmail = (string) $_SESSION['admin_email'];
+    }
+}
+
+record_api_call($pdo, 'delivery_actions', [
+    'action' => $action,
+    'actor_id' => $actorId,
+    'actor_email' => $actorEmail,
+]);
 if ($action !== 'update') {
     sendJsonResponse(['success' => false, 'message' => 'Unknown action'], 400);
 }

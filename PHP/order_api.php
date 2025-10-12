@@ -17,6 +17,23 @@ requireDatabaseConnection($pdo);
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
+$actorId = null;
+$actorEmail = null;
+if (session_status() === PHP_SESSION_ACTIVE) {
+    if (isset($_SESSION['admin_user_id']) && is_numeric($_SESSION['admin_user_id'])) {
+        $actorId = (int) $_SESSION['admin_user_id'];
+    }
+    if (!empty($_SESSION['admin_email'])) {
+        $actorEmail = (string) $_SESSION['admin_email'];
+    }
+}
+
+record_api_call($pdo, 'order_api', [
+    'action' => $action,
+    'actor_id' => $actorId,
+    'actor_email' => $actorEmail,
+]);
+
 switch ($action) {
     case 'list':
         [$userId] = resolveUserContext($pdo, $_GET, ['allowMissing' => true]);

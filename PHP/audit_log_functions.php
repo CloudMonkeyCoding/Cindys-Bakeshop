@@ -93,6 +93,120 @@ if (!function_exists('record_audit_log')) {
     }
 }
 
+if (!function_exists('record_api_call')) {
+    function record_api_call($pdo, string $endpoint, array $options = []): void
+    {
+        if (!$pdo instanceof PDO) {
+            return;
+        }
+
+        $action = '';
+        if (isset($options['action'])) {
+            $actionValue = $options['action'];
+            if (is_string($actionValue) || is_numeric($actionValue)) {
+                $action = trim((string) $actionValue);
+            }
+        }
+
+        if ($action === '' && isset($_GET['action'])) {
+            $action = is_string($_GET['action']) ? trim($_GET['action']) : $action;
+        }
+
+        if ($action === '' && isset($_POST['action'])) {
+            $action = is_string($_POST['action']) ? trim($_POST['action']) : $action;
+        }
+
+        $description = "API call received for {$endpoint}";
+        if ($action !== '') {
+            $description .= " (action: {$action})";
+        }
+
+        $metadata = [
+            'endpoint' => $endpoint,
+            'action' => $action !== '' ? $action : null,
+            'request_method' => $_SERVER['REQUEST_METHOD'] ?? null,
+            'client_ip' => $_SERVER['REMOTE_ADDR'] ?? null,
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+        ];
+
+        if (!empty($_GET)) {
+            $metadata['query_keys'] = array_values(array_unique(array_map('strval', array_keys($_GET))));
+        }
+
+        if (!empty($_POST)) {
+            $metadata['body_keys'] = array_values(array_unique(array_map('strval', array_keys($_POST))));
+        }
+
+        if (!empty($_SERVER['REQUEST_URI'])) {
+            $metadata['request_uri'] = $_SERVER['REQUEST_URI'];
+        }
+
+        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH'])) {
+            $metadata['xhr'] = $_SERVER['HTTP_X_REQUESTED_WITH'];
+        }
+
+        $extraMetadata = [];
+        if (isset($options['metadata']) && is_array($options['metadata'])) {
+            $extraMetadata = $options['metadata'];
+        }
+
+        $metadata = array_merge($metadata, $extraMetadata);
+
+        $filteredMetadata = [];
+        foreach ($metadata as $key => $value) {
+            if ($value === null) {
+                continue;
+            }
+
+            if (is_string($value)) {
+                $trimmed = trim($value);
+                if ($trimmed === '') {
+                    continue;
+                }
+                $filteredMetadata[$key] = $trimmed;
+                continue;
+            }
+
+            if (is_array($value)) {
+                $filteredMetadata[$key] = array_values(array_filter($value, static function ($entry) {
+                    if ($entry === null) {
+                        return false;
+                    }
+                    if (is_string($entry)) {
+                        return trim($entry) !== '';
+                    }
+                    return $entry !== '';
+                }));
+                if ($filteredMetadata[$key] === []) {
+                    unset($filteredMetadata[$key]);
+                }
+                continue;
+            }
+
+            $filteredMetadata[$key] = $value;
+        }
+
+        $actorId = null;
+        if (isset($options['actor_id']) && is_numeric($options['actor_id'])) {
+            $actorId = (int) $options['actor_id'];
+        }
+
+        $actorEmail = null;
+        if (!empty($options['actor_email'])) {
+            $actorEmail = (string) $options['actor_email'];
+        }
+
+        $source = $options['source'] ?? ('api:' . $endpoint);
+
+        record_audit_log($pdo, 'api_call', $description, [
+            'actor_id' => $actorId,
+            'actor_email' => $actorEmail,
+            'source' => $source,
+            'metadata' => $filteredMetadata,
+        ]);
+    }
+}
+
 if (!function_exists('fetch_audit_logs')) {
     function fetch_audit_logs($pdo, int $limit = 100): array
     {

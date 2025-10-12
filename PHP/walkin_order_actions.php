@@ -55,6 +55,15 @@ if (!$pdo) {
     exit;
 }
 
+$adminUserId = isset($_SESSION['admin_user_id']) ? (int) $_SESSION['admin_user_id'] : null;
+$adminEmail = $_SESSION['admin_email'] ?? null;
+
+record_api_call($pdo, 'walkin_order_actions', [
+    'action' => $action,
+    'actor_id' => $adminUserId,
+    'actor_email' => $adminEmail,
+]);
+
 if (!hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
     walkin_order_log('CSRF token mismatch', ['session_token_present' => isset($_SESSION['csrf_token'])]);
     http_response_code(400);
@@ -70,9 +79,6 @@ $respond = static function (int $status, array $payload): void {
 };
 
 walkin_order_log('Processing request', ['action' => $action]);
-
-$adminUserId = isset($_SESSION['admin_user_id']) ? (int) $_SESSION['admin_user_id'] : null;
-$adminEmail = $_SESSION['admin_email'] ?? null;
 
 switch ($action) {
     case 'search_products':

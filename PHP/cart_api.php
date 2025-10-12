@@ -5,11 +5,16 @@ require_once __DIR__ . '/cart_item_functions.php';
 require_once __DIR__ . '/product_functions.php';
 require_once __DIR__ . '/inventory_functions.php';
 require_once __DIR__ . '/user_request_helpers.php';
+require_once __DIR__ . '/audit_log_functions.php';
 
 startJsonResponse();
 requireDatabaseConnection($pdo);
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
+
+record_api_call($pdo, 'cart_api', [
+    'action' => $action,
+]);
 
 switch ($action) {
     case 'list':

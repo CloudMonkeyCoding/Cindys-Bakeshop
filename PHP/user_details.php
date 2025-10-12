@@ -11,6 +11,7 @@ require_once __DIR__ . '/db_connect.php';
 require_once __DIR__ . '/user_functions.php';
 require_once __DIR__ . '/order_functions.php';
 require_once __DIR__ . '/store_staff_functions.php';
+require_once __DIR__ . '/audit_log_functions.php';
 
 function normalizeFacePath($path)
 {
@@ -28,6 +29,26 @@ if (!$pdo) {
 }
 
 $userId = filter_input(INPUT_GET, 'user_id', FILTER_VALIDATE_INT);
+
+$actorId = null;
+$actorEmail = null;
+if (session_status() === PHP_SESSION_ACTIVE) {
+    if (isset($_SESSION['admin_user_id']) && is_numeric($_SESSION['admin_user_id'])) {
+        $actorId = (int) $_SESSION['admin_user_id'];
+    }
+    if (!empty($_SESSION['admin_email'])) {
+        $actorEmail = (string) $_SESSION['admin_email'];
+    }
+}
+
+record_api_call($pdo, 'user_details', [
+    'action' => 'view',
+    'actor_id' => $actorId,
+    'actor_email' => $actorEmail,
+    'metadata' => [
+        'requested_user_id' => $userId,
+    ],
+]);
 if (!$userId) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Invalid or missing user ID']);

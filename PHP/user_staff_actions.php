@@ -16,6 +16,21 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+$actorId = null;
+$actorEmail = null;
+if (isset($_SESSION['admin_user_id']) && is_numeric($_SESSION['admin_user_id'])) {
+    $actorId = (int) $_SESSION['admin_user_id'];
+}
+if (!empty($_SESSION['admin_email'])) {
+    $actorEmail = (string) $_SESSION['admin_email'];
+}
+
+record_api_call($pdo, 'user_staff_actions', [
+    'action' => $action,
+    'actor_id' => $actorId,
+    'actor_email' => $actorEmail,
+]);
+
 $isLoggedIn = !empty($_SESSION['admin_logged_in']);
 if (!$isLoggedIn) {
     record_audit_log($pdo, 'staff_action_denied', 'Staff management request denied: admin not authenticated.', [
