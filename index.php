@@ -107,7 +107,8 @@ $productBase = $userPrefix . 'PRODUCT/';
          display: flex;
          align-items: center;
          justify-content: space-between;
-         padding: 8rem 8% 4rem;
+         padding: 5.5rem 4% 4rem;
+         width: 100%;
          background: linear-gradient(135deg, #faf8f5 0%, #f5f3f0 100%);
          position: relative;
          overflow: hidden;
@@ -256,8 +257,8 @@ $productBase = $userPrefix . 'PRODUCT/';
       }
 
       .hero-image img {
-        max-width: 550px;
-        width: 100%;
+        width: 400px;
+        height: 400px;
         border-radius: 40px;
         box-shadow: 0 40px 80px rgba(0, 0, 0, 0.4);
         animation: float 6s ease-in-out infinite;
@@ -265,6 +266,7 @@ $productBase = $userPrefix . 'PRODUCT/';
         -webkit-backdrop-filter: blur(10px);
         backdrop-filter: blur(10px);
         transition: all 0.3s ease;
+        object-fit: cover;
       }
 
       @keyframes float {
@@ -275,7 +277,8 @@ $productBase = $userPrefix . 'PRODUCT/';
 
       /* Categories */
       .categories {
-        padding: 8rem 8%;
+        padding: 8rem 4%;
+        width: 100%;
         background: linear-gradient(135deg, #faf8f5 0%, #f5f3f0 100%);
         position: relative;
       }
@@ -393,7 +396,8 @@ $productBase = $userPrefix . 'PRODUCT/';
 
       /* Products */
       .products {
-        padding: 8rem 8%;
+        padding: 8rem 4%;
+        width: 100%;
         background: linear-gradient(135deg, #faf8f5 0%, #f5f3f0 100%);
         position: relative;
         overflow: hidden;
@@ -511,8 +515,9 @@ $productBase = $userPrefix . 'PRODUCT/';
         border: 3px solid rgba(139, 69, 19, 0.08);
         -webkit-backdrop-filter: blur(10px);
         backdrop-filter: blur(10px);
-        flex: 0 0 clamp(260px, 24vw, 320px);
-        max-width: clamp(260px, 24vw, 320px);
+        flex: 0 0 280px;
+        max-width: 280px;
+        width: 280px;
       }
 
       .product-card:hover {
@@ -542,13 +547,14 @@ $productBase = $userPrefix . 'PRODUCT/';
       .product-image {
         position: relative;
         overflow: hidden;
-        height: 220px;
+        width: 280px;
+        height: 200px;
         border-radius: 25px 25px 0 0;
       }
 
       .product-image img {
-        width: 100%;
-        height: 100%;
+        width: 280px;
+        height: 200px;
         object-fit: cover;
         transition: transform 0.5s ease;
         border-radius: 25px 25px 0 0;
@@ -661,7 +667,8 @@ $productBase = $userPrefix . 'PRODUCT/';
 
       /* About Us */
       .about {
-        padding: 6rem 8%;
+        padding: 6rem 4%;
+        width: 100%;
         background: #faf8f5;
         display: flex;
         align-items: center;
@@ -678,9 +685,11 @@ $productBase = $userPrefix . 'PRODUCT/';
       }
 
       .about-image img {
-        max-width: 100%;
+        width: 400px;
+        height: 300px;
         border-radius: 20px;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        object-fit: cover;
       }
 
       .about h2 {
@@ -745,7 +754,8 @@ $productBase = $userPrefix . 'PRODUCT/';
 
        /* Visit Us */
        .visit {
-         padding: 6rem 8%;
+         padding: 6rem 4%;
+         width: 100%;
          background: linear-gradient(135deg, #faf8f5 0%, #f5f3f0 100%);
          text-align: center;
        }
@@ -801,7 +811,8 @@ $productBase = $userPrefix . 'PRODUCT/';
       .cta {
         background: linear-gradient(135deg, #8b4513, #a0522d);
         color: #faf8f5;
-        padding: 6rem 8%;
+        padding: 6rem 4%;
+        width: 100%;
         text-align: center;
         position: relative;
         overflow: hidden;
@@ -846,7 +857,8 @@ $productBase = $userPrefix . 'PRODUCT/';
       footer {
         background: #8b4513;
         color: #faf8f5;
-        padding: 3rem 8% 2rem;
+        padding: 3rem 4% 2rem;
+        width: 100%;
         text-align: center;
       }
 
@@ -920,7 +932,8 @@ $productBase = $userPrefix . 'PRODUCT/';
         .hero {
           flex-direction: column;
           text-align: center;
-          padding: 6rem 5% 4rem;
+          padding: 5rem 4% 4rem;
+          gap: 3rem;
         }
 
         .hero h1 {
@@ -928,7 +941,8 @@ $productBase = $userPrefix . 'PRODUCT/';
         }
 
         .hero-image img {
-          max-width: 300px;
+          width: 300px;
+          height: 300px;
           border-radius: 20px;
           box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
@@ -951,7 +965,7 @@ $productBase = $userPrefix . 'PRODUCT/';
         }
 
         .products {
-          padding: 6rem 5%;
+          padding: 6rem 4%;
         }
 
         .products-carousel {
@@ -970,8 +984,18 @@ $productBase = $userPrefix . 'PRODUCT/';
         }
 
         .product-card {
-          flex: 0 0 70%;
-          max-width: 70%;
+          flex: 0 0 280px;
+          max-width: 280px;
+        }
+
+        .product-image {
+          width: 280px;
+          height: 180px;
+        }
+
+        .product-image img {
+          width: 280px;
+          height: 180px;
         }
 
         .product-info {
@@ -993,7 +1017,8 @@ $productBase = $userPrefix . 'PRODUCT/';
         }
 
         .hero-image img {
-          max-width: 250px;
+          width: 250px;
+          height: 250px;
           border-radius: 15px;
           box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
         }
@@ -1033,8 +1058,18 @@ $productBase = $userPrefix . 'PRODUCT/';
         }
 
         .product-card {
-          flex: 0 0 90%;
-          max-width: 90%;
+          flex: 0 0 250px;
+          max-width: 250px;
+        }
+
+        .product-image {
+          width: 250px;
+          height: 160px;
+        }
+
+        .product-image img {
+          width: 250px;
+          height: 160px;
         }
 
         .product-info {
@@ -1093,52 +1128,6 @@ $productBase = $userPrefix . 'PRODUCT/';
     </section>
 
 
-    <!-- Categories -->
-    <section class="categories">
-      <div class="section-header">
-        <h2 class="section-title">Our Artisan Specialties</h2>
-        <p class="section-subtitle">
-          From sunrise to sunset, our master bakers create extraordinary baked goods 
-          using traditional techniques, premium ingredients, and generations of expertise. 
-          Each product tells a story of passion, quality, and community.
-        </p>
-      </div>
-      <div class="categories-grid">
-        <div class="category-card">
-          <div class="category-icon">
-            <i class="fas fa-birthday-cake"></i>
-          </div>
-          <h3>Signature Cakes</h3>
-          <p>
-            Masterpieces of flavor and artistry. Our custom cakes are designed to make 
-            every celebration unforgettable, from intimate gatherings to grand occasions. 
-            Each cake is a work of edible art.
-          </p>
-        </div>
-        <div class="category-card">
-          <div class="category-icon">
-            <i class="fas fa-bread-slice"></i>
-          </div>
-          <h3>Artisan Breads</h3>
-          <p>
-            The foundation of every great meal. Our breads are crafted using traditional 
-            fermentation methods, premium flour, and the patience that only comes from 
-            generations of baking expertise.
-          </p>
-        </div>
-        <div class="category-card">
-          <div class="category-icon">
-            <i class="fas fa-cookie-bite"></i>
-          </div>
-          <h3>Gourmet Pastries</h3>
-          <p>
-            A symphony of textures and flavors. Our pastries combine French techniques 
-            with local ingredients, creating unique treats that delight the senses and 
-            create lasting memories.
-          </p>
-        </div>
-      </div>
-    </section>
 
     <!-- Products -->
     <section class="products">

@@ -108,6 +108,8 @@ $activeResolver = function (array $needles) use ($currentScript): string {
     return '';
 };
 ?>
+<!-- Font Awesome for Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <header id="mainHeader" data-api-base="<?= htmlspecialchars($apiBase, ENT_QUOTES) ?>" data-images-base="<?= htmlspecialchars($imagesBase, ENT_QUOTES) ?>" data-root-prefix="<?= htmlspecialchars($rootPrefix, ENT_QUOTES) ?>" data-user-prefix="<?= htmlspecialchars($userPrefix, ENT_QUOTES) ?>">
   <div class="header-content">
     <div class="logo">
@@ -124,16 +126,17 @@ $activeResolver = function (array $needles) use ($currentScript): string {
           <li><a href="<?= htmlspecialchars($item['href'], ENT_QUOTES) ?>" class="<?= $active ?>"><?= htmlspecialchars($item['label']) ?></a></li>
         <?php endforeach; ?>
       </ul>
-    </nav>
-
-    <div class="nav-right">
       <div class="auth-links" id="authLinks">
         <a class="auth-link" href="<?= htmlspecialchars($userPrefix . 'login.html', ENT_QUOTES) ?>">Log in</a>
         <a class="auth-link auth-primary" href="<?= htmlspecialchars($userPrefix . 'signup.html', ENT_QUOTES) ?>">Sign up</a>
       </div>
+    </nav>
+
+    <div class="nav-right">
       <a class="cart-link" href="<?= htmlspecialchars($userPrefix . 'CART/cart_checkout_page.php', ENT_QUOTES) ?>">
-        <span aria-hidden="true">🛒</span>
+        <i class="fas fa-shopping-cart"></i>
         <span>Cart</span>
+        <span class="cart-badge" id="cartBadge" style="display: none;">0</span>
       </a>
       <div class="profile-dropdown hidden">
         <button type="button" class="profile-trigger" id="profileToggle" aria-haspopup="true" aria-expanded="false">
