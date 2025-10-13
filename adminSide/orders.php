@@ -224,7 +224,7 @@ $extraScripts = <<<JS
         },
         credentials: 'same-origin',
         body: new URLSearchParams({
-          action: 'update_status',
+          action: 'updateStatus',
           order_id: orderId,
           status,
           csrf_token: csrfTokenValue
