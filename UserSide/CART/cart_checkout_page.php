@@ -997,6 +997,11 @@
       window.scrollTo({ top: document.getElementById('cart-section').offsetTop - 120, behavior: 'smooth' });
     }
 
+    function logOrderDebug(context, details = {}) {
+      const timestamp = new Date().toISOString();
+      console.debug(`[Order Debug - ${timestamp}] ${context}`, details);
+    }
+
     async function placeOrder(e) {
       e.preventDefault();
       const name = document.getElementById('name').value;
@@ -1016,25 +1021,44 @@
         const cartType = res.headers.get('Content-Type') || '';
         const cartText = await res.text();
         if (!res.ok || !cartType.includes('application/json')) {
+          logOrderDebug('Cart fetch returned an unexpected response.', {
+            status: res.status,
+            statusText: res.statusText,
+            contentType: cartType,
+            responsePreview: cartText.slice(0, 200),
+          });
           throw new Error(cartText);
         }
         let latest;
         try {
           latest = JSON.parse(cartText);
         } catch (error) {
+          logOrderDebug('Failed to parse cart contents from API.', {
+            rawResponse: cartText.slice(0, 200),
+            parseError: error.message,
+          });
           throw new Error('Invalid response from server.');
         }
 
         if (!latest.items || latest.items.length === 0) {
+          logOrderDebug('Cart reported as empty when attempting to place order.', {
+            latest,
+          });
           alert('Your cart is empty.');
           return;
         }
 
         if (!userEmail) {
+          logOrderDebug('Missing user email while attempting to submit order.', {
+            userEmail,
+          });
           throw new Error('Please sign in again to place your order.');
         }
 
         if (!checkoutData.length) {
+          logOrderDebug('Checkout data missing when attempting to place order.', {
+            checkoutData,
+          });
           throw new Error('Please reselect your items before checking out.');
         }
 
@@ -1060,6 +1084,12 @@
         try {
           orderData = JSON.parse(orderText);
         } catch (parseError) {
+          logOrderDebug('Failed to parse order API response.', {
+            rawResponse: orderText.slice(0, 200),
+            status: orderRes.status,
+            statusText: orderRes.statusText,
+            parseError: parseError.message,
+          });
           if (!orderRes.ok) {
             throw new Error(orderText || 'Failed to place order.');
           }
@@ -1067,10 +1097,18 @@
         }
 
         if (!orderRes.ok) {
+          logOrderDebug('Order API returned an error status.', {
+            status: orderRes.status,
+            statusText: orderRes.statusText,
+            orderData,
+          });
           throw new Error(orderData.error || 'Failed to place order.');
         }
 
         if (!orderData || orderData.error) {
+          logOrderDebug('Order API indicated an error in payload.', {
+            orderData,
+          });
           throw new Error((orderData && orderData.error) || 'Failed to place order.');
         }
 
@@ -1087,6 +1125,10 @@
         document.body.classList.remove('checkout-active');
         document.getElementById('checkout-section').style.display = 'none';
       } catch (error) {
+        logOrderDebug('Caught error while placing order.', {
+          message: error.message,
+          stack: error.stack,
+        });
         document.getElementById('confirmationMsg').textContent = error.message || 'Failed to place order.';
       }
     }
