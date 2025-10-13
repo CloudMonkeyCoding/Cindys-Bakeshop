@@ -46,100 +46,130 @@ switch ($action) {
         sendJsonResponse($orders);
 
     case 'create':
-        [$userId, $user] = resolveUserContext($pdo, $_POST, ['includeUser' => true]);
-        $items = json_decode($_POST['items'] ?? '[]', true);
-        if (!is_array($items)) {
-            $items = [];
-        }
+        try {
+            [$userId, $user] = resolveUserContext($pdo, $_POST, ['includeUser' => true]);
+            $items = json_decode($_POST['items'] ?? '[]', true);
+            if (!is_array($items)) {
+                $items = [];
+            }
 
-        $orderTypeInput = isset($_POST['order_type']) ? trim((string)$_POST['order_type']) : '';
-        $orderType = in_array($orderTypeInput, ['Delivery', 'Pick up'], true) ? $orderTypeInput : 'Delivery';
-        $mop = $_POST['mop'] ?? '';
-        $specialInstructions = isset($_POST['special_instructions']) ? trim((string)$_POST['special_instructions']) : '';
-        if ($specialInstructions !== '') {
-            if (function_exists('mb_substr')) {
-                $specialInstructions = mb_substr($specialInstructions, 0, 500);
+            if (empty($items)) {
+                sendJsonResponse(['error' => 'No items were provided for this order.'], 400);
+            }
+
+            $orderTypeInput = isset($_POST['order_type']) ? trim((string)$_POST['order_type']) : '';
+            $orderType = in_array($orderTypeInput, ['Delivery', 'Pick up'], true) ? $orderTypeInput : 'Delivery';
+            $mop = isset($_POST['mop']) ? trim((string)$_POST['mop']) : '';
+            $specialInstructions = isset($_POST['special_instructions']) ? trim((string)$_POST['special_instructions']) : '';
+            if ($specialInstructions !== '') {
+                if (function_exists('mb_substr')) {
+                    $specialInstructions = mb_substr($specialInstructions, 0, 500);
+                } else {
+                    $specialInstructions = substr($specialInstructions, 0, 500);
+                }
             } else {
-                $specialInstructions = substr($specialInstructions, 0, 500);
+                $specialInstructions = null;
             }
-        } else {
-            $specialInstructions = null;
-        }
 
-        foreach ($items as $it) {
-            $productId = (int)($it['product_id'] ?? 0);
-            $quantity = (int)($it['quantity'] ?? 0);
-            $inventory = getInventoryByProductId($pdo, $productId);
-            if (!$inventory || $inventory['Stock_Quantity'] < $quantity) {
-                sendJsonResponse(['error' => 'Insufficient stock for product ID ' . $productId], 400);
+            foreach ($items as $it) {
+                $productId = (int)($it['product_id'] ?? 0);
+                $quantity = (int)($it['quantity'] ?? 0);
+
+                if ($productId <= 0 || $quantity <= 0) {
+                    sendJsonResponse(['error' => 'Each order item must include a valid product and quantity.'], 400);
+                }
+
+                $inventory = getInventoryByProductId($pdo, $productId);
+                if (!$inventory || $inventory['Stock_Quantity'] < $quantity) {
+                    sendJsonResponse(['error' => 'Insufficient stock for product ID ' . $productId], 400);
+                }
             }
-        }
 
-        $orderId = addOrder($pdo, $userId, date('Y-m-d H:i:s'), 'Pending', 'online', $orderType, $specialInstructions);
-        $total = 0;
-        foreach ($items as $it) {
-            $productId = (int)$it['product_id'];
-            $quantity = (int)$it['quantity'];
-            $stmt = $pdo->prepare('SELECT Price FROM product WHERE Product_ID = :id');
-            $stmt->execute([':id' => $productId]);
-            $price = (float)$stmt->fetchColumn();
-            $subtotal = $price * $quantity;
-            $total += $subtotal;
-            addOrderItem($pdo, $orderId, $productId, $quantity, $subtotal);
-            adjustInventoryStock($pdo, $productId, -$quantity, [
-                'change_source' => 'order',
-                'reference_type' => 'order',
-                'reference_id' => $orderId,
-                'note' => 'Online order placement'
+            $orderId = addOrder($pdo, $userId, date('Y-m-d H:i:s'), 'Pending', 'online', $orderType, $specialInstructions);
+            if (!$orderId) {
+                throw new RuntimeException('Failed to create order record.');
+            }
+
+            $total = 0;
+            foreach ($items as $it) {
+                $productId = (int)$it['product_id'];
+                $quantity = (int)$it['quantity'];
+                $stmt = $pdo->prepare('SELECT Price, Name FROM product WHERE Product_ID = :id');
+                $stmt->execute([':id' => $productId]);
+                $productRow = $stmt->fetch(PDO::FETCH_ASSOC);
+                if (!$productRow) {
+                    sendJsonResponse(['error' => 'Unable to load product information for item ' . $productId], 400);
+                }
+                $price = (float)($productRow['Price'] ?? 0);
+                $subtotal = $price * $quantity;
+                $total += $subtotal;
+                addOrderItem($pdo, $orderId, $productId, $quantity, $subtotal);
+                adjustInventoryStock($pdo, $productId, -$quantity, [
+                    'change_source' => 'order',
+                    'reference_type' => 'order',
+                    'reference_id' => $orderId,
+                    'note' => 'Online order placement'
+                ]);
+                adjustProductStock($pdo, $productId, -$quantity);
+
+                $inventory = getInventoryByProductId($pdo, $productId);
+                if ($inventory && $inventory['Stock_Quantity'] < 20) {
+                    $productName = $productRow['Name'] ?? ('Product #' . $productId);
+                    sendLowStockEmail($productName, (int)$inventory['Stock_Quantity']);
+                    addNotification(
+                        $pdo,
+                        'low_stock',
+                        $productId,
+                        "Stock for {$productName} is low. Current level: {$inventory['Stock_Quantity']}."
+                    );
+                }
+            }
+
+            addTransaction($pdo, $orderId, $mop, 'Pending', date('Y-m-d'), $total, null);
+            $cart = getCartByUserId($pdo, $userId);
+            if ($cart) {
+                deleteCartItemsByCartId($pdo, $cart['Cart_ID']);
+            }
+
+            sendOrderNotificationEmail($orderId, $userId, $total);
+            if ($user && isset($user['Email'])) {
+                sendOrderConfirmationEmail($user['Email'], $orderId, $total);
+            }
+
+            addNotification(
+                $pdo,
+                'order',
+                $orderId,
+                "Order #{$orderId} has been placed by user ID {$userId}. Total amount: {$total}."
+            );
+
+            record_audit_log($pdo, 'order_created', "Online order #{$orderId} created.", [
+                'actor_id' => $userId ?: null,
+                'actor_email' => $user['Email'] ?? null,
+                'source' => 'order_api',
+                'metadata' => [
+                    'order_id' => $orderId,
+                    'total' => $total,
+                    'order_type' => $orderType,
+                    'payment_method' => $mop,
+                    'special_instructions' => $specialInstructions,
+                    'item_count' => count($items),
+                ],
             ]);
-            adjustProductStock($pdo, $productId, -$quantity);
 
-            $inventory = getInventoryByProductId($pdo, $productId);
-            if ($inventory && $inventory['Stock_Quantity'] < 20) {
-                $product = getProductById($pdo, $productId);
-                sendLowStockEmail($product['Name'], (int)$inventory['Stock_Quantity']);
-                addNotification(
-                    $pdo,
-                    'low_stock',
-                    $productId,
-                    "Stock for {$product['Name']} is low. Current level: {$inventory['Stock_Quantity']}."
-                );
+            sendJsonResponse(['order_id' => $orderId]);
+        } catch (Throwable $exception) {
+            error_log(sprintf('[order_api] Failed to create order: %s in %s on line %d', $exception->getMessage(), $exception->getFile(), $exception->getLine()));
+            $response = [
+                'error' => 'An unexpected error occurred while creating the order.',
+            ];
+
+            if ($exception->getMessage()) {
+                $response['details'] = $exception->getMessage();
             }
+
+            sendJsonResponse($response, 500);
         }
-
-        addTransaction($pdo, $orderId, $mop, 'Pending', date('Y-m-d'), $total, null);
-        $cart = getCartByUserId($pdo, $userId);
-        if ($cart) {
-            deleteCartItemsByCartId($pdo, $cart['Cart_ID']);
-        }
-
-        sendOrderNotificationEmail($orderId, $userId, $total);
-        if ($user && isset($user['Email'])) {
-            sendOrderConfirmationEmail($user['Email'], $orderId, $total);
-        }
-
-        addNotification(
-            $pdo,
-            'order',
-            $orderId,
-            "Order #{$orderId} has been placed by user ID {$userId}. Total amount: {$total}."
-        );
-
-        record_audit_log($pdo, 'order_created', "Online order #{$orderId} created.", [
-            'actor_id' => $userId ?: null,
-            'actor_email' => $user['Email'] ?? null,
-            'source' => 'order_api',
-            'metadata' => [
-                'order_id' => $orderId,
-                'total' => $total,
-                'order_type' => $orderType,
-                'payment_method' => $mop,
-                'special_instructions' => $specialInstructions,
-                'item_count' => count($items),
-            ],
-        ]);
-
-        sendJsonResponse(['order_id' => $orderId]);
 
     case 'view':
         $orderId = (int)($_GET['order_id'] ?? 0);
