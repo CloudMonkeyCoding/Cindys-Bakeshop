@@ -138,11 +138,25 @@
       font-weight: 600;
       cursor: pointer;
       text-decoration: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
 
     .order-actions a {
       background: rgba(139, 69, 19, 0.1);
       color: var(--primary-brown);
+    }
+
+    .order-actions button {
+      background: linear-gradient(135deg, var(--primary-brown), var(--primary-brown-dark));
+      color: #fff;
+      box-shadow: 0 16px 32px rgba(139, 69, 19, 0.25);
+    }
+
+    .order-actions button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
     }
 
     .empty-state {
@@ -213,6 +227,8 @@
       ['Cancelled', 'completed']
     ]);
 
+    const DELIVERABLE_STATUSES = new Set(['On Delivery', 'Shipped', 'Ready for pickup', 'Confirmed']);
+
     function normalizeImagePath(path) {
       if (!path) {
         return '/Images/logo.png';
@@ -264,8 +280,19 @@
       filtered.forEach(order => {
         const card = document.createElement('article');
         card.className = 'order-card';
-        const category = statusToCategory(order.Status);
+        card.dataset.orderId = order.Order_ID ?? '';
+        card.dataset.status = order.Status ?? '';
         const imgSrc = resolveOrderImage(order);
+        const actions = [`<a href="../INVOICE/orderDetails.php?order_id=${order.Order_ID ?? ''}">View details</a>`];
+        const canMarkDelivered = DELIVERABLE_STATUSES.has(order.Status);
+        if (canMarkDelivered) {
+          actions.push(`
+            <button type="button" class="mark-delivered-btn" data-order="${order.Order_ID ?? ''}">
+              Mark as delivered
+            </button>
+          `);
+        }
+
         card.innerHTML = `
           <div class="order-summary">
             <img src="${imgSrc}" alt="Order product image">
@@ -277,11 +304,84 @@
             </div>
           </div>
           <div class="order-actions">
-            <a href="../INVOICE/orderDetails.php?order_id=${order.Order_ID ?? ''}">View details</a>
+            ${actions.join('')}
           </div>
         `;
         ordersGrid.appendChild(card);
       });
+    }
+
+    async function markOrderDelivered(orderId, button) {
+      if (!userEmail) {
+        alert('Please sign in again to update your order status.');
+        return;
+      }
+
+      if (!Number.isInteger(orderId) || orderId <= 0) {
+        alert('Invalid order selected.');
+        return;
+      }
+
+      if (!confirm('Mark this order as delivered?')) {
+        return;
+      }
+
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Updating…';
+
+      try {
+        const payload = new URLSearchParams({
+          order_id: String(orderId),
+          email: userEmail,
+        });
+
+        const response = await fetch(`../../PHP/order_api.php?action=mark_delivered`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+          },
+          body: payload.toString(),
+        });
+
+        const contentType = response.headers.get('Content-Type') || '';
+        const text = await response.text();
+        let data = null;
+
+        if (contentType.includes('application/json')) {
+          try {
+            data = JSON.parse(text);
+          } catch (error) {
+            console.error('Failed to parse mark delivered response', { text, error });
+            throw new Error('Unexpected response from server.');
+          }
+        } else {
+          throw new Error(text || 'Unexpected response from server.');
+        }
+
+        if (!response.ok || (data && data.error)) {
+          throw new Error((data && (data.error || data.message)) || text || 'Failed to update order.');
+        }
+
+        if (!data || !data.order) {
+          throw new Error('Unexpected response from server.');
+        }
+
+        const updatedStatus = data.order.status || 'Delivered';
+        const index = orders.findIndex(existing => Number(existing.Order_ID) === Number(orderId));
+        if (index !== -1) {
+          orders[index].Status = updatedStatus;
+        }
+
+        renderOrders();
+        alert('Thank you! Your order has been marked as delivered.');
+      } catch (error) {
+        alert(error.message || 'Unable to update the order.');
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+      }
     }
 
     function attachTabHandlers() {
@@ -316,6 +416,16 @@
         userEmail = user.email;
         fetchOrders(userEmail);
       }
+    });
+
+    ordersGrid.addEventListener('click', event => {
+      const button = event.target.closest('.mark-delivered-btn');
+      if (!button) {
+        return;
+      }
+
+      const orderId = parseInt(button.dataset.order, 10);
+      markOrderDelivered(orderId, button);
     });
 
     attachTabHandlers();
