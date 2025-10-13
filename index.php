@@ -1223,7 +1223,7 @@ $productBase = $userPrefix . 'PRODUCT/';
       <div class="about-content">
         <h2>Our Story of Passion & Tradition</h2>
         <p>
-          For over 15 years, Cindy's Bakeshop Hagonoy has been more than just a bakery – 
+          For over 2 years, Cindy's Bakeshop Hagonoy has been more than just a bakery – 
           we're a cornerstone of our community. Founded on the principles of family, 
           tradition, and uncompromising quality, we've grown from a small neighborhood 
           bakery into a beloved local institution that serves the entire Hagonoy area.
@@ -1266,7 +1266,7 @@ $productBase = $userPrefix . 'PRODUCT/';
         </div>
       </div>
       <div class="about-image">
-        <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500&h=400&fit=crop&crop=center" alt="Cindy's Bakeshop Interior" />
+        <img src="Images\Store-front.png" alt="Cindy's Bakeshop Interior" />
       </div>
     </section>
 
@@ -1312,22 +1312,6 @@ $productBase = $userPrefix . 'PRODUCT/';
       </div>
     </section>
 
-    <!-- CTA -->
-    <section class="cta" id="app">
-      <div class="cta-content">
-        <h2>Experience Cindy's Anywhere, Anytime</h2>
-        <p>
-          Join thousands of satisfied customers who enjoy the convenience of ordering 
-          our fresh baked goods through our mobile app. Skip the lines, customize your orders, 
-          and have your favorites delivered straight to your door.
-        </p>
-        <a href="#app" class="download-btn">
-          <i class="fas fa-mobile-alt"></i>
-          Download Our App
-        </a>
-      </div>
-    </section>
-
     </main>
 
     <!-- Footer -->
@@ -1356,9 +1340,7 @@ $productBase = $userPrefix . 'PRODUCT/';
         </div>
         <div class="footer-section">
           <h3>Follow Us</h3>
-          <p><a href="#">Facebook</a></p>
-          <p><a href="#">Instagram</a></p>
-          <p><a href="#">Twitter</a></p>
+          <p><a href="https://www.facebook.com/profile.php?id=61560661603257">Facebook</a></p>
         </div>
       </div>
       <div class="footer-bottom">
