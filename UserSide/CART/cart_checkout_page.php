@@ -997,6 +997,24 @@
       window.scrollTo({ top: document.getElementById('cart-section').offsetTop - 120, behavior: 'smooth' });
     }
 
+    function logOrderDebug(message, details) {
+      const timestamp = new Date().toISOString();
+      if (typeof details !== 'undefined') {
+        console.error(`[Order Debug - ${timestamp}] ${message}`, details);
+      } else {
+        console.error(`[Order Debug - ${timestamp}] ${message}`);
+      }
+    }
+
+    function buildOrderError(message, details) {
+      const error = new Error(message);
+      if (details) {
+        error.debugDetails = details;
+      }
+      error.userFacingMessage = message;
+      return error;
+    }
+
     async function placeOrder(e) {
       e.preventDefault();
       const name = document.getElementById('name').value;
@@ -1012,17 +1030,20 @@
       }
 
       try {
+        logOrderDebug('Attempting to load latest cart before checkout.', { email: userEmail, checkoutCount: checkoutData.length });
         const res = await fetch(`${apiBase}cart_api.php?action=list&email=${encodeURIComponent(userEmail)}`);
         const cartType = res.headers.get('Content-Type') || '';
         const cartText = await res.text();
         if (!res.ok || !cartType.includes('application/json')) {
-          throw new Error(cartText);
+          logOrderDebug('Cart API responded with an unexpected payload.', { status: res.status, statusText: res.statusText, contentType: cartType, rawResponse: cartText });
+          throw buildOrderError('Unable to verify your cart. Please refresh the page and try again.');
         }
         let latest;
         try {
           latest = JSON.parse(cartText);
         } catch (error) {
-          throw new Error('Invalid response from server.');
+          logOrderDebug('Failed to parse cart API response.', { rawResponse: cartText, parseError: error.message });
+          throw buildOrderError('We could not confirm the contents of your cart. Please refresh and try again.');
         }
 
         if (!latest.items || latest.items.length === 0) {
@@ -1031,11 +1052,11 @@
         }
 
         if (!userEmail) {
-          throw new Error('Please sign in again to place your order.');
+          throw buildOrderError('Please sign in again to place your order.');
         }
 
         if (!checkoutData.length) {
-          throw new Error('Please reselect your items before checking out.');
+          throw buildOrderError('Please reselect your items before checking out.');
         }
 
         const payload = new URLSearchParams({
@@ -1049,6 +1070,7 @@
           items: JSON.stringify(checkoutData),
         });
 
+        logOrderDebug('Submitting order request.', { cartId: latest.cart_id, itemCount: checkoutData.length, orderType, mop });
         const orderRes = await fetch(`${apiBase}order_api.php?action=create`, {
           method: 'POST',
           headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -1056,22 +1078,48 @@
         });
 
         const orderText = await orderRes.text();
+        const orderTypeHeader = orderRes.headers.get('Content-Type') || '';
         let orderData = null;
-        try {
-          orderData = JSON.parse(orderText);
-        } catch (parseError) {
-          if (!orderRes.ok) {
-            throw new Error(orderText || 'Failed to place order.');
+        if (orderText && orderTypeHeader.includes('application/json')) {
+          try {
+            orderData = JSON.parse(orderText);
+          } catch (parseError) {
+            logOrderDebug('Failed to parse order API response.', {
+              rawResponse: orderText,
+              status: orderRes.status,
+              statusText: orderRes.statusText,
+              parseError: parseError.message,
+            });
+            throw buildOrderError('Our server returned unreadable data. Please try placing your order again in a moment.');
           }
-          throw new Error('Invalid response from server.');
+        } else if (orderText) {
+          logOrderDebug('Order API returned non-JSON response.', {
+            rawResponse: orderText,
+            status: orderRes.status,
+            statusText: orderRes.statusText,
+            contentType: orderTypeHeader,
+          });
         }
 
         if (!orderRes.ok) {
-          throw new Error(orderData.error || 'Failed to place order.');
+          const errorMessage = (orderData && (orderData.error || orderData.message)) || (orderText ? orderText.trim() : '');
+          const responseDetails = {
+            status: orderRes.status,
+            statusText: orderRes.statusText,
+            rawResponse: orderText,
+          };
+          logOrderDebug('Order API indicated failure status.', responseDetails);
+          throw buildOrderError(errorMessage || 'The server had trouble placing your order. Please try again shortly.', responseDetails);
         }
 
         if (!orderData || orderData.error) {
-          throw new Error((orderData && orderData.error) || 'Failed to place order.');
+          const responseDetails = {
+            rawResponse: orderText,
+            status: orderRes.status,
+            statusText: orderRes.statusText,
+          };
+          logOrderDebug('Order API returned an application error.', { response: orderData, ...responseDetails });
+          throw buildOrderError((orderData && orderData.error) || 'Failed to place order.', responseDetails);
         }
 
         loadCart();
@@ -1083,11 +1131,16 @@
           return;
         }
 
-        document.getElementById('confirmationMsg').textContent = 'Order placed successfully!';
+        const confirmation = document.getElementById('confirmationMsg');
+        confirmation.classList.remove('error');
+        confirmation.textContent = 'Order placed successfully!';
         document.body.classList.remove('checkout-active');
         document.getElementById('checkout-section').style.display = 'none';
       } catch (error) {
-        document.getElementById('confirmationMsg').textContent = error.message || 'Failed to place order.';
+        logOrderDebug('Caught error while placing order.', { message: error.message, stack: error.stack, details: error.debugDetails });
+        const confirmation = document.getElementById('confirmationMsg');
+        confirmation.textContent = error.userFacingMessage || error.message || 'Failed to place order.';
+        confirmation.classList.add('error');
       }
     }
 
