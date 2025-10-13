@@ -139,16 +139,15 @@ $ordersJson = json_encode(array_map(static function ($order) {
         'fulfillment' => $order['Fulfillment_Type'] ?? '',
     ];
 }, $orders));
-$csrfToken = json_encode($_SESSION['csrf_token']);
 $extraScripts = <<<JS
 <script>
   const ordersData = $ordersJson;
-  const csrfToken = $csrfToken;
   const modal = document.getElementById('orderModal');
   const modalOrderId = document.getElementById('modalOrderId');
   const modalStatus = document.getElementById('modalStatus');
   const closeModalBtn = document.getElementById('closeModal');
   const updateForm = document.getElementById('updateStatusForm');
+  const csrfField = updateForm.querySelector('input[name="csrf_token"]');
   const searchBox = document.getElementById('searchBox');
   const filterStatus = document.getElementById('filterStatus');
 
@@ -193,16 +192,25 @@ $extraScripts = <<<JS
   }
 
   async function updateStatus(orderId, status) {
+    const csrfTokenValue = csrfField ? csrfField.value : '';
+    if (!csrfTokenValue) {
+      throw new Error('Missing CSRF token. Please refresh the page and try again.');
+    }
+
     try {
       const response = await fetch('../PHP/order_actions.php', {
         method: 'POST',
-        headers: { 'Accept': 'application/json' },
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+        },
+        credentials: 'same-origin',
         body: new URLSearchParams({
           action: 'update_status',
           order_id: orderId,
           status,
-          csrf_token: csrfToken
-        })
+          csrf_token: csrfTokenValue
+        }).toString()
       });
       const result = await response.json();
       if (!response.ok || !result.success) {
