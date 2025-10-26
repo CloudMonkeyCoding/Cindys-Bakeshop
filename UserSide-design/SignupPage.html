@@ -58,7 +58,7 @@ nav ul li a:hover {
   padding:2.5rem;
   border-radius:12px;
   box-shadow:0 6px 20px rgba(0,0,0,0.2);
-  max-width:400px;
+  max-width:420px;
   width:100%;
   display:flex;
   flex-direction:column;
@@ -67,18 +67,70 @@ nav ul li a:hover {
 .signup-box h2 { color:#d62828; text-align:center; margin-bottom:1rem; font-size:1.5rem; }
 
 .input-group { position:relative; display:flex; flex-direction:column; gap:6px; }
-.input-group input { padding:12px; border-radius:8px; border:1px solid #ccc; font-size:1rem; width:100%; transition:border-color 0.2s; }
-.input-group input:focus { border-color:#d62828; outline:none; }
+.input-group input,
+.input-group textarea,
+.input-group select {
+  padding:12px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size:1rem;
+  width:100%;
+  transition:border-color 0.2s;
+}
+.input-group input:focus,
+.input-group textarea:focus,
+.input-group select:focus {
+  border-color:#d62828;
+  outline:none;
+}
 
 .password-wrapper { position:relative; display:flex; align-items:center; }
 .password-wrapper input { flex:1; padding-right:40px; }
 .eye-icon { position:absolute; right:10px; cursor:pointer; width:24px; height:24px; fill:#666; transition:0.2s; }
 .eye-icon:hover { fill:#d62828; }
 
-button { width:100%; padding:12px; background:#d62828; color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:1rem; margin-top:8px; }
+button {
+  width:100%;
+  padding:12px;
+  background:#d62828;
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  font-weight:700;
+  cursor:pointer;
+  font-size:1rem;
+  margin-top:8px;
+}
+button:disabled { opacity:0.7; cursor:not-allowed; }
 .note { font-size:0.85rem; color:#666; margin-top:8px; text-align:center; }
 .note a { color:#d62828; font-weight:600; text-decoration:none; }
 .small-btn { background:#fcbf49; color:#333; padding:6px 10px; font-size:0.9rem; border-radius:6px; margin-top:5px; width:auto; cursor:pointer; border:none; }
+.small-btn.secondary { background:#ffe8a1; }
+
+.camera-area {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  align-items:center;
+}
+.camera-area video,
+.camera-area img {
+  width:100%;
+  max-height:220px;
+  border-radius:12px;
+  border:2px dashed #d62828;
+  object-fit:cover;
+}
+.camera-area img { display:none; }
+.capture-actions { display:flex; gap:10px; justify-content:center; width:100%; flex-wrap:wrap; }
+
+#errorMessage {
+  color:#d62828;
+  font-size:0.85rem;
+  text-align:center;
+  min-height:1.4rem;
+}
+.success-message { color:#1b5e20; }
 </style>
 </head>
 <body>
@@ -92,7 +144,7 @@ button { width:100%; padding:12px; background:#d62828; color:#fff; border:none; 
       <li><a href="login.html">Login</a></li>
       <li><a href="home.html#about">About</a></li>
       <li><a href="home.html#visit">Contacts</a></li>
-      <li><a href="signup.html" class="active">Signup</a></li>
+      <li><a href="SignupPage.html" class="active">Signup</a></li>
     </ul>
   </nav>
 </header>
@@ -100,70 +152,61 @@ button { width:100%; padding:12px; background:#d62828; color:#fff; border:none; 
 <div class="main">
   <div class="signup-box">
     <h2>Sign Up</h2>
-    <form id="signupForm" action="signup-process.php" method="post">
+    <form id="signupForm" novalidate>
       <div class="input-group">
-        <label>First Name</label>
-        <input id="fname" name="fname" required>
+        <label for="fname">First Name</label>
+        <input id="fname" name="fname" autocomplete="given-name" required>
       </div>
       <div class="input-group">
-        <label>Last Name</label>
-        <input id="lname" name="lname" required>
+        <label for="lname">Last Name</label>
+        <input id="lname" name="lname" autocomplete="family-name" required>
       </div>
       <div class="input-group">
-        <label>Email</label>
-        <input id="email" name="email" type="email" required>
-        <button type="button" class="small-btn" id="sendCodeBtn">Send Verification Code</button>
-        <input id="emailCode" name="emailCode" type="text" placeholder="Enter verification code" style="display:none;" required>
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email" required>
       </div>
       <div class="input-group">
-        <label>Password</label>
+        <label for="password">Password</label>
         <div class="password-wrapper">
-          <input id="password" name="password" type="password" required>
+          <input id="password" name="password" type="password" autocomplete="new-password" required>
           <svg id="eyeIcon" class="eye-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <path d="M12 5C7 5 2.73 8.11 1 12c1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>
           </svg>
         </div>
       </div>
       <div class="input-group">
-        <label>Confirm Password</label>
+        <label for="confirmPassword">Confirm Password</label>
         <div class="password-wrapper">
-          <input id="confirmPassword" name="confirmPassword" type="password" required>
+          <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required>
           <svg id="eyeIcon2" class="eye-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <path d="M12 5C7 5 2.73 8.11 1 12c1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>
           </svg>
         </div>
       </div>
+
+      <div class="input-group">
+        <label>Face Capture</label>
+        <div class="camera-area">
+          <video id="video" autoplay playsinline muted></video>
+          <img id="capturedImage" alt="Captured face preview">
+          <div class="capture-actions">
+            <button type="button" class="small-btn" id="captureBtn">Capture Face</button>
+            <button type="button" class="small-btn secondary" id="retakeBtn" style="display:none;">Retake</button>
+          </div>
+        </div>
+      </div>
+
+      <input type="hidden" id="faceImage" name="faceImage">
+      <div id="errorMessage"></div>
       <button type="submit">Register</button>
     </form>
-    <div class="note">Please verify your email and confirm your password before registering.</div>
+    <div class="note">Please capture your face and use a strong password before registering.</div>
   </div>
 </div>
 
 <script>
-const sendCodeBtn = document.getElementById('sendCodeBtn');
-const emailInput = document.getElementById('email');
-const emailCodeInput = document.getElementById('emailCode');
-let generatedCode = null;
+function toggleMenu() { document.getElementById("navMenu").classList.toggle("active"); }
 
-// Email verification demo
-sendCodeBtn.addEventListener('click', () => {
-  if (!emailInput.value) { alert('Enter your email first'); return; }
-  generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
-  emailCodeInput.style.display = 'block';
-  alert("Demo verification code for " + emailInput.value + " is: " + generatedCode);
-});
-
-// Password confirm check
-document.getElementById('signupForm').addEventListener('submit', e => {
-  const pass = document.getElementById('password').value;
-  const confirmPass = document.getElementById('confirmPassword').value;
-  const enteredCode = emailCodeInput.value;
-  if (pass !== confirmPass) { e.preventDefault(); alert("Passwords do not match!"); return; }
-  if (!generatedCode || enteredCode !== generatedCode) { e.preventDefault(); alert("Invalid or missing email verification code!"); return; }
-  alert("✅ Demo signup successful with verified email!");
-});
-
-// Show/hide passwords
 const passwordInput = document.getElementById("password");
 const eyeIcon = document.getElementById("eyeIcon");
 eyeIcon.addEventListener("click", () => {
@@ -179,9 +222,159 @@ eyeIcon2.addEventListener("click", () => {
   confirmInput.type = type;
   eyeIcon2.style.fill = type === "text" ? "#d62828" : "#666";
 });
+</script>
 
-// Hamburger toggle
-function toggleMenu() { document.getElementById("navMenu").classList.toggle("active"); }
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const form = document.getElementById('signupForm');
+const captureBtn = document.getElementById('captureBtn');
+const retakeBtn = document.getElementById('retakeBtn');
+const video = document.getElementById('video');
+const capturedImage = document.getElementById('capturedImage');
+const faceInput = document.getElementById('faceImage');
+const errorBox = document.getElementById('errorMessage');
+const submitBtn = form.querySelector('button[type="submit"]');
+let stream = null;
+
+function setError(message, isSuccess = false) {
+  errorBox.textContent = message || '';
+  errorBox.classList.toggle('success-message', isSuccess);
+}
+
+async function ensureFirebase() {
+  if (!getApps().length) {
+    const configUrl = new URL('../PHP/firebase_config.php', import.meta.url);
+    const response = await fetch(configUrl, { credentials: 'same-origin' });
+    if (!response.ok) {
+      throw new Error(`Unable to load Firebase configuration: ${response.status}`);
+    }
+    const config = await response.json();
+    initializeApp(config);
+  }
+  return getAuth();
+}
+
+function isStrongPassword(pw) {
+  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  return regex.test(pw);
+}
+
+async function startCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+  } catch (err) {
+    console.error('Camera access denied:', err);
+    setError('Camera access is required to capture your face.');
+  }
+}
+
+function captureFace() {
+  if (!video.videoWidth) {
+    setError('Camera is still loading. Please try again in a moment.');
+    return;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const imageData = canvas.toDataURL('image/png');
+  faceInput.value = imageData;
+  capturedImage.src = imageData;
+  capturedImage.style.display = 'block';
+  video.style.display = 'none';
+  retakeBtn.style.display = 'inline-flex';
+  captureBtn.textContent = 'Face Captured';
+  captureBtn.disabled = true;
+  setError('Face captured successfully.', true);
+}
+
+function retakeFace() {
+  faceInput.value = '';
+  capturedImage.src = '';
+  capturedImage.style.display = 'none';
+  video.style.display = 'block';
+  captureBtn.textContent = 'Capture Face';
+  captureBtn.disabled = false;
+  retakeBtn.style.display = 'none';
+  setError('');
+}
+
+captureBtn.addEventListener('click', captureFace);
+retakeBtn.addEventListener('click', retakeFace);
+startCamera();
+
+ensureFirebase()
+  .then(auth => {
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      setError('');
+
+      const firstName = form.fname.value.trim();
+      const lastName = form.lname.value.trim();
+      const email = form.email.value.trim();
+      const password = form.password.value;
+      const confirmPassword = form.confirmPassword.value;
+      const faceImage = faceInput.value;
+
+      if (!firstName || !lastName) {
+        setError('Please enter your full name.');
+        return;
+      }
+      if (!isStrongPassword(password)) {
+        setError('Password must be at least 8 characters and include uppercase, lowercase, number, and symbol.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError('Passwords do not match.');
+        return;
+      }
+      if (!faceImage) {
+        setError('Please capture your face before signing up.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating account…';
+
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        const fullName = `${firstName} ${lastName}`.trim();
+        const response = await fetch('../PHP/register_user.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fullName, email, password, faceImage })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Failed to save user information.');
+        }
+        setError('Account created successfully! Redirecting to login…', true);
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 1200);
+      } catch (err) {
+        console.error('Signup failed:', err);
+        setError(err.message || 'Unable to create account. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Register';
+      }
+    });
+  })
+  .catch(err => {
+    console.error('Firebase init failed:', err);
+    setError('Unable to connect to authentication service. Please try again later.');
+    submitBtn.disabled = true;
+  });
+
+window.addEventListener('beforeunload', () => {
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+  }
+});
 </script>
 
 </body>

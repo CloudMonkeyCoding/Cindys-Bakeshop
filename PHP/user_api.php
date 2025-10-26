@@ -96,12 +96,13 @@ switch ($action) {
         echo json_encode(['updated' => true]);
         break;
     case 'update_profile':
-        $firstName = $_POST['first_name'] ?? '';
-        $lastName = $_POST['last_name'] ?? '';
-        $email = $_POST['email'] ?? '';
+        $firstName = trim($_POST['first_name'] ?? '');
+        $lastName = trim($_POST['last_name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
+        $address = trim($_POST['address'] ?? '');
 
-        if (!$firstName || !$lastName || !$email) {
+        if (!$firstName || !$email) {
             http_response_code(400);
             echo json_encode(['error' => 'Missing required fields']);
             break;
@@ -117,9 +118,10 @@ switch ($action) {
         $fullName = trim($firstName . ' ' . $lastName);
         $params = [
             ':name' => $fullName,
+            ':address' => $address !== '' ? $address : ($user['Address'] ?? ''),
             ':id' => $user['User_ID']
         ];
-        $sql = 'UPDATE user SET Name = :name';
+        $sql = 'UPDATE user SET Name = :name, Address = :address';
 
         if ($password) {
             $hashed = password_hash($password, PASSWORD_DEFAULT);
@@ -166,7 +168,8 @@ switch ($action) {
 
         echo json_encode([
             'message' => 'Profile updated successfully',
-            'face_image_path' => $existing
+            'face_image_path' => $existing,
+            'address' => $params[':address']
         ]);
         break;
     default:
