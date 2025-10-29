@@ -207,6 +207,15 @@
     const orderId = params.get('order_id');
     const invoiceEl = document.getElementById('invoice');
 
+    const currencyFormatter = new Intl.NumberFormat('en-PH', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    function formatCurrency(value) {
+      return currencyFormatter.format(Number(value) || 0);
+    }
+
     function populateInvoice(data) {
       const order = data.order || {};
       const user = data.user || {};
@@ -236,10 +245,10 @@
         const subtotal = parseFloat(item.Subtotal) || 0;
         total += subtotal;
         const row = document.createElement('tr');
-        row.innerHTML = `<td>${item.Name} ×${item.Quantity}</td><td style="text-align:right;">₱${subtotal.toFixed(2)}</td>`;
+        row.innerHTML = `<td>${item.Name} ×${item.Quantity}</td><td style="text-align:right;">₱${formatCurrency(subtotal)}</td>`;
         tbody.appendChild(row);
       });
-      document.getElementById('total').textContent = total.toFixed(2);
+      document.getElementById('total').textContent = formatCurrency(total);
     }
 
     if (orderId) {
