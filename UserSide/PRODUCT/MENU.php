@@ -532,6 +532,22 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       transform: scale(1.05);
     }
 
+    .quantity-control button:disabled,
+    .quantity-control button.is-disabled {
+      background: #f0f0f0;
+      color: rgba(231, 76, 60, 0.4);
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .quantity-control button:disabled:hover,
+    .quantity-control button.is-disabled:hover {
+      background: #f0f0f0;
+      color: rgba(231, 76, 60, 0.4);
+      transform: none;
+    }
+
     .quantity-control input {
       font-size: 1.4rem;
       font-weight: 700;
@@ -846,6 +862,13 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       return Math.max(1, stock);
     }
 
+    function setButtonAvailability(button, isDisabled) {
+      if (!button) return;
+      button.disabled = isDisabled;
+      button.setAttribute('aria-disabled', isDisabled ? 'true' : 'false');
+      button.classList.toggle('is-disabled', isDisabled);
+    }
+
     function refreshQuantityState() {
       const max = getMaxSelectableQuantity();
       if (currentQty) {
@@ -854,12 +877,8 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
         currentQty.setAttribute('max', String(max));
         currentQty.value = String(currentQuantity);
       }
-      if (decreaseQty) {
-        decreaseQty.disabled = currentQuantity <= 1;
-      }
-      if (increaseQty) {
-        increaseQty.disabled = currentQuantity >= max;
-      }
+      setButtonAvailability(decreaseQty, currentQuantity <= 1);
+      setButtonAvailability(increaseQty, currentQuantity >= max);
     }
 
     function setQuantityFromValue(value) {
