@@ -532,12 +532,50 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       transform: scale(1.05);
     }
 
-    .quantity-control span {
+    .quantity-control button:disabled,
+    .quantity-control button.is-disabled {
+      background: #f0f0f0;
+      color: rgba(231, 76, 60, 0.4);
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .quantity-control button:disabled:hover,
+    .quantity-control button.is-disabled:hover {
+      background: #f0f0f0;
+      color: rgba(231, 76, 60, 0.4);
+      transform: none;
+    }
+
+    .quantity-control input {
       font-size: 1.4rem;
       font-weight: 700;
       color: #2c2c2c;
-      min-width: 40px;
+      width: 72px;
+      height: 52px;
       text-align: center;
+      border: 2px solid #f0f0f0;
+      border-radius: 12px;
+      background: #ffffff;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.08);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .quantity-control input:focus {
+      outline: none;
+      border-color: #e74c3c;
+      box-shadow: inset 0 2px 6px rgba(231, 76, 60, 0.25);
+    }
+
+    .quantity-control input::-webkit-outer-spin-button,
+    .quantity-control input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .quantity-control input[type="number"] {
+      -moz-appearance: textfield;
     }
 
     .modal-actions {
@@ -575,6 +613,19 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     .modal-actions #cancelAdd:hover {
       background: #e9ecef;
       color: #2c2c2c;
+      transform: translateY(-1px);
+    }
+
+    .modal-actions #removeFromCart {
+      background: #fff5f5;
+      color: #c0392b;
+      box-shadow: 0 8px 18px rgba(192, 57, 43, 0.18);
+      border: 1px solid rgba(192, 57, 43, 0.25);
+    }
+
+    .modal-actions #removeFromCart:hover {
+      background: #ffe3e3;
+      color: #922b21;
       transform: translateY(-1px);
     }
 
@@ -632,6 +683,11 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       .quantity-control button {
         width: 42px;
         height: 42px;
+      }
+
+      .quantity-control input {
+        width: 68px;
+        height: 46px;
       }
 
       .pagination-controls {
@@ -732,11 +788,20 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     <p id="modalSubtitle"></p>
     <div class="quantity-control">
       <button type="button" id="decreaseQty" aria-label="Reduce quantity">−</button>
-      <span id="currentQty">1</span>
+      <input
+        type="number"
+        id="currentQty"
+        min="1"
+        step="1"
+        value="1"
+        inputmode="numeric"
+        aria-label="Selected quantity"
+      />
       <button type="button" id="increaseQty" aria-label="Increase quantity">+</button>
     </div>
     <div class="modal-actions">
       <button type="button" id="cancelAdd">Cancel</button>
+      <button type="button" id="removeFromCart" hidden aria-hidden="true">Remove from Cart</button>
       <button type="button" id="confirmAdd">Add to Cart</button>
     </div>
   </div>
@@ -773,6 +838,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     const increaseQty = document.getElementById('increaseQty');
     const currentQty = document.getElementById('currentQty');
     const confirmAdd = document.getElementById('confirmAdd');
+    const removeFromCart = document.getElementById('removeFromCart');
     const cancelAdd = document.getElementById('cancelAdd');
 
     const auth = getAuth();
@@ -799,6 +865,44 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       ['pastry', 'Pastries'],
       ['pastries', 'Pastries'],
     ]);
+
+    function getMaxSelectableQuantity() {
+      if (!currentProduct) {
+        return 1;
+      }
+      const stock = Number(currentProduct.stock);
+      if (!Number.isFinite(stock)) {
+        return 1;
+      }
+      return Math.max(1, stock);
+    }
+
+    function setButtonAvailability(button, isDisabled) {
+      if (!button) return;
+      button.disabled = isDisabled;
+      button.setAttribute('aria-disabled', isDisabled ? 'true' : 'false');
+      button.classList.toggle('is-disabled', isDisabled);
+    }
+
+    function refreshQuantityState() {
+      const max = getMaxSelectableQuantity();
+      if (currentQty) {
+        currentQty.setAttribute('min', '1');
+        currentQty.setAttribute('step', '1');
+        currentQty.setAttribute('max', String(max));
+        currentQty.value = String(currentQuantity);
+      }
+      setButtonAvailability(decreaseQty, currentQuantity <= 1);
+      setButtonAvailability(increaseQty, currentQuantity >= max);
+    }
+
+    function setQuantityFromValue(value) {
+      const max = getMaxSelectableQuantity();
+      const parsed = Math.floor(Number(value));
+      const nextQuantity = Number.isFinite(parsed) ? parsed : 1;
+      currentQuantity = Math.min(Math.max(1, nextQuantity), max);
+      refreshQuantityState();
+    }
 
     function formatCurrency(amount) {
       return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount || 0);
@@ -886,6 +990,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       const maxSelectable = available > 0 ? available : 1;
       const startingQuantity = existingQuantity > 0 ? existingQuantity : 1;
       currentQuantity = Math.min(Math.max(1, startingQuantity), maxSelectable);
+      const hasExisting = existingQuantity > 0;
 
       if (modalTitle) {
         modalTitle.textContent = `Add ${product.name}`;
@@ -899,18 +1004,26 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
           modalSubtitle.textContent = 'This item is currently out of stock.';
         }
       }
+      if (confirmAdd) {
+        confirmAdd.textContent = hasExisting ? 'Update Cart' : 'Add to Cart';
+      }
+      if (removeFromCart) {
+        removeFromCart.hidden = !hasExisting;
+        removeFromCart.disabled = !hasExisting;
+        removeFromCart.setAttribute('aria-hidden', hasExisting ? 'false' : 'true');
+      }
+      refreshQuantityState();
       if (currentQty) {
-        currentQty.textContent = currentQuantity;
+        currentQty.disabled = !(available > 0);
+        if (available > 0) {
+          currentQty.value = String(currentQuantity);
+          currentQty.focus();
+          currentQty.select();
+        }
       }
       if (modal) {
         modal.classList.add('show');
         modal.setAttribute('aria-hidden', 'false');
-      }
-      if (decreaseQty) {
-        decreaseQty.disabled = currentQuantity <= 1;
-      }
-      if (increaseQty) {
-        increaseQty.disabled = !(available > 1) || currentQuantity >= available;
       }
       if (confirmAdd) {
         confirmAdd.disabled = !(available > 0);
@@ -927,17 +1040,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
 
     function updateQuantity(delta) {
       if (!currentProduct) return;
-      const max = Math.max(1, Number.isFinite(currentProduct.stock) ? currentProduct.stock : 1);
-      currentQuantity = Math.min(Math.max(1, currentQuantity + delta), max);
-      if (currentQty) {
-        currentQty.textContent = currentQuantity;
-      }
-      if (decreaseQty) {
-        decreaseQty.disabled = currentQuantity <= 1;
-      }
-      if (increaseQty) {
-        increaseQty.disabled = currentQuantity >= max;
-      }
+      setQuantityFromValue(currentQuantity + delta);
     }
 
     function toggleFavorite(button, product) {
@@ -1236,8 +1339,86 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       increaseQty.addEventListener('click', () => updateQuantity(1));
     }
 
+    if (currentQty) {
+      currentQty.addEventListener('input', () => {
+        if (!currentProduct) return;
+        const rawValue = currentQty.value;
+        if (rawValue === '') {
+          return;
+        }
+        setQuantityFromValue(rawValue);
+      });
+
+      currentQty.addEventListener('blur', () => {
+        if (!currentProduct) return;
+        const rawValue = currentQty.value;
+        if (rawValue === '') {
+          refreshQuantityState();
+          return;
+        }
+        setQuantityFromValue(rawValue);
+      });
+    }
+
     if (cancelAdd) {
       cancelAdd.addEventListener('click', closeModal);
+    }
+
+    if (removeFromCart) {
+      removeFromCart.addEventListener('click', async () => {
+        if (!currentProduct || !userEmail) {
+          closeModal();
+          return;
+        }
+
+        const existing = cartItems.get(currentProduct.id);
+        if (!existing) {
+          closeModal();
+          return;
+        }
+
+        if (cartSyncPromise) {
+          try {
+            await cartSyncPromise;
+          } catch (error) {
+            console.error('Unable to sync cart before removing item.', error);
+          }
+        }
+
+        const body = new URLSearchParams();
+        body.set('cart_item_id', String(existing.cartItemId));
+
+        try {
+          const response = await fetch('../../PHP/cart_api.php?action=remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body,
+          });
+
+          if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+          }
+
+          let result;
+          try {
+            result = await response.json();
+          } catch (parseError) {
+            throw new Error('Invalid response format');
+          }
+
+          if (!result.deleted) {
+            throw new Error('Unable to remove cart item');
+          }
+
+          cartItems.delete(currentProduct.id);
+          showToast('Removed from cart.');
+        } catch (error) {
+          console.error('Remove from cart failed.', error);
+          showToast('Unable to remove from cart.', 'error');
+        } finally {
+          closeModal();
+        }
+      });
     }
 
     if (modal) {
@@ -1268,6 +1449,12 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
           showToast('This item is currently unavailable.', 'warn');
           closeModal();
           return;
+        }
+
+        if (currentQty) {
+          setQuantityFromValue(currentQty.value);
+        } else {
+          refreshQuantityState();
         }
 
         const desiredQuantity = Math.min(Math.max(1, Math.floor(currentQuantity)), available);
