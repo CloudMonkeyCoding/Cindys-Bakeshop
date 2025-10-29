@@ -298,6 +298,14 @@
       gap: 0.75rem;
     }
 
+    .address-section {
+      display: none;
+    }
+
+    .address-section.is-visible {
+      display: block;
+    }
+
     .address-wrapper {
       flex-direction: column;
       align-items: stretch;
@@ -474,6 +482,15 @@
           </div>
 
           <div>
+            <label for="order-type">Delivery or Pick Up</label>
+            <select id="order-type" required>
+              <option value="">-- Select --</option>
+              <option value="Delivery">Delivery</option>
+              <option value="Pick up">Pick up</option>
+            </select>
+          </div>
+
+          <div id="address-section" class="address-section" aria-hidden="true">
             <div class="field-header">
               <label for="address-street">Delivery Address</label>
               <button type="button" id="edit-address" class="edit-field-btn">Edit</button>
@@ -488,15 +505,6 @@
               </div>
               <button type="button" id="done-address" class="done-btn">Done</button>
             </div>
-          </div>
-
-          <div>
-            <label for="order-type">Delivery or Pick Up</label>
-            <select id="order-type" required>
-              <option value="">-- Select --</option>
-              <option value="Delivery">Delivery</option>
-              <option value="Pick up">Pick up</option>
-            </select>
           </div>
 
           <div>
@@ -564,12 +572,14 @@
     const addressProvinceField = document.getElementById('address-province');
     const editableAddressFields = [addressStreetField, addressBarangayField];
     const lockedAddressFields = [addressCityField, addressProvinceField];
+    const allAddressFields = [...editableAddressFields, ...lockedAddressFields];
     const nameEditBtn = document.getElementById('edit-name');
     const addrEditBtn = document.getElementById('edit-address');
     const nameDoneBtn = document.getElementById('done-name');
     const addrDoneBtn = document.getElementById('done-address');
     const orderTypeSelect = document.getElementById('order-type');
     const mopSelect = document.getElementById('mop');
+    const addressSection = document.getElementById('address-section');
     const specialInstructionsField = document.getElementById('special-instructions');
     const cartStatus = document.getElementById('cartStatus');
 
@@ -667,6 +677,31 @@
       }
     }
 
+    function updateAddressVisibility() {
+      if (!addressSection) {
+        return;
+      }
+
+      const isDelivery = orderTypeSelect.value === 'Delivery';
+      addressSection.classList.toggle('is-visible', isDelivery);
+      addressSection.setAttribute('aria-hidden', isDelivery ? 'false' : 'true');
+
+      allAddressFields.forEach(field => {
+        field.required = isDelivery;
+        field.toggleAttribute('required', isDelivery);
+      });
+
+      if (!isDelivery) {
+        setAddressFieldsReadOnly(true);
+        addrDoneBtn.style.display = 'none';
+      }
+    }
+
+    function syncOrderTypeUI() {
+      updateMopOptions();
+      updateAddressVisibility();
+    }
+
     function updateDeliveryAvailability(showAlert = false) {
       const deliveryOption = orderTypeSelect.querySelector('option[value="Delivery"]');
       const deliveryAllowed = isDeliveryAreaValid();
@@ -677,7 +712,7 @@
 
       if (!deliveryAllowed && orderTypeSelect.value === 'Delivery') {
         orderTypeSelect.value = '';
-        updateMopOptions();
+        syncOrderTypeUI();
         if (showAlert) {
           alert('We currently deliver only within Hagonoy, Bulacan. Please choose Pick up for other areas.');
         }
@@ -753,11 +788,12 @@
       if (orderTypeSelect.value === 'Delivery') {
         const canDeliver = updateDeliveryAvailability(true);
         if (!canDeliver) {
+          syncOrderTypeUI();
           return;
         }
       }
 
-      updateMopOptions();
+      syncOrderTypeUI();
     });
 
     nameEditBtn.addEventListener('click', () => {
@@ -794,7 +830,7 @@
 
     enforceLockedAddressParts();
     updateDeliveryAvailability();
-    updateMopOptions();
+    syncOrderTypeUI();
 
     const auth = getAuth();
     onAuthStateChanged(auth, user => {
