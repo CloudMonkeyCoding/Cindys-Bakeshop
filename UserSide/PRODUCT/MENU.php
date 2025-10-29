@@ -532,12 +532,34 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       transform: scale(1.05);
     }
 
-    .quantity-control span {
+    .quantity-control input {
       font-size: 1.4rem;
       font-weight: 700;
       color: #2c2c2c;
-      min-width: 40px;
+      width: 72px;
+      height: 52px;
       text-align: center;
+      border: 2px solid #f0f0f0;
+      border-radius: 12px;
+      background: #ffffff;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.08);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .quantity-control input:focus {
+      outline: none;
+      border-color: #e74c3c;
+      box-shadow: inset 0 2px 6px rgba(231, 76, 60, 0.25);
+    }
+
+    .quantity-control input::-webkit-outer-spin-button,
+    .quantity-control input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .quantity-control input[type="number"] {
+      -moz-appearance: textfield;
     }
 
     .modal-actions {
@@ -632,6 +654,11 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       .quantity-control button {
         width: 42px;
         height: 42px;
+      }
+
+      .quantity-control input {
+        width: 68px;
+        height: 46px;
       }
 
       .pagination-controls {
@@ -732,7 +759,15 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     <p id="modalSubtitle"></p>
     <div class="quantity-control">
       <button type="button" id="decreaseQty" aria-label="Reduce quantity">−</button>
-      <span id="currentQty">1</span>
+      <input
+        type="number"
+        id="currentQty"
+        min="1"
+        step="1"
+        value="1"
+        inputmode="numeric"
+        aria-label="Selected quantity"
+      />
       <button type="button" id="increaseQty" aria-label="Increase quantity">+</button>
     </div>
     <div class="modal-actions">
@@ -799,6 +834,41 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       ['pastry', 'Pastries'],
       ['pastries', 'Pastries'],
     ]);
+
+    function getMaxSelectableQuantity() {
+      if (!currentProduct) {
+        return 1;
+      }
+      const stock = Number(currentProduct.stock);
+      if (!Number.isFinite(stock)) {
+        return 1;
+      }
+      return Math.max(1, stock);
+    }
+
+    function refreshQuantityState() {
+      const max = getMaxSelectableQuantity();
+      if (currentQty) {
+        currentQty.setAttribute('min', '1');
+        currentQty.setAttribute('step', '1');
+        currentQty.setAttribute('max', String(max));
+        currentQty.value = String(currentQuantity);
+      }
+      if (decreaseQty) {
+        decreaseQty.disabled = currentQuantity <= 1;
+      }
+      if (increaseQty) {
+        increaseQty.disabled = currentQuantity >= max;
+      }
+    }
+
+    function setQuantityFromValue(value) {
+      const max = getMaxSelectableQuantity();
+      const parsed = Math.floor(Number(value));
+      const nextQuantity = Number.isFinite(parsed) ? parsed : 1;
+      currentQuantity = Math.min(Math.max(1, nextQuantity), max);
+      refreshQuantityState();
+    }
 
     function formatCurrency(amount) {
       return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount || 0);
@@ -899,18 +969,18 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
           modalSubtitle.textContent = 'This item is currently out of stock.';
         }
       }
+      refreshQuantityState();
       if (currentQty) {
-        currentQty.textContent = currentQuantity;
+        currentQty.disabled = !(available > 0);
+        if (available > 0) {
+          currentQty.value = String(currentQuantity);
+          currentQty.focus();
+          currentQty.select();
+        }
       }
       if (modal) {
         modal.classList.add('show');
         modal.setAttribute('aria-hidden', 'false');
-      }
-      if (decreaseQty) {
-        decreaseQty.disabled = currentQuantity <= 1;
-      }
-      if (increaseQty) {
-        increaseQty.disabled = !(available > 1) || currentQuantity >= available;
       }
       if (confirmAdd) {
         confirmAdd.disabled = !(available > 0);
@@ -927,17 +997,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
 
     function updateQuantity(delta) {
       if (!currentProduct) return;
-      const max = Math.max(1, Number.isFinite(currentProduct.stock) ? currentProduct.stock : 1);
-      currentQuantity = Math.min(Math.max(1, currentQuantity + delta), max);
-      if (currentQty) {
-        currentQty.textContent = currentQuantity;
-      }
-      if (decreaseQty) {
-        decreaseQty.disabled = currentQuantity <= 1;
-      }
-      if (increaseQty) {
-        increaseQty.disabled = currentQuantity >= max;
-      }
+      setQuantityFromValue(currentQuantity + delta);
     }
 
     function toggleFavorite(button, product) {
@@ -1236,6 +1296,27 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       increaseQty.addEventListener('click', () => updateQuantity(1));
     }
 
+    if (currentQty) {
+      currentQty.addEventListener('input', () => {
+        if (!currentProduct) return;
+        const rawValue = currentQty.value;
+        if (rawValue === '') {
+          return;
+        }
+        setQuantityFromValue(rawValue);
+      });
+
+      currentQty.addEventListener('blur', () => {
+        if (!currentProduct) return;
+        const rawValue = currentQty.value;
+        if (rawValue === '') {
+          refreshQuantityState();
+          return;
+        }
+        setQuantityFromValue(rawValue);
+      });
+    }
+
     if (cancelAdd) {
       cancelAdd.addEventListener('click', closeModal);
     }
@@ -1268,6 +1349,12 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
           showToast('This item is currently unavailable.', 'warn');
           closeModal();
           return;
+        }
+
+        if (currentQty) {
+          setQuantityFromValue(currentQty.value);
+        } else {
+          refreshQuantityState();
         }
 
         const desiredQuantity = Math.min(Math.max(1, Math.floor(currentQuantity)), available);
