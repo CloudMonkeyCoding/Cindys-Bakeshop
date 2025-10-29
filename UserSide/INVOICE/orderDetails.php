@@ -216,6 +216,24 @@
       return currencyFormatter.format(Number(value) || 0);
     }
 
+    const dateFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Manila',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    function formatOrderDate(value) {
+      if (!value) {
+        return '—';
+      }
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) {
+        return value;
+      }
+      return dateFormatter.format(parsed);
+    }
+
     function populateInvoice(data) {
       const order = data.order || {};
       const user = data.user || {};
@@ -225,7 +243,7 @@
       document.getElementById('address').textContent = user.Address || '—';
       document.getElementById('mop').textContent = transaction.Payment_Method || '—';
       document.getElementById('paymentStatus').textContent = transaction.Payment_Status || '—';
-      document.getElementById('date').textContent = order.Order_Date || '—';
+      document.getElementById('date').textContent = formatOrderDate(order.Order_Date);
 
       const instructionsCard = document.getElementById('specialInstructionsCard');
       const instructionsValue = document.getElementById('specialInstructions');
