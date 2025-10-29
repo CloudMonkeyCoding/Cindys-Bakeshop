@@ -205,6 +205,37 @@
       color: #fff;
       font-weight: 600;
       box-shadow: 0 16px 32px rgba(139, 69, 19, 0.25);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.65rem;
+      transition: opacity 0.2s ease, background 0.2s ease;
+    }
+
+    .primary-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .primary-btn .btn-spinner {
+      display: none;
+      width: 1.1rem;
+      height: 1.1rem;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.4);
+      border-top-color: #fff;
+      animation: spin 0.75s linear infinite;
+    }
+
+    .primary-btn.is-loading .btn-spinner {
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     .secondary-btn {
@@ -483,7 +514,10 @@
             <textarea id="special-instructions" placeholder="Let us know about delivery notes or allergy information." maxlength="500"></textarea>
           </div>
 
-          <button type="submit" class="primary-btn">Place order</button>
+          <button type="submit" class="primary-btn" id="place-order-btn">
+            <span class="btn-spinner" aria-hidden="true"></span>
+            <span class="btn-label">Place order</span>
+          </button>
         </form>
         <div class="confirmation" id="confirmationMsg"></div>
       </section>
@@ -514,6 +548,12 @@
     ]);
     const totalPriceLabel = document.querySelector('.total-price');
     const totalItemsLabel = document.querySelector('.total-items');
+    const placeOrderButton = document.getElementById('place-order-btn');
+    const placeOrderButtonLabel = placeOrderButton?.querySelector('.btn-label');
+    const defaultPlaceOrderText = placeOrderButtonLabel?.textContent?.trim() || 'Place order';
+    if (placeOrderButton) {
+      placeOrderButton.setAttribute('aria-busy', 'false');
+    }
     let cartId = null;
     let checkoutData = [];
     let userEmail = null;
@@ -879,6 +919,20 @@
       });
     }
 
+    function setPlaceOrderLoading(isLoading) {
+      if (!placeOrderButton) {
+        return;
+      }
+
+      placeOrderButton.classList.toggle('is-loading', isLoading);
+      placeOrderButton.disabled = isLoading;
+      placeOrderButton.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+
+      if (placeOrderButtonLabel) {
+        placeOrderButtonLabel.textContent = isLoading ? 'Placing order...' : defaultPlaceOrderText;
+      }
+    }
+
     function collectSelectedCartItems() {
       const items = [];
       document.querySelectorAll('.cart-item').forEach(item => {
@@ -1128,12 +1182,20 @@
       const orderType = document.getElementById('order-type').value;
       const mop = document.getElementById('mop').value;
       const specialInstructions = specialInstructionsField.value.trim();
+      const confirmation = document.getElementById('confirmationMsg');
+
+      if (confirmation) {
+        confirmation.textContent = '';
+        confirmation.classList.remove('error');
+      }
 
       if (orderType === 'Delivery' && !isDeliveryAreaValid()) {
         alert('Delivery is only available within Hagonoy, Bulacan. Please choose Pick up for orders outside this area.');
         updateDeliveryAvailability(true);
         return;
       }
+
+      setPlaceOrderLoading(true);
 
       try {
         logOrderDebug('Attempting to load latest cart before checkout.', { email: userEmail, checkoutCount: checkoutData.length });
@@ -1228,7 +1290,7 @@
           throw buildOrderError((orderData && orderData.error) || 'Failed to place order.', responseDetails);
         }
 
-        loadCart();
+        await loadCart();
 
         const orderId = orderData.order_id;
         if (orderId) {
@@ -1237,16 +1299,20 @@
           return;
         }
 
-        const confirmation = document.getElementById('confirmationMsg');
-        confirmation.classList.remove('error');
-        confirmation.textContent = 'Order placed successfully!';
+        if (confirmation) {
+          confirmation.classList.remove('error');
+          confirmation.textContent = 'Order placed successfully!';
+        }
         document.body.classList.remove('checkout-active');
         document.getElementById('checkout-section').style.display = 'none';
       } catch (error) {
         logOrderDebug('Caught error while placing order.', { message: error.message, stack: error.stack, details: error.debugDetails });
-        const confirmation = document.getElementById('confirmationMsg');
-        confirmation.textContent = error.userFacingMessage || error.message || 'Failed to place order.';
-        confirmation.classList.add('error');
+        if (confirmation) {
+          confirmation.textContent = error.userFacingMessage || error.message || 'Failed to place order.';
+          confirmation.classList.add('error');
+        }
+      } finally {
+        setPlaceOrderLoading(false);
       }
     }
 
