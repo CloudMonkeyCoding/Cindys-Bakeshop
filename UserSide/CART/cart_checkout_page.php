@@ -874,7 +874,11 @@
           itemCount += qty;
         }
       });
-      totalPriceLabel.textContent = 'Total Price: ₱' + total.toFixed(2);
+      const formattedTotal = total.toLocaleString('en-PH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+      totalPriceLabel.textContent = 'Total Price: ₱' + formattedTotal;
       totalItemsLabel.textContent = 'Items: ' + itemCount;
       checkMasterToggle();
     }
