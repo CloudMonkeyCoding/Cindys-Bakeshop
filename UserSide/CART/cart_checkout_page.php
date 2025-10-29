@@ -140,6 +140,13 @@
       font-weight: 600;
     }
 
+    .qty-btn:disabled {
+      background: rgba(139, 69, 19, 0.05);
+      color: rgba(139, 69, 19, 0.35);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
     .qty-display {
       min-width: 32px;
       text-align: center;
