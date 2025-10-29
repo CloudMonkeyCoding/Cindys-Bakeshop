@@ -616,6 +616,19 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       transform: translateY(-1px);
     }
 
+    .modal-actions #removeFromCart {
+      background: #fff5f5;
+      color: #c0392b;
+      box-shadow: 0 8px 18px rgba(192, 57, 43, 0.18);
+      border: 1px solid rgba(192, 57, 43, 0.25);
+    }
+
+    .modal-actions #removeFromCart:hover {
+      background: #ffe3e3;
+      color: #922b21;
+      transform: translateY(-1px);
+    }
+
     @media (max-width: 1024px) {
       main {
         width: min(100% - 2rem, 960px);
@@ -788,6 +801,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     </div>
     <div class="modal-actions">
       <button type="button" id="cancelAdd">Cancel</button>
+      <button type="button" id="removeFromCart" hidden aria-hidden="true">Remove from Cart</button>
       <button type="button" id="confirmAdd">Add to Cart</button>
     </div>
   </div>
@@ -824,6 +838,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
     const increaseQty = document.getElementById('increaseQty');
     const currentQty = document.getElementById('currentQty');
     const confirmAdd = document.getElementById('confirmAdd');
+    const removeFromCart = document.getElementById('removeFromCart');
     const cancelAdd = document.getElementById('cancelAdd');
 
     const auth = getAuth();
@@ -975,6 +990,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       const maxSelectable = available > 0 ? available : 1;
       const startingQuantity = existingQuantity > 0 ? existingQuantity : 1;
       currentQuantity = Math.min(Math.max(1, startingQuantity), maxSelectable);
+      const hasExisting = existingQuantity > 0;
 
       if (modalTitle) {
         modalTitle.textContent = `Add ${product.name}`;
@@ -987,6 +1003,14 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
         } else {
           modalSubtitle.textContent = 'This item is currently out of stock.';
         }
+      }
+      if (confirmAdd) {
+        confirmAdd.textContent = hasExisting ? 'Update Cart' : 'Add to Cart';
+      }
+      if (removeFromCart) {
+        removeFromCart.hidden = !hasExisting;
+        removeFromCart.disabled = !hasExisting;
+        removeFromCart.setAttribute('aria-hidden', hasExisting ? 'false' : 'true');
       }
       refreshQuantityState();
       if (currentQty) {
@@ -1338,6 +1362,63 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
 
     if (cancelAdd) {
       cancelAdd.addEventListener('click', closeModal);
+    }
+
+    if (removeFromCart) {
+      removeFromCart.addEventListener('click', async () => {
+        if (!currentProduct || !userEmail) {
+          closeModal();
+          return;
+        }
+
+        const existing = cartItems.get(currentProduct.id);
+        if (!existing) {
+          closeModal();
+          return;
+        }
+
+        if (cartSyncPromise) {
+          try {
+            await cartSyncPromise;
+          } catch (error) {
+            console.error('Unable to sync cart before removing item.', error);
+          }
+        }
+
+        const body = new URLSearchParams();
+        body.set('cart_item_id', String(existing.cartItemId));
+
+        try {
+          const response = await fetch('../../PHP/cart_api.php?action=remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body,
+          });
+
+          if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+          }
+
+          let result;
+          try {
+            result = await response.json();
+          } catch (parseError) {
+            throw new Error('Invalid response format');
+          }
+
+          if (!result.deleted) {
+            throw new Error('Unable to remove cart item');
+          }
+
+          cartItems.delete(currentProduct.id);
+          showToast('Removed from cart.');
+        } catch (error) {
+          console.error('Remove from cart failed.', error);
+          showToast('Unable to remove from cart.', 'error');
+        } finally {
+          closeModal();
+        }
+      });
     }
 
     if (modal) {
