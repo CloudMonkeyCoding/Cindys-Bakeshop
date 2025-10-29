@@ -495,6 +495,7 @@
     import "../firebase-init.js";
 
     const cartContainer = document.getElementById('cart-items');
+    const checkoutItemsContainer = document.getElementById('checkout-items');
     const masterCheckbox = document.querySelector('.check-all input[type="checkbox"]');
     const header = document.getElementById('mainHeader');
     const rootPrefix = header?.dataset.rootPrefix || '../../../';
@@ -871,25 +872,121 @@
       });
     }
 
-    function updateTotal() {
-      let total = 0;
-      let itemCount = 0;
+    function formatCurrency(amount) {
+      return amount.toLocaleString('en-PH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function collectSelectedCartItems() {
+      const items = [];
       document.querySelectorAll('.cart-item').forEach(item => {
         const checkbox = item.querySelector('.item-check');
-        if (checkbox.checked) {
-          const price = parseFloat(item.getAttribute('data-price'));
-          const qty = parseInt(item.querySelector('.qty-display').textContent);
+        if (!checkbox.checked) {
+          return;
+        }
+
+        const qtyDisplay = item.querySelector('.qty-display');
+        let qty = parseInt(qtyDisplay?.textContent, 10);
+        if (Number.isNaN(qty)) {
+          qty = 0;
+        }
+
+        const priceAttr = parseFloat(item.getAttribute('data-price'));
+        const price = Number.isNaN(priceAttr) ? 0 : priceAttr;
+        const stockAttr = item.getAttribute('data-stock');
+        const stock = stockAttr !== null ? parseInt(stockAttr, 10) : NaN;
+        const name = item.querySelector('.item-details b')?.textContent || '';
+        const productId = item.getAttribute('data-product');
+
+        items.push({
+          element: item,
+          qty,
+          price,
+          stock,
+          name,
+          productId
+        });
+      });
+      return items;
+    }
+
+    function syncCheckoutSummary({ items = null, enforceStock = false } = {}) {
+      const selectedItems = items || collectSelectedCartItems();
+      if (!checkoutItemsContainer) {
+        return { hasItem: selectedItems.some(item => item.qty > 0) };
+      }
+
+      checkoutItemsContainer.innerHTML = '';
+      checkoutData = [];
+      let hasItem = false;
+
+      selectedItems.forEach(data => {
+        let { qty } = data;
+        const stock = data.stock;
+
+        if (enforceStock && !Number.isNaN(stock) && qty > stock) {
+          if (stock <= 0) {
+            alert(`${data.name} is out of stock and has been removed from your cart.`);
+            const increaseBtn = data.element.querySelector('.increase-btn');
+            if (increaseBtn) {
+              saveQty(increaseBtn, 0);
+            }
+            data.qty = 0;
+            return;
+          }
+
+          alert(`${data.name} quantity reduced to available stock of ${stock}.`);
+          qty = stock;
+          const qtyDisplay = data.element.querySelector('.qty-display');
+          if (qtyDisplay) {
+            qtyDisplay.textContent = stock;
+          }
+          const increaseBtn = data.element.querySelector('.increase-btn');
+          if (increaseBtn) {
+            saveQty(increaseBtn, stock);
+          }
+          updateQuantityControls(data.element);
+        }
+
+        if (qty <= 0) {
+          return;
+        }
+
+        hasItem = true;
+        data.qty = qty;
+        const total = data.price * qty;
+        const div = document.createElement('div');
+        div.classList.add('summary-item');
+        div.innerHTML = `<span>${data.name} ×${qty}</span><span>₱${formatCurrency(total)}</span>`;
+        checkoutItemsContainer.appendChild(div);
+        checkoutData.push({ product_id: data.productId, quantity: qty });
+      });
+
+      return { hasItem };
+    }
+
+    function updateTotal(options = {}) {
+      const { enforceStockInSummary = false } = options;
+      const selectedItems = collectSelectedCartItems();
+      const summaryResult = syncCheckoutSummary({ items: selectedItems, enforceStock: enforceStockInSummary });
+
+      let total = 0;
+      let itemCount = 0;
+
+      selectedItems.forEach(({ price, qty }) => {
+        if (qty > 0) {
           total += price * qty;
           itemCount += qty;
         }
       });
-      const formattedTotal = total.toLocaleString('en-PH', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      });
-      totalPriceLabel.textContent = 'Total Price: ₱' + formattedTotal;
+
+      totalPriceLabel.textContent = 'Total Price: ₱' + formatCurrency(total);
       totalItemsLabel.textContent = 'Items: ' + itemCount;
+
       checkMasterToggle();
+      return summaryResult;
     }
 
     function updateQuantityControls(item) {
@@ -988,48 +1085,9 @@
     }
 
     window.goToCheckout = function() {
-      const checkoutItems = document.getElementById('checkout-items');
-      checkoutItems.innerHTML = '';
-      checkoutData = [];
+      const summaryResult = updateTotal({ enforceStockInSummary: true }) || { hasItem: false };
 
-      let hasItem = false;
-
-      document.querySelectorAll('.cart-item').forEach(item => {
-        const checkbox = item.querySelector('.item-check');
-        if (checkbox.checked) {
-          const name = item.querySelector('.item-details b').textContent;
-          let qty = parseInt(item.querySelector('.qty-display').textContent, 10);
-          const stock = parseInt(item.getAttribute('data-stock'), 10);
-          if (qty > stock) {
-            if (stock <= 0) {
-              alert(`${name} is out of stock and has been removed from your cart.`);
-              saveQty(item.querySelector('.increase-btn'), 0);
-              return;
-            }
-            alert(`${name} quantity reduced to available stock of ${stock}.`);
-            qty = stock;
-            item.querySelector('.qty-display').textContent = stock;
-            saveQty(item.querySelector('.increase-btn'), stock);
-            updateQuantityControls(item);
-          }
-          if (qty <= 0) {
-            return;
-          }
-          hasItem = true;
-          const price = parseFloat(item.getAttribute('data-price'));
-          const total = price * qty;
-
-          const div = document.createElement('div');
-          div.classList.add('summary-item');
-          div.innerHTML = `<span>${name} ×${qty}</span><span>₱${total.toFixed(2)}</span>`;
-          checkoutItems.appendChild(div);
-          checkoutData.push({product_id: item.getAttribute('data-product'), quantity: qty});
-        }
-      });
-
-      updateTotal();
-
-      if (!hasItem) {
+      if (!summaryResult.hasItem) {
         alert('Please select at least one item to check out.');
         return;
       }
