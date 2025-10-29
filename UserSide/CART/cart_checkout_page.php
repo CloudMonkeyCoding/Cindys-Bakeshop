@@ -648,16 +648,23 @@
     }
 
     function updateMopOptions() {
-      mopSelect.innerHTML = '<option value="">-- Select --</option>';
+      const orderType = orderTypeSelect.value;
 
-      if (orderTypeSelect.value === 'Delivery') {
-        mopSelect.innerHTML += '<option value="GCash">GCash</option>';
-      } else if (orderTypeSelect.value === 'Pick up') {
-        mopSelect.innerHTML += '<option value="Cash on Pick Up">Cash on Pick Up</option>';
-        mopSelect.innerHTML += '<option value="GCash">GCash</option>';
+      mopSelect.innerHTML = '<option value="">-- Select --</option>';
+      mopSelect.value = '';
+      mopSelect.disabled = true;
+
+      if (orderType === 'Delivery') {
+        mopSelect.innerHTML = '<option value="GCash">GCash</option>';
+        mopSelect.value = 'GCash';
+        return;
       }
 
-      mopSelect.disabled = orderTypeSelect.value === '';
+      if (orderType === 'Pick up') {
+        mopSelect.innerHTML += '<option value="Cash on Pick Up">Cash on Pick Up</option>';
+        mopSelect.innerHTML += '<option value="GCash">GCash</option>';
+        mopSelect.disabled = false;
+      }
     }
 
     function updateDeliveryAvailability(showAlert = false) {
