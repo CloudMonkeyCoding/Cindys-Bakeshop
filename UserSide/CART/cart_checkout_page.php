@@ -830,6 +830,8 @@
         div.querySelector('.increase-btn').addEventListener('click', e => increaseQty(e.target));
         div.querySelector('.edit-btn').addEventListener('click', e => toggleEdit(e.target));
         div.querySelector('.remove-btn').addEventListener('click', e => removeItem(e.target));
+
+        updateQuantityControls(div);
       });
 
       document.querySelectorAll('.item-check').forEach(cb => {
@@ -883,21 +885,55 @@
       checkMasterToggle();
     }
 
+    function updateQuantityControls(item) {
+      const decreaseBtn = item.querySelector('.decrease-btn');
+      const increaseBtn = item.querySelector('.increase-btn');
+      const qty = parseInt(item.querySelector('.qty-display').textContent, 10);
+      const stockAttr = item.getAttribute('data-stock');
+      const stock = stockAttr !== null ? parseInt(stockAttr, 10) : NaN;
+
+      decreaseBtn.disabled = qty <= 1;
+
+      if (!Number.isNaN(stock)) {
+        if (stock <= 0) {
+          increaseBtn.disabled = true;
+        } else {
+          increaseBtn.disabled = qty >= stock;
+        }
+      } else {
+        increaseBtn.disabled = false;
+      }
+    }
+
     function increaseQty(button) {
+      const item = button.closest('.cart-item');
       const qtyDisplay = button.previousElementSibling;
       let qty = parseInt(qtyDisplay.textContent);
+      const stockAttr = item.getAttribute('data-stock');
+      const stock = stockAttr !== null ? parseInt(stockAttr, 10) : NaN;
+
+      if (!Number.isNaN(stock) && stock > 0 && qty >= stock) {
+        updateQuantityControls(item);
+        return;
+      }
+
       qtyDisplay.textContent = qty + 1;
       saveQty(button, qty + 1);
       updateTotal();
+      updateQuantityControls(item);
     }
 
     function decreaseQty(button) {
+      const item = button.closest('.cart-item');
       const qtyDisplay = button.nextElementSibling;
       let qty = parseInt(qtyDisplay.textContent);
       if (qty > 1) {
         qtyDisplay.textContent = qty - 1;
         saveQty(button, qty - 1);
         updateTotal();
+        updateQuantityControls(item);
+      } else {
+        updateQuantityControls(item);
       }
     }
 
@@ -967,6 +1003,7 @@
             qty = stock;
             item.querySelector('.qty-display').textContent = stock;
             saveQty(item.querySelector('.increase-btn'), stock);
+            updateQuantityControls(item);
           }
           if (qty <= 0) {
             return;
