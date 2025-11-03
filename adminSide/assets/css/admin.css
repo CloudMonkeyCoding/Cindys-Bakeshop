@@ -537,7 +537,7 @@ table tbody tr:hover {
   color: var(--muted-text);
   white-space: nowrap;
   min-height: 24px;
-  min-width: 140px;
+  min-width: 240px;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.2s ease;
