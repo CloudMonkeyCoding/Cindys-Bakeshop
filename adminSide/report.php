@@ -2,6 +2,7 @@
 require_once __DIR__ . '/includes/require_admin_login.php';
 require_once '../PHP/db_connect.php';
 require_once '../PHP/inventory_functions.php';
+require_once '../PHP/product_functions.php';
 
 $activePage = 'inventory-report';
 $pageTitle = "Inventory Report - Cindy's Bakeshop";
@@ -36,7 +37,9 @@ $inventoryEditingLocked = $reportDate !== null && $reportDate < $todayDate;
 if ($pdo) {
     $rows = getInventoryWithProducts($pdo, $reportDate);
     foreach ($rows as $row) {
-        $category = $row['Category'] ?? 'Uncategorized';
+        $categoryRaw = $row['Category'] ?? '';
+        $normalizedCategory = normalizeProductCategoryValue($categoryRaw);
+        $category = $normalizedCategory === '' ? 'Uncategorized' : $normalizedCategory;
         $stockRaw = $row['Stock_Quantity'];
         $stockValue = max(0, (int)$stockRaw);
 

@@ -7,9 +7,11 @@ $activePage = 'products';
 $pageTitle = "Products - Cindy's Bakeshop";
 
 $products = [];
+
 if ($pdo) {
     $products = array_map(static function ($product) {
         $product['Image_Url'] = getProductImageUrl($product, '../');
+        $product['Category'] = normalizeProductCategoryValue($product['Category'] ?? '');
         return $product;
     }, getAllProducts($pdo) ?: []);
 }
@@ -36,7 +38,6 @@ include 'includes/sidebar.php';
         <option value="all">All Categories</option>
         <option value="Bread">Bread</option>
         <option value="Cake">Cake</option>
-        <option value="Pastry">Pastry</option>
       </select>
     </div>
     <table id="productTable">
@@ -58,13 +59,13 @@ include 'includes/sidebar.php';
           </tr>
         <?php else: ?>
           <?php foreach ($products as $index => $product): ?>
-            <tr data-product-id="<?= $product['Product_ID']; ?>" data-category="<?= htmlspecialchars($product['Category'] ?? ''); ?>">
+            <tr data-product-id="<?= $product['Product_ID']; ?>" data-category="<?= htmlspecialchars(normalizeProductCategoryValue($product['Category'] ?? '')); ?>">
               <td><?= $index + 1; ?></td>
               <td><img src="<?= htmlspecialchars($product['Image_Url']); ?>" alt="<?= htmlspecialchars($product['Name']); ?>" style="width:60px;height:60px;border-radius:8px;object-fit:cover;"></td>
               <td><?= htmlspecialchars($product['Name']); ?></td>
               <td><?= number_format($product['Stock_Quantity'] ?? 0); ?></td>
               <td>₱<?= number_format($product['Price'], 0); ?></td>
-              <td><?= htmlspecialchars($product['Category']); ?></td>
+              <td><?= htmlspecialchars(normalizeProductCategoryValue($product['Category'] ?? '')); ?></td>
               <td style="display:flex;gap:10px;flex-wrap:wrap;">
                 <button class="btn btn-secondary btn-edit" data-id="<?= $product['Product_ID']; ?>">Edit</button>
                 <button class="btn btn-muted btn-archive" data-id="<?= $product['Product_ID']; ?>">Archive</button>
@@ -95,7 +96,6 @@ include 'includes/sidebar.php';
         <select name="category" id="productCategory">
           <option value="Bread">Bread</option>
           <option value="Cake">Cake</option>
-          <option value="Pastry">Pastry</option>
         </select>
       </div>
       <div class="form-group">
@@ -137,7 +137,7 @@ $productsJson = json_encode(array_map(static function ($product) {
         'description' => $product['Description'],
         'price' => (int)round($product['Price']),
         'stock' => (int)$product['Stock_Quantity'],
-        'category' => $product['Category'],
+        'category' => normalizeProductCategoryValue($product['Category'] ?? ''),
         'image' => $product['Image_Url'],
         'imagePath' => $product['Image_Path'],
     ];
@@ -164,6 +164,14 @@ $extraScripts = <<<JS
   const removeImageFlag = document.getElementById('removeImageFlag');
   const previewPlaceholder = imagePreview ? (imagePreview.dataset.placeholder || imagePreview.src) : '';
   const defaultImagePreview = previewPlaceholder || '../Images/logo.png';
+  const normalizeCategoryValue = (value) => {
+    if (typeof value !== 'string') {
+      return value || '';
+    }
+    const trimmed = value.trim();
+    return trimmed.toLowerCase().includes('pastry') ? 'Bread' : trimmed;
+  };
+
   let isEditingProduct = false;
   let originalImageUrl = '';
   let originalImagePath = '';
@@ -201,7 +209,7 @@ $extraScripts = <<<JS
       description: product.description ?? product.Description ?? '',
       price: parseWholePrice(product.price ?? product.Price ?? 0),
       stock: Number(product.stock ?? product.Stock_Quantity ?? 0),
-      category: product.category ?? product.Category ?? '',
+      category: normalizeCategoryValue(product.category ?? product.Category ?? ''),
       image: resolvedImage || defaultImagePreview,
       imagePath: imagePath
     };

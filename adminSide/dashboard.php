@@ -7,6 +7,7 @@ require_once '../PHP/order_item_functions.php';
 require_once '../PHP/transaction_functions.php';
 require_once '../PHP/inventory_functions.php';
 require_once '../PHP/user_functions.php';
+require_once '../PHP/product_functions.php';
 
 $activePage = 'dashboard';
 $pageTitle = "Dashboard - Cindy's Bakeshop";
@@ -556,6 +557,13 @@ if ($pdo) {
         }));
     }
 
+    $categoryRevenueShare = array_map(static function ($row) {
+        if (isset($row['category_name'])) {
+            $row['category_name'] = normalizeProductCategoryValue($row['category_name']);
+        }
+        return $row;
+    }, $categoryRevenueShare);
+
     $stmtRecent = $pdo->prepare("
         SELECT o.Order_ID, o.Order_Date, o.Status, u.Name, COALESCE(SUM(oi.Subtotal), 0) AS Total
         FROM `order` o
@@ -576,7 +584,9 @@ if ($pdo) {
 $salesLabels = json_encode(!empty($monthlySales) ? array_column($monthlySales, 'label') : ['No Data']);
 $salesValues = json_encode(!empty($monthlySales) ? array_map(function ($item) { return round($item['value'], 2); }, $monthlySales) : [0]);
 $categoryLabels = json_encode(!empty($categoryRevenueShare) ? array_map(function ($item) {
-    return $item['category_name'] ?? 'Uncategorized';
+    $categoryName = $item['category_name'] ?? 'Uncategorized';
+    $normalized = normalizeProductCategoryValue($categoryName);
+    return $normalized === '' ? 'Uncategorized' : $normalized;
 }, $categoryRevenueShare) : ['No Data']);
 $categoryValues = json_encode(!empty($categoryRevenueShare) ? array_map(function ($item) {
     return round((float)($item['total_revenue'] ?? 0), 2);

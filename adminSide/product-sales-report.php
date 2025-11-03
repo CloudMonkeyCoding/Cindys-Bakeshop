@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/includes/require_super_admin.php';
 require_once '../PHP/db_connect.php';
+require_once '../PHP/product_functions.php';
 
 $activePage = 'product-sales-report';
 $pageTitle = "Product Sales Report - Cindy's Bakeshop";
@@ -367,7 +368,10 @@ $catalogSize = count($productSales);
 
 foreach ($productSales as &$product) {
     $product['Name'] = $product['Name'] ?? 'Unnamed Product';
-    $product['Category'] = $product['Category'] ?? 'Uncategorized';
+    $categoryRaw = $product['Category'] ?? '';
+    $normalizedCategory = normalizeProductCategoryValue($categoryRaw);
+    $categoryLabel = $normalizedCategory === '' ? 'Uncategorized' : $normalizedCategory;
+    $product['Category'] = $categoryLabel;
     $product['revenue'] = (int)round((float)($product['revenue'] ?? 0));
     $product['units_sold'] = (int)($product['units_sold'] ?? 0);
     $product['order_count'] = (int)($product['order_count'] ?? 0);
@@ -377,7 +381,7 @@ foreach ($productSales as &$product) {
     $totalRevenue += $product['revenue'];
     $totalUnits += $product['units_sold'];
 
-    $category = $product['Category'] ?: 'Uncategorized';
+    $category = $categoryLabel ?: 'Uncategorized';
     $categoryRevenue[$category] = ($categoryRevenue[$category] ?? 0) + $product['revenue'];
     $categoryUnits[$category] = ($categoryUnits[$category] ?? 0) + $product['units_sold'];
 
