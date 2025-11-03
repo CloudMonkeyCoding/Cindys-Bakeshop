@@ -128,6 +128,16 @@ $stock = (int)($product['Stock_Quantity'] ?? 0);
       font-size: 1.1rem;
     }
 
+    .quantity-row input[type="number"]::-webkit-outer-spin-button,
+    .quantity-row input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .quantity-row input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
     .action-buttons {
       display: flex;
       flex-wrap: wrap;
