@@ -418,6 +418,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!inventoryEditingEnabled || editingLockedForDate) {
         return;
       }
+      const saveButton = event.target.closest('.inventory-save-btn');
+      if (saveButton && inventoryContainer.contains(saveButton)) {
+        const control = saveButton.closest('.inventory-stock-cell')?.querySelector('.inventory-stock-control')
+          || saveButton.closest('.inventory-stock-control');
+        if (control) {
+          persistStock(control);
+        }
+        return;
+      }
+
       const button = event.target.closest('.inventory-adjust-btn');
       if (!button || !inventoryContainer.contains(button)) {
         return;
@@ -440,6 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const control = input.closest('.inventory-stock-control');
       updateStockStatus(control);
+      refreshControlDirtyState(control);
     });
 
     inventoryContainer.addEventListener('change', (event) => {
@@ -451,7 +462,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       const control = input.closest('.inventory-stock-control');
-      persistStock(control);
+      updateStockStatus(control);
+      refreshControlDirtyState(control);
     });
 
     inventoryContainer.addEventListener('keydown', (event) => {
@@ -502,14 +514,17 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       editToggleBtn.addEventListener('click', () => {
         inventoryEditingEnabled = !inventoryEditingEnabled;
+        if (!inventoryEditingEnabled) {
+          renderInventoryUI();
+          return;
+        }
+
         applyEditingState();
-        if (inventoryEditingEnabled) {
-          const firstInput = inventoryContainer?.querySelector('.inventory-stock-input');
-          if (firstInput) {
-            firstInput.focus();
-            if (typeof firstInput.select === 'function') {
-              firstInput.select();
-            }
+        const firstInput = inventoryContainer?.querySelector('.inventory-stock-input');
+        if (firstInput) {
+          firstInput.focus();
+          if (typeof firstInput.select === 'function') {
+            firstInput.select();
           }
         }
       });
@@ -591,6 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
         row.appendChild(nameCell);
 
         const stockCell = document.createElement('td');
+        stockCell.className = 'inventory-stock-cell';
         const control = document.createElement('div');
         control.className = 'inventory-stock-control';
         control.dataset.productId = Number(item?.id ?? 0);
@@ -623,10 +639,18 @@ document.addEventListener('DOMContentLoaded', () => {
         control.appendChild(stockInput);
         control.appendChild(plusButton);
 
+        const saveButton = document.createElement('button');
+        saveButton.type = 'button';
+        saveButton.className = 'inventory-save-btn';
+        saveButton.textContent = 'Save';
+        saveButton.disabled = true;
+        saveButton.dataset.defaultLabel = 'Save';
+
         const note = document.createElement('span');
         note.className = 'inventory-stock-note';
 
         stockCell.appendChild(control);
+        stockCell.appendChild(saveButton);
         stockCell.appendChild(note);
 
         row.appendChild(stockCell);
@@ -640,6 +664,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     inventoryContainer.querySelectorAll('.inventory-stock-control').forEach((control) => {
       updateStockStatus(control);
+      refreshControlDirtyState(control);
     });
 
     applyEditingState();
@@ -697,6 +722,8 @@ document.addEventListener('DOMContentLoaded', () => {
           stockInput.blur();
         }
       }
+
+      refreshControlDirtyState(control);
     });
   }
 
@@ -811,7 +838,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     input.value = value;
     updateStockStatus(control);
-    persistStock(control);
+    refreshControlDirtyState(control);
   }
 
   function updateStockStatus(control) {
@@ -825,7 +852,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const raw = (input?.value ?? '').toString().trim();
     if (note) {
       note.textContent = '';
-      note.classList.remove('is-preorder', 'is-low', 'is-zero');
+      note.classList.remove('is-preorder', 'is-low', 'is-zero', 'has-unsaved');
     }
     if (row) {
       row.removeAttribute('data-stock-state');
@@ -849,6 +876,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         note.textContent = '';
       }
+      note.dataset.baseMessage = note.textContent;
     }
 
     if (row) {
@@ -862,6 +890,56 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     return numeric;
+  }
+
+  function refreshControlDirtyState(control) {
+    if (!control) {
+      return;
+    }
+
+    const input = control.querySelector('.inventory-stock-input');
+    const saveButton = control.parentElement?.querySelector('.inventory-save-btn');
+    const note = control.parentElement?.querySelector('.inventory-stock-note');
+    const productId = Number(control.dataset.productId);
+    const sanitized = sanitizeStockValue(input ? input.value : '0');
+    const parsedSanitized = parseInt(sanitized, 10);
+    const normalizedSanitized = Number.isNaN(parsedSanitized) || parsedSanitized < 0 ? 0 : parsedSanitized;
+
+    let originalStock = 0;
+    const meta = inventoryIndex.get(productId);
+    if (meta && Array.isArray(inventoryData[meta.category])) {
+      const original = inventoryData[meta.category][meta.position]?.stock;
+      const parsedOriginal = parseInt(original, 10);
+      originalStock = Number.isNaN(parsedOriginal) || parsedOriginal < 0 ? 0 : parsedOriginal;
+    }
+
+    const isDirty = normalizedSanitized !== originalStock;
+    control.dataset.dirty = isDirty ? '1' : '0';
+    control.classList.toggle('has-unsaved', isDirty);
+
+    if (saveButton) {
+      const defaultLabel = saveButton.dataset.defaultLabel || saveButton.textContent || 'Save';
+      if (!saveButton.dataset.defaultLabel) {
+        saveButton.dataset.defaultLabel = defaultLabel;
+      }
+      const isSaving = control.classList.contains('is-saving');
+      if (!isSaving) {
+        saveButton.textContent = saveButton.dataset.defaultLabel;
+      }
+      saveButton.disabled = isSaving || !inventoryEditingEnabled || editingLockedForDate || !isDirty;
+    }
+
+    if (note) {
+      const baseMessage = typeof note.dataset.baseMessage === 'string' ? note.dataset.baseMessage : '';
+      if (isDirty) {
+        const unsavedMessage = baseMessage ? `${baseMessage} · Unsaved changes` : 'Unsaved changes';
+        note.textContent = unsavedMessage;
+        note.classList.add('has-unsaved');
+      } else {
+        note.textContent = baseMessage;
+        note.classList.remove('has-unsaved');
+      }
+    }
   }
 
   function persistStock(control) {
@@ -879,12 +957,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const sanitized = sanitizeStockValue(input.value);
     input.value = sanitized;
     updateStockStatus(control);
+    refreshControlDirtyState(control);
 
-    const itemMeta = inventoryIndex.get(productId);
-    const previous = itemMeta ? inventoryData[itemMeta.category]?.[itemMeta.position]?.stock ?? 0 : 0;
-    const sanitizedNumber = parseInt(sanitized, 10);
-
-    if (!Number.isNaN(sanitizedNumber) && previous === sanitizedNumber) {
+    if (control.dataset.dirty !== '1') {
       return;
     }
 
@@ -928,7 +1003,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!control) {
       return;
     }
-    control.classList.toggle('is-saving', Boolean(isSaving));
+    const saving = Boolean(isSaving);
+    control.classList.toggle('is-saving', saving);
+
+    const saveButton = control.parentElement?.querySelector('.inventory-save-btn');
+    if (saveButton) {
+      const defaultLabel = saveButton.dataset.defaultLabel || saveButton.textContent || 'Save';
+      if (!saveButton.dataset.defaultLabel) {
+        saveButton.dataset.defaultLabel = defaultLabel;
+      }
+      if (saving) {
+        saveButton.textContent = 'Saving…';
+        saveButton.disabled = true;
+      } else {
+        saveButton.textContent = saveButton.dataset.defaultLabel;
+        const isDirty = control.dataset.dirty === '1';
+        saveButton.disabled = !inventoryEditingEnabled || editingLockedForDate || !isDirty;
+      }
+    }
   }
 
   function sanitizeStockValue(raw) {
