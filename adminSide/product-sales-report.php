@@ -5,19 +5,19 @@ require_once '../PHP/db_connect.php';
 $activePage = 'product-sales-report';
 $pageTitle = "Product Sales Report - Cindy's Bakeshop";
 
-$totalRevenue = 0.0;
+$totalRevenue = 0;
 $totalUnits = 0;
 $totalOrders = 0;
-$averageOrderValue = 0.0;
+$averageOrderValue = 0;
 $averageUnitsPerOrder = 0.0;
-$averageSellingPrice = 0.0;
+$averageSellingPrice = 0;
 $productsWithSales = 0;
 $catalogSize = 0;
 $topProductName = 'No sales recorded yet';
-$topProductRevenue = 0.0;
+$topProductRevenue = 0;
 $topProductUnits = 0;
 $topCategoryName = 'No category sales yet';
-$topCategoryRevenue = 0.0;
+$topCategoryRevenue = 0;
 $recentSaleTimestamp = null;
 $recentSaleDisplay = 'No sales recorded for this date';
 
@@ -241,7 +241,7 @@ if ($pdo) {
         $bucketData = $trendBuckets[$bucketKey] ?? ['revenue' => 0.0, 'units' => 0.0];
         $bucketRevenue = (float)($bucketData['revenue'] ?? 0.0);
         $bucketUnits = (float)($bucketData['units'] ?? 0.0);
-        $hourlyRevenue[] = $bucketRevenue;
+        $hourlyRevenue[] = (int)round($bucketRevenue);
         $hourlyUnits[] = (int)round($bucketUnits);
 
         $dayKey = $point->format('Y-m-d');
@@ -298,7 +298,7 @@ if ($pdo) {
                 $label = $dailyDate->format($includeDailyYear ? 'M d, Y' : 'M d');
             }
             $dailyLabels[] = $label;
-            $dailyRevenue[] = round((float)($dailyData['revenue'] ?? 0), 2);
+            $dailyRevenue[] = (int)round((float)($dailyData['revenue'] ?? 0));
             $dailyUnits[] = (int)round((float)($dailyData['units'] ?? 0));
         }
     }
@@ -339,7 +339,7 @@ if ($pdo) {
             } else {
                 $weeklyLabels[] = 'Week';
             }
-            $weeklyRevenue[] = round((float)($weeklyData['revenue'] ?? 0), 2);
+            $weeklyRevenue[] = (int)round((float)($weeklyData['revenue'] ?? 0));
             $weeklyUnits[] = (int)round((float)($weeklyData['units'] ?? 0));
         }
     }
@@ -368,7 +368,7 @@ $catalogSize = count($productSales);
 foreach ($productSales as &$product) {
     $product['Name'] = $product['Name'] ?? 'Unnamed Product';
     $product['Category'] = $product['Category'] ?? 'Uncategorized';
-    $product['revenue'] = (float)($product['revenue'] ?? 0);
+    $product['revenue'] = (int)round((float)($product['revenue'] ?? 0));
     $product['units_sold'] = (int)($product['units_sold'] ?? 0);
     $product['order_count'] = (int)($product['order_count'] ?? 0);
     $product['first_sale'] = $product['first_sale'] ?? null;
@@ -408,16 +408,17 @@ if ($recentSaleTimestamp) {
 
 $sortedCategoryRevenue = $categoryRevenue;
 arsort($sortedCategoryRevenue);
-if (!empty($sortedCategoryRevenue)) {
-    $topCategoryName = array_key_first($sortedCategoryRevenue) ?? 'No category sales yet';
-    $topCategoryRevenue = $sortedCategoryRevenue[$topCategoryName] ?? 0.0;
+$filteredCategoryRevenue = array_map(static fn($value) => (int)round((float)$value), $sortedCategoryRevenue);
+if (!empty($filteredCategoryRevenue)) {
+    $topCategoryName = array_key_first($filteredCategoryRevenue) ?? 'No category sales yet';
+    $topCategoryRevenue = $filteredCategoryRevenue[$topCategoryName] ?? 0;
 }
 
-$averageOrderValue = $totalOrders > 0 ? $totalRevenue / $totalOrders : 0.0;
+$averageOrderValue = $totalOrders > 0 ? (int)round($totalRevenue / $totalOrders) : 0;
 $averageUnitsPerOrder = $totalOrders > 0 ? $totalUnits / $totalOrders : 0.0;
-$averageSellingPrice = $totalUnits > 0 ? $totalRevenue / max($totalUnits, 1) : 0.0;
+$averageSellingPrice = $totalUnits > 0 ? (int)round($totalRevenue / max($totalUnits, 1)) : 0;
 $hourlyRevenueRounded = array_map(static function ($value) {
-    return round($value, 2);
+    return (int)round($value);
 }, $hourlyRevenue);
 
 $topProductChartData = array_slice(array_values(array_filter($productSales, function ($product) {
@@ -427,7 +428,7 @@ $topProductLabels = array_map(function ($product) {
     return $product['Name'];
 }, $topProductChartData);
 $topProductRevenueValues = array_map(function ($product) {
-    return round($product['revenue'], 2);
+    return (int)round($product['revenue']);
 }, $topProductChartData);
 $topProductUnitValues = array_map(function ($product) {
     return (int)$product['units_sold'];
@@ -436,12 +437,12 @@ $topProductUnitValues = array_map(function ($product) {
 $categoryLabels = [];
 $categoryRevenueValues = [];
 $categoryUnitValues = [];
-foreach ($sortedCategoryRevenue as $category => $revenue) {
+foreach ($filteredCategoryRevenue as $category => $revenue) {
     if ($revenue <= 0) {
         continue;
     }
     $categoryLabels[] = $category;
-    $categoryRevenueValues[] = round($revenue, 2);
+    $categoryRevenueValues[] = (int)round($revenue);
     $categoryUnitValues[] = (int)($categoryUnits[$category] ?? 0);
 }
 
@@ -449,17 +450,17 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
 $salesTrendSeries = [
     'hourly' => [
         'labels' => $hourlyLabels,
-        'revenue' => $hourlyRevenueRounded,
+        'revenue' => array_map('intval', $hourlyRevenueRounded),
         'units' => array_map('intval', $hourlyUnits),
     ],
     'daily' => [
         'labels' => $dailyLabels,
-        'revenue' => $dailyRevenue,
+        'revenue' => array_map('intval', $dailyRevenue),
         'units' => array_map('intval', $dailyUnits),
     ],
     'weekly' => [
         'labels' => $weeklyLabels,
-        'revenue' => $weeklyRevenue,
+        'revenue' => array_map('intval', $weeklyRevenue),
         'units' => array_map('intval', $weeklyUnits),
     ],
 ];
@@ -553,10 +554,10 @@ include 'includes/sidebar.php';
   <section class="stats-grid columns-4" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
     <div class="stat-card">
       <h3>Total Product Revenue</h3>
-      <div class="value">₱<?= number_format($totalRevenue, 2); ?></div>
+      <div class="value">₱<?= number_format($totalRevenue, 0); ?></div>
       <div class="meta">
         <?php if ($topCategoryRevenue > 0): ?>
-          Top category: <?= htmlspecialchars($topCategoryName); ?> (₱<?= number_format($topCategoryRevenue, 2); ?>)
+          Top category: <?= htmlspecialchars($topCategoryName); ?> (₱<?= number_format($topCategoryRevenue, 0); ?>)
         <?php else: ?>
           No category sales yet
         <?php endif; ?>
@@ -576,12 +577,12 @@ include 'includes/sidebar.php';
     <div class="stat-card">
       <h3>Orders with Sales</h3>
       <div class="value"><?= number_format($totalOrders); ?></div>
-      <div class="meta">Average order value: ₱<?= number_format($averageOrderValue, 2); ?></div>
+      <div class="meta">Average order value: ₱<?= number_format($averageOrderValue, 0); ?></div>
     </div>
     <div class="stat-card">
       <h3>Products Sold</h3>
       <div class="value"><?= number_format($productsWithSales); ?></div>
-      <div class="meta">Avg item price: ₱<?= number_format($averageSellingPrice, 2); ?> &bull; Catalog: <?= number_format($catalogSize); ?> items</div>
+      <div class="meta">Avg item price: ₱<?= number_format($averageSellingPrice, 0); ?> &bull; Catalog: <?= number_format($catalogSize); ?> items</div>
     </div>
   </section>
 
@@ -631,7 +632,7 @@ include 'includes/sidebar.php';
               <?php
                 $statusName = $statusRow['status'] ?? 'Unknown';
                 $statusUnits = (int)($statusRow['units'] ?? 0);
-                $statusRevenue = (float)($statusRow['revenue'] ?? 0);
+                $statusRevenue = (int)round((float)($statusRow['revenue'] ?? 0));
                 $statusClass = strtolower(str_replace(' ', '-', $statusName));
               ?>
               <tr>
@@ -641,7 +642,7 @@ include 'includes/sidebar.php';
                   </span>
                 </td>
                 <td><?= number_format($statusUnits); ?></td>
-                <td>₱<?= number_format($statusRevenue, 2); ?></td>
+                <td>₱<?= number_format($statusRevenue, 0); ?></td>
               </tr>
             <?php endforeach; ?>
           </tbody>
@@ -678,7 +679,7 @@ include 'includes/sidebar.php';
             <?php
               $unitsSold = $product['units_sold'];
               $revenue = $product['revenue'];
-              $avgPrice = $unitsSold > 0 ? $revenue / max($unitsSold, 1) : 0;
+              $avgPrice = $unitsSold > 0 ? (int)round($revenue / max($unitsSold, 1)) : 0;
               $firstSale = $product['first_sale'] ? strtotime($product['first_sale']) : false;
               $lastSale = $product['last_sale'] ? strtotime($product['last_sale']) : false;
             ?>
@@ -686,11 +687,11 @@ include 'includes/sidebar.php';
               <td><?= htmlspecialchars($product['Name']); ?></td>
               <td><?= htmlspecialchars($product['Category']); ?></td>
               <td><?= number_format($unitsSold); ?></td>
-              <td>₱<?= number_format($revenue, 2); ?></td>
+              <td>₱<?= number_format($revenue, 0); ?></td>
               <td><?= number_format($product['order_count']); ?></td>
               <td><?= $firstSale ? htmlspecialchars(date('M d, Y g:i A', $firstSale)) : '—'; ?></td>
               <td><?= $lastSale ? htmlspecialchars(date('M d, Y g:i A', $lastSale)) : '—'; ?></td>
-              <td><?= $unitsSold > 0 ? '₱' . number_format($avgPrice, 2) : '—'; ?></td>
+              <td><?= $unitsSold > 0 ? '₱' . number_format($avgPrice, 0) : '—'; ?></td>
             </tr>
           <?php endforeach; ?>
         </tbody>
@@ -785,7 +786,7 @@ $extraScripts = <<<JS
     const revenue = Array.isArray(candidate.revenue)
       ? candidate.revenue.map(value => {
           const numeric = Number.parseFloat(value);
-          return Number.isFinite(numeric) ? numeric : 0;
+          return Number.isFinite(numeric) ? Math.round(numeric) : 0;
         })
       : [];
     const units = Array.isArray(candidate.units)
@@ -903,7 +904,7 @@ $extraScripts = <<<JS
             callbacks: {
               label: context => {
                 const value = context.parsed.y ?? 0;
-                const revenueLabel = 'Revenue: ₱' + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const revenueLabel = 'Revenue: ₱' + Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 });
                 const unitsCollection = Array.isArray(context.dataset.units) ? context.dataset.units : [];
                 const unitsValue = unitsCollection[context.dataIndex] ?? 0;
                 const unitsLabel = 'Units sold: ' + Number(unitsValue).toLocaleString();
@@ -924,7 +925,7 @@ $extraScripts = <<<JS
           y: {
             beginAtZero: true,
             ticks: {
-              callback: value => '₱' + Number(value).toLocaleString()
+              callback: value => '₱' + Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })
             }
           }
         }
@@ -977,7 +978,7 @@ $extraScripts = <<<JS
               label: context => {
                 const revenue = context.parsed.y ?? 0;
                 const units = unitData[context.dataIndex] ?? 0;
-                const revenueLabel = 'Revenue: ₱' + Number(revenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const revenueLabel = 'Revenue: ₱' + Number(revenue).toLocaleString(undefined, { maximumFractionDigits: 0 });
                 const unitsLabel = 'Units sold: ' + Number(units).toLocaleString();
                 return [revenueLabel, unitsLabel];
               }
@@ -989,7 +990,7 @@ $extraScripts = <<<JS
           y: {
             beginAtZero: true,
             ticks: {
-              callback: value => '₱' + Number(value).toLocaleString()
+              callback: value => '₱' + Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })
             }
           }
         }
@@ -1022,7 +1023,7 @@ $extraScripts = <<<JS
               label: context => {
                 const revenue = context.parsed ?? 0;
                 const units = unitData[context.dataIndex] ?? 0;
-                const revenueLabel = 'Revenue: ₱' + Number(revenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const revenueLabel = 'Revenue: ₱' + Number(revenue).toLocaleString(undefined, { maximumFractionDigits: 0 });
                 const unitsLabel = 'Units sold: ' + Number(units).toLocaleString();
                 return context.label + ': ' + revenueLabel + ' • ' + unitsLabel;
               }
