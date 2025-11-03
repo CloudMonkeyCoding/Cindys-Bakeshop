@@ -206,12 +206,21 @@ $stock = (int)($product['Stock_Quantity'] ?? 0);
     const qtyEl = document.getElementById('qty');
 
     function enforceQtyBounds(options = {}) {
-      const { shouldAlert = false } = options;
+      const { shouldAlert = false, allowEmpty = false } = options;
       if (!qtyEl) {
         return;
       }
 
-      let current = parseInt(qtyEl.value, 10);
+      const rawValue = qtyEl.value.trim();
+      if (rawValue === '') {
+        if (allowEmpty) {
+          return;
+        }
+        qtyEl.value = maxStock === 0 ? 0 : 1;
+        return;
+      }
+
+      let current = parseInt(rawValue, 10);
       const fallback = maxStock === 0 ? 0 : 1;
 
       if (Number.isNaN(current)) {
@@ -307,7 +316,7 @@ $stock = (int)($product['Stock_Quantity'] ?? 0);
     }
 
     if (qtyEl) {
-      qtyEl.addEventListener('input', () => enforceQtyBounds());
+      qtyEl.addEventListener('input', () => enforceQtyBounds({ allowEmpty: true }));
       qtyEl.addEventListener('blur', () => enforceQtyBounds());
     }
 
