@@ -94,7 +94,7 @@ include 'includes/sidebar.php';
         <input type="text" name="name" id="productName" required>
       </div>
       <div class="form-group">
-        <label for="productDescription">Description</label>
+        <label for="productDescription">Description (optional)</label>
         <textarea name="description" id="productDescription" rows="3"></textarea>
       </div>
       <div class="form-group">
