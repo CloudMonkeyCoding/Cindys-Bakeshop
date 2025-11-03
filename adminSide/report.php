@@ -383,6 +383,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const parsed = parseInt(value, 10);
     return Number.isNaN(parsed) ? null : parsed;
   };
+  const normalizeInventoryCategory = (value) => {
+    if (typeof value !== 'string') {
+      return '';
+    }
+    const trimmed = value.trim();
+    if (trimmed === '') {
+      return '';
+    }
+    return trimmed.toLowerCase().includes('pastry') ? 'Bread' : trimmed;
+  };
   let currentSearchTerm = '';
   let currentLogSearchTerm = '';
   let latestUpdateToken = 0;
@@ -935,21 +945,50 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!raw || typeof raw !== 'object') {
       return normalized;
     }
+
     Object.entries(raw).forEach(([category, items]) => {
+      const normalizedCategory = normalizeInventoryCategory(category);
+      const targetCategory = normalizedCategory === '' ? 'Uncategorized' : normalizedCategory;
+
+      if (!Object.prototype.hasOwnProperty.call(normalized, targetCategory)) {
+        normalized[targetCategory] = [];
+      }
+
       if (!Array.isArray(items)) {
         return;
       }
-      normalized[category] = items.map((item) => {
+
+      items.forEach((item) => {
         const stockValue = item?.stock;
         const parsed = parseInt(stockValue, 10);
         const normalizedStock = Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
-        return {
-          id: Number(item?.id ?? 0),
-          name: item?.name ?? '',
+        const idValue = Number(item?.id ?? item?.Product_ID ?? 0);
+        const normalizedId = Number.isFinite(idValue) ? idValue : 0;
+        const nameValue = item?.name ?? item?.Name ?? '';
+
+        normalized[targetCategory].push({
+          id: normalizedId,
+          name: nameValue,
           stock: normalizedStock
-        };
+        });
       });
     });
+
+    Object.keys(normalized).forEach((categoryKey) => {
+      const seenIds = new Set();
+      normalized[categoryKey] = normalized[categoryKey].filter((item) => {
+        const id = Number(item.id);
+        if (!Number.isFinite(id) || id <= 0) {
+          return true;
+        }
+        if (seenIds.has(id)) {
+          return false;
+        }
+        seenIds.add(id);
+        return true;
+      });
+    });
+
     return normalized;
   }
 

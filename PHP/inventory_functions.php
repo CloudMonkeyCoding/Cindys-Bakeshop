@@ -477,6 +477,7 @@ function deleteInventoryByProductId($pdo, $productId) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['product_id'], $_POST['stock_quantity'])) {
     require_once 'db_connect.php';
+    require_once __DIR__ . '/product_functions.php';
     header('Content-Type: application/json');
     if (!$pdo) {
         echo json_encode(['success' => false, 'error' => 'Database connection failed']);
@@ -502,7 +503,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['product_id'], $_POST[
     $rows = getInventoryWithProducts($pdo);
     $data = [];
     foreach ($rows as $row) {
-        $category = $row['Category'] ?? 'Uncategorized';
+        $categoryRaw = $row['Category'] ?? '';
+        $normalizedCategory = normalizeProductCategoryValue($categoryRaw);
+        $category = $normalizedCategory === '' ? 'Uncategorized' : $normalizedCategory;
+
+        if (!array_key_exists($category, $data)) {
+            $data[$category] = [];
+        }
+
         $data[$category][] = [
             'id' => $row['Product_ID'],
             'name' => $row['Name'],
