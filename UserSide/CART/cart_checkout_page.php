@@ -140,6 +140,13 @@
       font-weight: 600;
     }
 
+    .qty-btn:disabled {
+      background: rgba(139, 69, 19, 0.05);
+      color: rgba(139, 69, 19, 0.35);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
     .qty-display {
       min-width: 32px;
       text-align: center;
@@ -198,6 +205,37 @@
       color: #fff;
       font-weight: 600;
       box-shadow: 0 16px 32px rgba(139, 69, 19, 0.25);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.65rem;
+      transition: opacity 0.2s ease, background 0.2s ease;
+    }
+
+    .primary-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .primary-btn .btn-spinner {
+      display: none;
+      width: 1.1rem;
+      height: 1.1rem;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.4);
+      border-top-color: #fff;
+      animation: spin 0.75s linear infinite;
+    }
+
+    .primary-btn.is-loading .btn-spinner {
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     .secondary-btn {
@@ -258,6 +296,14 @@
       display: flex;
       align-items: center;
       gap: 0.75rem;
+    }
+
+    .address-section {
+      display: none;
+    }
+
+    .address-section.is-visible {
+      display: block;
     }
 
     .address-wrapper {
@@ -436,6 +482,15 @@
           </div>
 
           <div>
+            <label for="order-type">Delivery or Pick Up</label>
+            <select id="order-type" required>
+              <option value="">-- Select --</option>
+              <option value="Delivery">Delivery</option>
+              <option value="Pick up">Pick up</option>
+            </select>
+          </div>
+
+          <div id="address-section" class="address-section" aria-hidden="true">
             <div class="field-header">
               <label for="address-street">Delivery Address</label>
               <button type="button" id="edit-address" class="edit-field-btn">Edit</button>
@@ -453,15 +508,6 @@
           </div>
 
           <div>
-            <label for="order-type">Delivery or Pick Up</label>
-            <select id="order-type" required>
-              <option value="">-- Select --</option>
-              <option value="Delivery">Delivery</option>
-              <option value="Pick up">Pick up</option>
-            </select>
-          </div>
-
-          <div>
             <label for="mop">Mode of Payment</label>
             <select id="mop" required disabled>
               <option value="">-- Select --</option>
@@ -476,7 +522,10 @@
             <textarea id="special-instructions" placeholder="Let us know about delivery notes or allergy information." maxlength="500"></textarea>
           </div>
 
-          <button type="submit" class="primary-btn">Place order</button>
+          <button type="submit" class="primary-btn" id="place-order-btn">
+            <span class="btn-spinner" aria-hidden="true"></span>
+            <span class="btn-label">Place order</span>
+          </button>
         </form>
         <div class="confirmation" id="confirmationMsg"></div>
       </section>
@@ -488,6 +537,7 @@
     import "../firebase-init.js";
 
     const cartContainer = document.getElementById('cart-items');
+    const checkoutItemsContainer = document.getElementById('checkout-items');
     const masterCheckbox = document.querySelector('.check-all input[type="checkbox"]');
     const header = document.getElementById('mainHeader');
     const rootPrefix = header?.dataset.rootPrefix || '../../../';
@@ -506,6 +556,12 @@
     ]);
     const totalPriceLabel = document.querySelector('.total-price');
     const totalItemsLabel = document.querySelector('.total-items');
+    const placeOrderButton = document.getElementById('place-order-btn');
+    const placeOrderButtonLabel = placeOrderButton?.querySelector('.btn-label');
+    const defaultPlaceOrderText = placeOrderButtonLabel?.textContent?.trim() || 'Place order';
+    if (placeOrderButton) {
+      placeOrderButton.setAttribute('aria-busy', 'false');
+    }
     let cartId = null;
     let checkoutData = [];
     let userEmail = null;
@@ -516,12 +572,14 @@
     const addressProvinceField = document.getElementById('address-province');
     const editableAddressFields = [addressStreetField, addressBarangayField];
     const lockedAddressFields = [addressCityField, addressProvinceField];
+    const allAddressFields = [...editableAddressFields, ...lockedAddressFields];
     const nameEditBtn = document.getElementById('edit-name');
     const addrEditBtn = document.getElementById('edit-address');
     const nameDoneBtn = document.getElementById('done-name');
     const addrDoneBtn = document.getElementById('done-address');
     const orderTypeSelect = document.getElementById('order-type');
     const mopSelect = document.getElementById('mop');
+    const addressSection = document.getElementById('address-section');
     const specialInstructionsField = document.getElementById('special-instructions');
     const cartStatus = document.getElementById('cartStatus');
 
@@ -600,16 +658,48 @@
     }
 
     function updateMopOptions() {
-      mopSelect.innerHTML = '<option value="">-- Select --</option>';
+      const orderType = orderTypeSelect.value;
 
-      if (orderTypeSelect.value === 'Delivery') {
-        mopSelect.innerHTML += '<option value="GCash">GCash</option>';
-      } else if (orderTypeSelect.value === 'Pick up') {
-        mopSelect.innerHTML += '<option value="Cash on Pick Up">Cash on Pick Up</option>';
-        mopSelect.innerHTML += '<option value="GCash">GCash</option>';
+      mopSelect.innerHTML = '<option value="">-- Select --</option>';
+      mopSelect.value = '';
+      mopSelect.disabled = true;
+
+      if (orderType === 'Delivery') {
+        mopSelect.innerHTML = '<option value="GCash">GCash</option>';
+        mopSelect.value = 'GCash';
+        return;
       }
 
-      mopSelect.disabled = orderTypeSelect.value === '';
+      if (orderType === 'Pick up') {
+        mopSelect.innerHTML += '<option value="Cash on Pick Up">Cash on Pick Up</option>';
+        mopSelect.innerHTML += '<option value="GCash">GCash</option>';
+        mopSelect.disabled = false;
+      }
+    }
+
+    function updateAddressVisibility() {
+      if (!addressSection) {
+        return;
+      }
+
+      const isDelivery = orderTypeSelect.value === 'Delivery';
+      addressSection.classList.toggle('is-visible', isDelivery);
+      addressSection.setAttribute('aria-hidden', isDelivery ? 'false' : 'true');
+
+      allAddressFields.forEach(field => {
+        field.required = isDelivery;
+        field.toggleAttribute('required', isDelivery);
+      });
+
+      if (!isDelivery) {
+        setAddressFieldsReadOnly(true);
+        addrDoneBtn.style.display = 'none';
+      }
+    }
+
+    function syncOrderTypeUI() {
+      updateMopOptions();
+      updateAddressVisibility();
     }
 
     function updateDeliveryAvailability(showAlert = false) {
@@ -622,7 +712,7 @@
 
       if (!deliveryAllowed && orderTypeSelect.value === 'Delivery') {
         orderTypeSelect.value = '';
-        updateMopOptions();
+        syncOrderTypeUI();
         if (showAlert) {
           alert('We currently deliver only within Hagonoy, Bulacan. Please choose Pick up for other areas.');
         }
@@ -698,11 +788,12 @@
       if (orderTypeSelect.value === 'Delivery') {
         const canDeliver = updateDeliveryAvailability(true);
         if (!canDeliver) {
+          syncOrderTypeUI();
           return;
         }
       }
 
-      updateMopOptions();
+      syncOrderTypeUI();
     });
 
     nameEditBtn.addEventListener('click', () => {
@@ -739,7 +830,7 @@
 
     enforceLockedAddressParts();
     updateDeliveryAvailability();
-    updateMopOptions();
+    syncOrderTypeUI();
 
     const auth = getAuth();
     onAuthStateChanged(auth, user => {
@@ -830,6 +921,8 @@
         div.querySelector('.increase-btn').addEventListener('click', e => increaseQty(e.target));
         div.querySelector('.edit-btn').addEventListener('click', e => toggleEdit(e.target));
         div.querySelector('.remove-btn').addEventListener('click', e => removeItem(e.target));
+
+        updateQuantityControls(div);
       });
 
       document.querySelectorAll('.item-check').forEach(cb => {
@@ -862,38 +955,186 @@
       });
     }
 
-    function updateTotal() {
-      let total = 0;
-      let itemCount = 0;
+    function formatCurrency(amount) {
+      return amount.toLocaleString('en-PH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function setPlaceOrderLoading(isLoading) {
+      if (!placeOrderButton) {
+        return;
+      }
+
+      placeOrderButton.classList.toggle('is-loading', isLoading);
+      placeOrderButton.disabled = isLoading;
+      placeOrderButton.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+
+      if (placeOrderButtonLabel) {
+        placeOrderButtonLabel.textContent = isLoading ? 'Placing order...' : defaultPlaceOrderText;
+      }
+    }
+
+    function collectSelectedCartItems() {
+      const items = [];
       document.querySelectorAll('.cart-item').forEach(item => {
         const checkbox = item.querySelector('.item-check');
-        if (checkbox.checked) {
-          const price = parseFloat(item.getAttribute('data-price'));
-          const qty = parseInt(item.querySelector('.qty-display').textContent);
+        if (!checkbox.checked) {
+          return;
+        }
+
+        const qtyDisplay = item.querySelector('.qty-display');
+        let qty = parseInt(qtyDisplay?.textContent, 10);
+        if (Number.isNaN(qty)) {
+          qty = 0;
+        }
+
+        const priceAttr = parseFloat(item.getAttribute('data-price'));
+        const price = Number.isNaN(priceAttr) ? 0 : priceAttr;
+        const stockAttr = item.getAttribute('data-stock');
+        const stock = stockAttr !== null ? parseInt(stockAttr, 10) : NaN;
+        const name = item.querySelector('.item-details b')?.textContent || '';
+        const productId = item.getAttribute('data-product');
+
+        items.push({
+          element: item,
+          qty,
+          price,
+          stock,
+          name,
+          productId
+        });
+      });
+      return items;
+    }
+
+    function syncCheckoutSummary({ items = null, enforceStock = false } = {}) {
+      const selectedItems = items || collectSelectedCartItems();
+      if (!checkoutItemsContainer) {
+        return { hasItem: selectedItems.some(item => item.qty > 0) };
+      }
+
+      checkoutItemsContainer.innerHTML = '';
+      checkoutData = [];
+      let hasItem = false;
+
+      selectedItems.forEach(data => {
+        let { qty } = data;
+        const stock = data.stock;
+
+        if (enforceStock && !Number.isNaN(stock) && qty > stock) {
+          if (stock <= 0) {
+            alert(`${data.name} is out of stock and has been removed from your cart.`);
+            const increaseBtn = data.element.querySelector('.increase-btn');
+            if (increaseBtn) {
+              saveQty(increaseBtn, 0);
+            }
+            data.qty = 0;
+            return;
+          }
+
+          alert(`${data.name} quantity reduced to available stock of ${stock}.`);
+          qty = stock;
+          const qtyDisplay = data.element.querySelector('.qty-display');
+          if (qtyDisplay) {
+            qtyDisplay.textContent = stock;
+          }
+          const increaseBtn = data.element.querySelector('.increase-btn');
+          if (increaseBtn) {
+            saveQty(increaseBtn, stock);
+          }
+          updateQuantityControls(data.element);
+        }
+
+        if (qty <= 0) {
+          return;
+        }
+
+        hasItem = true;
+        data.qty = qty;
+        const total = data.price * qty;
+        const div = document.createElement('div');
+        div.classList.add('summary-item');
+        div.innerHTML = `<span>${data.name} ×${qty}</span><span>₱${formatCurrency(total)}</span>`;
+        checkoutItemsContainer.appendChild(div);
+        checkoutData.push({ product_id: data.productId, quantity: qty });
+      });
+
+      return { hasItem };
+    }
+
+    function updateTotal(options = {}) {
+      const { enforceStockInSummary = false } = options;
+      const selectedItems = collectSelectedCartItems();
+      const summaryResult = syncCheckoutSummary({ items: selectedItems, enforceStock: enforceStockInSummary });
+
+      let total = 0;
+      let itemCount = 0;
+
+      selectedItems.forEach(({ price, qty }) => {
+        if (qty > 0) {
           total += price * qty;
           itemCount += qty;
         }
       });
-      totalPriceLabel.textContent = 'Total Price: ₱' + total.toFixed(2);
+
+      totalPriceLabel.textContent = 'Total Price: ₱' + formatCurrency(total);
       totalItemsLabel.textContent = 'Items: ' + itemCount;
+
       checkMasterToggle();
+      return summaryResult;
+    }
+
+    function updateQuantityControls(item) {
+      const decreaseBtn = item.querySelector('.decrease-btn');
+      const increaseBtn = item.querySelector('.increase-btn');
+      const qty = parseInt(item.querySelector('.qty-display').textContent, 10);
+      const stockAttr = item.getAttribute('data-stock');
+      const stock = stockAttr !== null ? parseInt(stockAttr, 10) : NaN;
+
+      decreaseBtn.disabled = qty <= 1;
+
+      if (!Number.isNaN(stock)) {
+        if (stock <= 0) {
+          increaseBtn.disabled = true;
+        } else {
+          increaseBtn.disabled = qty >= stock;
+        }
+      } else {
+        increaseBtn.disabled = false;
+      }
     }
 
     function increaseQty(button) {
+      const item = button.closest('.cart-item');
       const qtyDisplay = button.previousElementSibling;
       let qty = parseInt(qtyDisplay.textContent);
+      const stockAttr = item.getAttribute('data-stock');
+      const stock = stockAttr !== null ? parseInt(stockAttr, 10) : NaN;
+
+      if (!Number.isNaN(stock) && stock > 0 && qty >= stock) {
+        updateQuantityControls(item);
+        return;
+      }
+
       qtyDisplay.textContent = qty + 1;
       saveQty(button, qty + 1);
       updateTotal();
+      updateQuantityControls(item);
     }
 
     function decreaseQty(button) {
+      const item = button.closest('.cart-item');
       const qtyDisplay = button.nextElementSibling;
       let qty = parseInt(qtyDisplay.textContent);
       if (qty > 1) {
         qtyDisplay.textContent = qty - 1;
         saveQty(button, qty - 1);
         updateTotal();
+        updateQuantityControls(item);
+      } else {
+        updateQuantityControls(item);
       }
     }
 
@@ -941,47 +1182,9 @@
     }
 
     window.goToCheckout = function() {
-      const checkoutItems = document.getElementById('checkout-items');
-      checkoutItems.innerHTML = '';
-      checkoutData = [];
+      const summaryResult = updateTotal({ enforceStockInSummary: true }) || { hasItem: false };
 
-      let hasItem = false;
-
-      document.querySelectorAll('.cart-item').forEach(item => {
-        const checkbox = item.querySelector('.item-check');
-        if (checkbox.checked) {
-          const name = item.querySelector('.item-details b').textContent;
-          let qty = parseInt(item.querySelector('.qty-display').textContent, 10);
-          const stock = parseInt(item.getAttribute('data-stock'), 10);
-          if (qty > stock) {
-            if (stock <= 0) {
-              alert(`${name} is out of stock and has been removed from your cart.`);
-              saveQty(item.querySelector('.increase-btn'), 0);
-              return;
-            }
-            alert(`${name} quantity reduced to available stock of ${stock}.`);
-            qty = stock;
-            item.querySelector('.qty-display').textContent = stock;
-            saveQty(item.querySelector('.increase-btn'), stock);
-          }
-          if (qty <= 0) {
-            return;
-          }
-          hasItem = true;
-          const price = parseFloat(item.getAttribute('data-price'));
-          const total = price * qty;
-
-          const div = document.createElement('div');
-          div.classList.add('summary-item');
-          div.innerHTML = `<span>${name} ×${qty}</span><span>₱${total.toFixed(2)}</span>`;
-          checkoutItems.appendChild(div);
-          checkoutData.push({product_id: item.getAttribute('data-product'), quantity: qty});
-        }
-      });
-
-      updateTotal();
-
-      if (!hasItem) {
+      if (!summaryResult.hasItem) {
         alert('Please select at least one item to check out.');
         return;
       }
@@ -1022,12 +1225,20 @@
       const orderType = document.getElementById('order-type').value;
       const mop = document.getElementById('mop').value;
       const specialInstructions = specialInstructionsField.value.trim();
+      const confirmation = document.getElementById('confirmationMsg');
+
+      if (confirmation) {
+        confirmation.textContent = '';
+        confirmation.classList.remove('error');
+      }
 
       if (orderType === 'Delivery' && !isDeliveryAreaValid()) {
         alert('Delivery is only available within Hagonoy, Bulacan. Please choose Pick up for orders outside this area.');
         updateDeliveryAvailability(true);
         return;
       }
+
+      setPlaceOrderLoading(true);
 
       try {
         logOrderDebug('Attempting to load latest cart before checkout.', { email: userEmail, checkoutCount: checkoutData.length });
@@ -1122,7 +1333,7 @@
           throw buildOrderError((orderData && orderData.error) || 'Failed to place order.', responseDetails);
         }
 
-        loadCart();
+        await loadCart();
 
         const orderId = orderData.order_id;
         if (orderId) {
@@ -1131,16 +1342,20 @@
           return;
         }
 
-        const confirmation = document.getElementById('confirmationMsg');
-        confirmation.classList.remove('error');
-        confirmation.textContent = 'Order placed successfully!';
+        if (confirmation) {
+          confirmation.classList.remove('error');
+          confirmation.textContent = 'Order placed successfully!';
+        }
         document.body.classList.remove('checkout-active');
         document.getElementById('checkout-section').style.display = 'none';
       } catch (error) {
         logOrderDebug('Caught error while placing order.', { message: error.message, stack: error.stack, details: error.debugDetails });
-        const confirmation = document.getElementById('confirmationMsg');
-        confirmation.textContent = error.userFacingMessage || error.message || 'Failed to place order.';
-        confirmation.classList.add('error');
+        if (confirmation) {
+          confirmation.textContent = error.userFacingMessage || error.message || 'Failed to place order.';
+          confirmation.classList.add('error');
+        }
+      } finally {
+        setPlaceOrderLoading(false);
       }
     }
 
