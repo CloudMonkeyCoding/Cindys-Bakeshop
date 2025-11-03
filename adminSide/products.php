@@ -9,11 +9,17 @@ $pageTitle = "Products - Cindy's Bakeshop";
 $products = [];
 
 if ($pdo) {
+    $allProducts = getAllProducts($pdo) ?: [];
+
+    usort($allProducts, static function ($a, $b) {
+        return (int)($b['Product_ID'] ?? 0) <=> (int)($a['Product_ID'] ?? 0);
+    });
+
     $products = array_map(static function ($product) {
         $product['Image_Url'] = getProductImageUrl($product, '../');
         $product['Category'] = normalizeProductCategoryValue($product['Category'] ?? '');
         return $product;
-    }, getAllProducts($pdo) ?: []);
+    }, $allProducts);
 }
 
 include 'includes/header.php';
