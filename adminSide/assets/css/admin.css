@@ -518,10 +518,16 @@ table tbody tr:hover {
   pointer-events: none;
 }
 
+.inventory-stock-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
 .inventory-stock-note {
   display: inline-flex;
   align-items: center;
-  margin-top: 6px;
   padding: 4px 10px;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.05);
