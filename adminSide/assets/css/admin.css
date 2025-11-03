@@ -520,24 +520,32 @@ table tbody tr:hover {
 
 .inventory-stock-cell {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
 }
 
 .inventory-stock-note {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   padding: 4px 10px;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.05);
   font-size: 12px;
   font-weight: 600;
   color: var(--muted-text);
+  white-space: nowrap;
+  min-height: 24px;
+  min-width: 140px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease;
 }
 
-.inventory-stock-note:empty {
-  display: none;
+.inventory-stock-note:not(:empty) {
+  opacity: 1;
+  visibility: visible;
 }
 
 .inventory-stock-note.is-preorder {
@@ -553,6 +561,11 @@ table tbody tr:hover {
 .inventory-stock-note.is-zero {
   background: rgba(231, 76, 60, 0.18);
   color: #a93226;
+}
+
+.inventory-stock-note.has-unsaved {
+  background: rgba(231, 76, 60, 0.2);
+  color: #922b21;
 }
 
 .inventory-log-table .log-order {
