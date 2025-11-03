@@ -299,7 +299,7 @@ $extraScripts = <<<JS
       row.dataset.productId = product.id;
       row.dataset.category = product.category || '';
       const actionContent = showingArchived
-        ? `<button class="btn btn-secondary btn-restore" data-id="\${product.id}">Unarchive</button>`
+        ? `<button class="btn btn-secondary btn-restore" data-id="\${product.id}">Restore</button>`
         : `<button class="btn btn-muted btn-archive" data-id="\${product.id}">Archive</button>`;
       row.innerHTML = `
         <td>\${index + 1}</td>
