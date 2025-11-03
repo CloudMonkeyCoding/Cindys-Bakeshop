@@ -618,12 +618,15 @@ include 'includes/sidebar.php';
   </div>
 
   <div class="card" style="margin-top:24px;">
-    <h2 style="font-size:18px;margin-bottom:16px;">Sales by Order Status</h2>
+    <div class="table-actions">
+      <h2 style="font-size:18px;margin:0;">Sales by Order Status</h2>
+      <input type="text" id="statusBreakdownSearch" placeholder="🔍 Filter order status...">
+    </div>
     <div class="table-responsive">
       <?php if (empty($statusBreakdown)): ?>
         <p class="table-empty">No order activity recorded.</p>
       <?php else: ?>
-        <table>
+        <table id="statusSalesTable">
           <thead>
             <tr>
               <th>Status</th>
@@ -1050,6 +1053,21 @@ $extraScripts = <<<JS
       });
     };
     searchInput.addEventListener('input', applySearchFilter);
+    applySearchFilter();
+  }
+
+  const statusSearchInput = document.getElementById('statusBreakdownSearch');
+  if (statusSearchInput) {
+    const statusRows = Array.from(document.querySelectorAll('#statusSalesTable tbody tr'));
+    const applyStatusFilter = () => {
+      const query = statusSearchInput.value.trim().toLowerCase();
+      statusRows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query) ? '' : 'none';
+      });
+    };
+    statusSearchInput.addEventListener('input', applyStatusFilter);
+    applyStatusFilter();
   }
 
   const hiddenClassTokens = ['hidden', 'is-hidden', 'd-none'];
