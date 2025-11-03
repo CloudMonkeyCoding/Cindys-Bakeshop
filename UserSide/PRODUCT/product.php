@@ -128,6 +128,16 @@ $stock = (int)($product['Stock_Quantity'] ?? 0);
       font-size: 1.1rem;
     }
 
+    .quantity-row input[type="number"]::-webkit-outer-spin-button,
+    .quantity-row input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .quantity-row input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
     .action-buttons {
       display: flex;
       flex-wrap: wrap;
@@ -177,7 +187,13 @@ $stock = (int)($product['Stock_Quantity'] ?? 0);
         <div class="quantity-row">
           <span>Quantity</span>
           <button type="button" onclick="changeQty(-1)">−</button>
-          <input type="text" id="qty" value="1" readonly>
+          <input
+            type="number"
+            id="qty"
+            value="<?= $stock > 0 ? 1 : 0 ?>"
+            min="0"
+            step="1"
+          >
           <button type="button" onclick="changeQty(1)">+</button>
         </div>
         <div class="action-buttons">
@@ -199,6 +215,45 @@ $stock = (int)($product['Stock_Quantity'] ?? 0);
     const buyNowBtn = document.getElementById('buyNowBtn');
     const qtyEl = document.getElementById('qty');
 
+    function enforceQtyBounds(options = {}) {
+      const { shouldAlert = false, allowEmpty = false } = options;
+      if (!qtyEl) {
+        return;
+      }
+
+      const rawValue = qtyEl.value.trim();
+      if (rawValue === '') {
+        if (allowEmpty) {
+          return;
+        }
+        qtyEl.value = maxStock === 0 ? 0 : 1;
+        return;
+      }
+
+      let current = parseInt(rawValue, 10);
+      const fallback = maxStock === 0 ? 0 : 1;
+
+      if (Number.isNaN(current)) {
+        current = fallback;
+      }
+
+      if (maxStock === 0) {
+        current = 0;
+      } else {
+        if (current < 1) {
+          current = 1;
+        }
+        if (current > maxStock) {
+          current = maxStock;
+          if (shouldAlert) {
+            alert(`Only ${maxStock} left in stock.`);
+          }
+        }
+      }
+
+      qtyEl.value = current;
+    }
+
     function syncStockUI() {
       const stockEl = document.getElementById('stockDisplay');
       if (stockEl) {
@@ -206,13 +261,10 @@ $stock = (int)($product['Stock_Quantity'] ?? 0);
       }
 
       if (qtyEl) {
-        if (maxStock === 0) {
-          qtyEl.value = 0;
-        } else if (parseInt(qtyEl.value, 10) > maxStock) {
-          qtyEl.value = maxStock;
-        } else if (parseInt(qtyEl.value, 10) < 1) {
-          qtyEl.value = 1;
-        }
+        qtyEl.max = maxStock > 0 ? maxStock : '';
+        qtyEl.min = maxStock === 0 ? 0 : 1;
+        qtyEl.disabled = maxStock === 0;
+        enforceQtyBounds();
       }
 
       const shouldDisablePurchase = maxStock === 0;
@@ -263,15 +315,19 @@ $stock = (int)($product['Stock_Quantity'] ?? 0);
         return;
       }
 
-      let current = parseInt(qtyEl.value);
-      current = Number.isNaN(current) ? 1 : current;
-      current += delta;
-      if (current < 1) current = 1;
-      if (current > maxStock) {
-        current = maxStock;
-        alert(`Only ${maxStock} left in stock.`);
+      let current = parseInt(qtyEl.value, 10);
+      if (Number.isNaN(current)) {
+        current = 1;
       }
+
+      current += delta;
       qtyEl.value = current;
+      enforceQtyBounds({ shouldAlert: delta > 0 });
+    }
+
+    if (qtyEl) {
+      qtyEl.addEventListener('input', () => enforceQtyBounds({ allowEmpty: true }));
+      qtyEl.addEventListener('blur', () => enforceQtyBounds());
     }
 
     function toggleFavorite(button) {
