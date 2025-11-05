@@ -224,10 +224,6 @@ include 'includes/sidebar.php';
     </div>
   </div>
 
-  <?php if ($inventorySnapshotDescription !== ''): ?>
-    <p class="inventory-snapshot-note"><?= htmlspecialchars($inventorySnapshotDescription); ?></p>
-  <?php endif; ?>
-
   <section class="stats-grid columns-4" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
     <div class="stat-card">
       <h3>Inventory Categories</h3>
@@ -250,13 +246,6 @@ include 'includes/sidebar.php';
       <div class="meta">Items at or below 10 pcs</div>
     </div>
   </section>
-
-  <div class="stats-grid columns-4" style="margin-top:24px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));">
-    <div class="card">
-      <h2 style="font-size:18px;margin-bottom:16px;">Stock by Category</h2>
-      <canvas id="categoryChart" height="220"></canvas>
-    </div>
-  </div>
 
   <div class="card" style="margin-top:24px;">
     <div class="table-actions">
