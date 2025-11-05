@@ -1150,6 +1150,28 @@ document.addEventListener('DOMContentLoaded', () => {
       return 40;
     };
 
+    const drawPageNumbers = () => {
+      const totalPages = doc.internal.getNumberOfPages();
+      if (!Number.isFinite(totalPages) || totalPages <= 0) {
+        return;
+      }
+
+      doc.setFontSize(9);
+      doc.setTextColor(120, 120, 120);
+
+      for (let pageIndex = 1; pageIndex <= totalPages; pageIndex += 1) {
+        doc.setPage(pageIndex);
+        doc.text(
+          `Page ${pageIndex} of ${totalPages}`,
+          pageWidth / 2,
+          pageHeight - 10,
+          { align: 'center' }
+        );
+      }
+
+      doc.setTextColor(0, 0, 0);
+    };
+
     let y = drawHeader();
 
     doc.setFontSize(12);
@@ -1274,6 +1296,8 @@ document.addEventListener('DOMContentLoaded', () => {
         y += 6;
       }
     });
+
+    drawPageNumbers();
 
     return doc;
   }
