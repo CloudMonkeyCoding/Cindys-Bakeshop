@@ -16,23 +16,26 @@ $statusBreakdown = [];
 $reportRows = [];
 
 $timeRanges = [
-    '7d' => ['label' => 'Last 7 Days', 'days' => 7],
-    '30d' => ['label' => 'Last 30 Days', 'days' => 30],
-    '90d' => ['label' => 'Last 90 Days', 'days' => 90],
+    'today' => ['label' => 'Today', 'days' => 1, 'granularity' => 'hour'],
+    '7d' => ['label' => 'Last 7 Days', 'days' => 7, 'granularity' => 'day'],
+    '30d' => ['label' => 'Last 30 Days', 'days' => 30, 'granularity' => 'day'],
+    '90d' => ['label' => 'Last 90 Days', 'days' => 90, 'granularity' => 'day'],
 ];
 
-if (function_exists('array_key_first')) {
-    $revenueTrendDefaultRange = array_key_first($timeRanges) ?? '7d';
-} else {
-    reset($timeRanges);
-    $revenueTrendDefaultRange = key($timeRanges);
-    if ($revenueTrendDefaultRange === null) {
-        $revenueTrendDefaultRange = '7d';
+$revenueTrendDefaultRange = '7d';
+if (!array_key_exists($revenueTrendDefaultRange, $timeRanges)) {
+    if (function_exists('array_key_first')) {
+        $firstRangeKey = array_key_first($timeRanges);
+    } else {
+        reset($timeRanges);
+        $firstRangeKey = key($timeRanges);
     }
+    $revenueTrendDefaultRange = $firstRangeKey ?? 'today';
 }
 
-$revenueTrendDefaultLabel = $timeRanges[$revenueTrendDefaultRange]['label'] ?? 'Last 7 Days';
+$revenueTrendDefaultLabel = $timeRanges[$revenueTrendDefaultRange]['label'] ?? 'Selected Range';
 $dailyRevenueMap = [];
+$hourlyRevenueMap = array_fill(0, 24, 0.0);
 $revenueTrendByRange = [];
 $maxDays = 1;
 
@@ -74,6 +77,27 @@ if ($pdo) {
             $paymentDate = $row['payment_date'] ?? null;
             if ($paymentDate) {
                 $dailyRevenueMap[$paymentDate] = (float)($row['revenue'] ?? 0);
+            }
+        }
+    }
+
+    $hourlySql = "
+        SELECT
+            HOUR(Payment_Date) AS payment_hour,
+            COALESCE(SUM(Amount_Paid), 0) AS revenue
+        FROM transaction
+        WHERE Payment_Date IS NOT NULL
+          AND Payment_Date >= CURDATE()
+          AND Payment_Date < DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+        GROUP BY payment_hour
+        ORDER BY payment_hour ASC
+    ";
+    $stmtHourly = $pdo->query($hourlySql);
+    if ($stmtHourly) {
+        while ($row = $stmtHourly->fetch(PDO::FETCH_ASSOC)) {
+            $hourValue = isset($row['payment_hour']) ? (int)$row['payment_hour'] : null;
+            if ($hourValue !== null && $hourValue >= 0 && $hourValue <= 23) {
+                $hourlyRevenueMap[$hourValue] = (float)($row['revenue'] ?? 0);
             }
         }
     }
@@ -120,6 +144,22 @@ if ($pdo) {
 
 $currentTimestamp = time();
 foreach ($timeRanges as $rangeKey => $config) {
+    $granularity = $config['granularity'] ?? 'day';
+    if ($granularity === 'hour') {
+        $labels = [];
+        $values = [];
+        for ($hour = 0; $hour < 24; $hour++) {
+            $labels[] = date('g A', mktime($hour, 0, 0));
+            $values[] = (int)round($hourlyRevenueMap[$hour] ?? 0);
+        }
+        $revenueTrendByRange[$rangeKey] = [
+            'labels' => $labels,
+            'values' => $values,
+            'rangeLabel' => ($config['label'] ?? 'Today') . ' (hourly)',
+        ];
+        continue;
+    }
+
     $days = isset($config['days']) ? (int)$config['days'] : 0;
     if ($days <= 0) {
         continue;
