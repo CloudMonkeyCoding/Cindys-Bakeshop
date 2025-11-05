@@ -549,9 +549,9 @@
             <textarea id="special-instructions" placeholder="Let us know about delivery notes or allergy information." maxlength="500"></textarea>
           </div>
 
-          <button type="submit" class="primary-btn gcash-btn" id="place-order-btn">
+          <button type="submit" class="primary-btn" id="place-order-btn">
             <span class="btn-spinner" aria-hidden="true"></span>
-            <span class="btn-label">Pay with GCash</span>
+            <span class="btn-label">Place Order</span>
           </button>
         </form>
         <div class="confirmation" id="confirmationMsg"></div>
@@ -585,7 +585,10 @@
     const totalItemsLabel = document.querySelector('.total-items');
     const placeOrderButton = document.getElementById('place-order-btn');
     const placeOrderButtonLabel = placeOrderButton?.querySelector('.btn-label');
-    const defaultPlaceOrderText = placeOrderButtonLabel?.textContent?.trim() || 'Pay with GCash';
+    const defaultPlaceOrderText = 'Place Order';
+    const gcashPlaceOrderText = 'Pay with GCash';
+    const defaultProcessingText = 'Placing your order...';
+    const gcashProcessingText = 'Processing GCash payment...';
     if (placeOrderButton) {
       placeOrderButton.setAttribute('aria-busy', 'false');
     }
@@ -684,6 +687,27 @@
       return city.toLowerCase() === 'hagonoy' && province.toLowerCase() === 'bulacan';
     }
 
+    function isGcashSelected() {
+      return (mopSelect?.value || '').trim().toLowerCase() === 'gcash';
+    }
+
+    function isPlaceOrderLoading() {
+      return placeOrderButton?.classList.contains('is-loading');
+    }
+
+    function updatePlaceOrderButtonAppearance() {
+      if (!placeOrderButton) {
+        return;
+      }
+
+      const gcashSelected = isGcashSelected();
+      placeOrderButton.classList.toggle('gcash-btn', gcashSelected);
+
+      if (placeOrderButtonLabel && !isPlaceOrderLoading()) {
+        placeOrderButtonLabel.textContent = gcashSelected ? gcashPlaceOrderText : defaultPlaceOrderText;
+      }
+    }
+
     function updateMopOptions() {
       const orderType = orderTypeSelect.value;
 
@@ -694,6 +718,7 @@
       if (orderType === 'Delivery') {
         mopSelect.innerHTML = '<option value="GCash">GCash</option>';
         mopSelect.value = 'GCash';
+        updatePlaceOrderButtonAppearance();
         return;
       }
 
@@ -702,6 +727,8 @@
         mopSelect.innerHTML += '<option value="GCash">GCash</option>';
         mopSelect.disabled = false;
       }
+
+      updatePlaceOrderButtonAppearance();
     }
 
     function updateAddressVisibility() {
@@ -823,6 +850,10 @@
       syncOrderTypeUI();
     });
 
+    if (mopSelect) {
+      mopSelect.addEventListener('change', updatePlaceOrderButtonAppearance);
+    }
+
     nameEditBtn.addEventListener('click', () => {
       nameField.readOnly = false;
       nameDoneBtn.style.display = 'inline-flex';
@@ -858,6 +889,7 @@
     enforceLockedAddressParts();
     updateDeliveryAvailability();
     syncOrderTypeUI();
+    updatePlaceOrderButtonAppearance();
 
     const auth = getAuth();
     onAuthStateChanged(auth, user => {
@@ -1018,7 +1050,11 @@
       placeOrderButton.setAttribute('aria-busy', isLoading ? 'true' : 'false');
 
       if (placeOrderButtonLabel) {
-        placeOrderButtonLabel.textContent = isLoading ? 'Processing GCash payment...' : defaultPlaceOrderText;
+        if (isLoading) {
+          placeOrderButtonLabel.textContent = isGcashSelected() ? gcashProcessingText : defaultProcessingText;
+        } else {
+          updatePlaceOrderButtonAppearance();
+        }
       }
     }
 
