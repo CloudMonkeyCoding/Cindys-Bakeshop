@@ -1133,8 +1133,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (reportMetadata.reportDateLabel) {
         rightColumnLines.push(`Report Date: ${reportMetadata.reportDateLabel}`);
-      } else if (reportMetadata.reportRange) {
-        rightColumnLines.push(reportMetadata.reportRange);
       }
 
       if (rightColumnLines.length) {
@@ -1162,10 +1160,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (reportMetadata.snapshotDescription) {
       narrativeLines.push(`Inventory snapshot: ${reportMetadata.snapshotDescription}`);
     }
-    if (reportMetadata.reportRange) {
-      narrativeLines.push(`Activity window: ${reportMetadata.reportRange}`);
-    }
-
     if (narrativeLines.length) {
       doc.setFontSize(10);
       const wrappedSummary = narrativeLines.flatMap((line) => doc.splitTextToSize(line, pageWidth - margin * 2));
