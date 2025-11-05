@@ -404,7 +404,13 @@ $extraScripts = <<<'JS'
   const userDetailsLastOrder = document.getElementById('userDetailsLastOrder');
 
   const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
-  const dateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const MANILA_TIME_ZONE = 'Asia/Manila';
+  const dateFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: MANILA_TIME_ZONE,
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 
   let userOrders = [];
   let activeUserId = null;

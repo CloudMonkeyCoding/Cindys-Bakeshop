@@ -523,6 +523,7 @@ ob_start();
   const revenueTrendDataByRange = <?= $revenueTrendDataJson; ?>;
   const revenueTrendDefaultRange = <?= $revenueTrendDefaultRangeJson; ?>;
   const financeSnapshotsByRange = <?= $financeSnapshotsJson; ?>;
+  const MANILA_TIME_ZONE = 'Asia/Manila';
 
   const trendRangeOptions = (revenueTrendDataByRange && typeof revenueTrendDataByRange === 'object' && !Array.isArray(revenueTrendDataByRange))
     ? revenueTrendDataByRange
@@ -1148,9 +1149,10 @@ ob_start();
           return null;
         }
         return date.toLocaleDateString(undefined, {
+          timeZone: MANILA_TIME_ZONE,
           year: 'numeric',
           month: 'short',
-          day: 'numeric'
+          day: 'numeric',
         });
       };
 

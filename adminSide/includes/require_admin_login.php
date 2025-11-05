@@ -3,6 +3,10 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+if (function_exists('date_default_timezone_set')) {
+    date_default_timezone_set('Asia/Manila');
+}
+
 if (!function_exists('redirectToAdminLogin')) {
     function redirectToAdminLogin(string $messageKey, string $message): void
     {

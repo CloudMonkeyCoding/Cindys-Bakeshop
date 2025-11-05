@@ -368,6 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
     reportDateLabel: <?= json_encode($reportDateLabel); ?>
   };
 
+  const MANILA_TIME_ZONE = 'Asia/Manila';
   const numberFormatter = new Intl.NumberFormat();
   const parseNullableInteger = (value) => {
     if (value === null || typeof value === 'undefined' || value === '') {
@@ -1589,9 +1590,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const parsed = new Date(dateString);
     if (!Number.isNaN(parsed.getTime())) {
       return new Intl.DateTimeFormat(undefined, {
+        timeZone: MANILA_TIME_ZONE,
         year: 'numeric',
         month: 'short',
-        day: 'numeric'
+        day: 'numeric',
       }).format(parsed);
     }
     return dateString;
@@ -1757,11 +1759,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getTodayIso() {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: MANILA_TIME_ZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
   }
 
   function initializeInventoryCalendar() {
@@ -1786,7 +1789,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!focusDate) {
-      focusDate = new Date();
+      const todayIso = new Intl.DateTimeFormat('en-CA', {
+        timeZone: MANILA_TIME_ZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(new Date());
+      focusDate = createDateFromISO(todayIso) || new Date();
     }
 
     calendarFocusYear = focusDate.getUTCFullYear();
@@ -1825,6 +1834,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const monthLabel = new Intl.DateTimeFormat(undefined, {
+      timeZone: MANILA_TIME_ZONE,
       month: 'long',
       year: 'numeric',
     }).format(focusDate);
@@ -1922,6 +1932,7 @@ document.addEventListener('DOMContentLoaded', () => {
       dayButton.setAttribute(
         'aria-label',
         new Intl.DateTimeFormat(undefined, {
+          timeZone: MANILA_TIME_ZONE,
           weekday: 'long',
           month: 'long',
           day: 'numeric',
