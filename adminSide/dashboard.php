@@ -632,63 +632,63 @@ include 'includes/sidebar.php';
   </div>
 
   <section class="cards">
-    <div class="card">
+    <a class="card" href="orders.php" aria-label="View all orders">
       <div class="card-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></div>
       <div class="card-info">
         <h3><?= number_format($totalOrders); ?></h3>
         <p><?= htmlspecialchars($ordersCardSubtitle); ?></p>
       </div>
-    </div>
-    <div class="card">
+    </a>
+    <a class="card" href="orders.php?status=Pending" aria-label="View pending orders">
       <div class="card-icon"><i class="fa-solid fa-clock" aria-hidden="true"></i></div>
       <div class="card-info">
         <h3><?= number_format($pendingOrders); ?></h3>
         <p><?= htmlspecialchars($pendingCardSubtitle); ?></p>
       </div>
-    </div>
-    <div class="card">
+    </a>
+    <a class="card" href="orders.php?status=Delivered" aria-label="View delivered orders">
       <div class="card-icon"><i class="fa-solid fa-truck" aria-hidden="true"></i></div>
       <div class="card-info">
         <h3><?= number_format($deliveredOrders); ?></h3>
         <p><?= htmlspecialchars($deliveredCardSubtitle); ?></p>
       </div>
-    </div>
-    <div class="card">
+    </a>
+    <a class="card" href="financial-report.php" aria-label="View financial reports">
       <div class="card-icon"><i class="fa-solid fa-coins" aria-hidden="true"></i></div>
       <div class="card-info">
         <h3>₱<?= number_format($totalRevenue, 2); ?></h3>
         <p><?= htmlspecialchars($revenueCardSubtitle); ?></p>
       </div>
-    </div>
-    <div class="card">
+    </a>
+    <a class="card" href="users.php" aria-label="Manage users">
       <div class="card-icon"><i class="fa-solid fa-users" aria-hidden="true"></i></div>
       <div class="card-info">
         <h3><?= number_format($totalUsers); ?></h3>
         <p><?= htmlspecialchars($userCardSubtitle); ?></p>
       </div>
-    </div>
-    <div class="card">
+    </a>
+    <a class="card" href="products.php" aria-label="Review product inventory">
       <div class="card-icon"><i class="fa-solid fa-box-open" aria-hidden="true"></i></div>
       <div class="card-info">
         <h3><?= number_format($lowStockCount); ?></h3>
         <p><?= htmlspecialchars($inventoryCardSubtitle); ?></p>
       </div>
-    </div>
-    <div class="card">
+    </a>
+    <a class="card" href="product-sales-report.php" aria-label="View top product details">
       <div class="card-icon"><i class="fa-solid fa-crown" aria-hidden="true"></i></div>
       <div class="card-info">
         <h3><?= $topProductName ? htmlspecialchars($topProductName) : 'No data'; ?></h3>
         <p><?= htmlspecialchars($topProductSubtitle); ?></p>
       </div>
-    </div>
-    <div class="card">
+    </a>
+    <a class="card" href="report.php" aria-label="Generate PDF reports">
       <div class="card-icon"><i class="fa-solid fa-file-export" aria-hidden="true"></i></div>
       <div class="card-info">
         <h3>Reports</h3>
         <p>Generate PDF summaries</p>
-        <a href="report.php" class="card-link">View reports <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+        <span class="card-link">View reports <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></span>
       </div>
-    </div>
+    </a>
   </section>
 
   <div class="stats-grid columns-4" style="margin-top: 24px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">

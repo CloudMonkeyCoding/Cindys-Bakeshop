@@ -292,6 +292,17 @@ img {
   transition: 0.2s ease-in-out;
 }
 
+.cards a.card {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.cards a.card:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
+
 .cards .card:hover {
   transform: translateY(-3px);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);

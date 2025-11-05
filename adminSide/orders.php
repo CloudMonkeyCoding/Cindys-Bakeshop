@@ -152,6 +152,15 @@ $extraScripts = <<<JS
   const searchBox = document.getElementById('searchBox');
   const filterStatus = document.getElementById('filterStatus');
 
+  if (filterStatus) {
+    const statusOptions = Array.from(filterStatus.options).map(option => option.value);
+    const params = new URLSearchParams(window.location.search);
+    const statusParam = params.get('status');
+    if (statusParam && statusOptions.includes(statusParam)) {
+      filterStatus.value = statusParam;
+    }
+  }
+
   function openModal(orderId, currentStatus) {
     modal.classList.add('active');
     modalOrderId.value = orderId;
