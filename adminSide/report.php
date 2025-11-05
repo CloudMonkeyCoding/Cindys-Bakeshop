@@ -356,6 +356,14 @@ document.addEventListener('DOMContentLoaded', () => {
     lowStockCount: document.getElementById('inventoryLowStockCount')
   };
 
+  const reportMetadata = {
+    companyName: "Cindy's Bakeshop",
+    generatedAt: <?= json_encode(date('F j, Y g:i A')); ?>,
+    reportRange: <?= json_encode($reportRangeDescription); ?>,
+    snapshotDescription: <?= json_encode($inventorySnapshotDescription); ?>,
+    reportDateLabel: <?= json_encode($reportDateLabel); ?>
+  };
+
   const numberFormatter = new Intl.NumberFormat();
   const parseNullableInteger = (value) => {
     if (value === null || typeof value === 'undefined' || value === '') {
@@ -1102,35 +1110,139 @@ document.addEventListener('DOMContentLoaded', () => {
       return null;
     }
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.setFontSize(16);
-    doc.text('Inventory Report', 14, 20);
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 14;
+    const accent = [230, 126, 34];
 
-    let y = 30;
+    const drawHeader = () => {
+      doc.setFillColor(...accent);
+      doc.rect(0, 0, pageWidth, 32, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.text(reportMetadata.companyName || "Cindy's Bakeshop", margin, 18);
+      doc.setFontSize(12);
+      doc.text('Inventory Report', margin, 26);
+
+      const headerRightX = pageWidth - margin;
+      const rightColumnLines = [];
+      if (reportMetadata.generatedAt) {
+        rightColumnLines.push(`Generated: ${reportMetadata.generatedAt}`);
+      }
+      if (reportMetadata.reportDateLabel) {
+        rightColumnLines.push(`Report Date: ${reportMetadata.reportDateLabel}`);
+      } else if (reportMetadata.reportRange) {
+        rightColumnLines.push(reportMetadata.reportRange);
+      }
+
+      if (rightColumnLines.length) {
+        doc.setFontSize(10);
+        const wrapped = rightColumnLines.flatMap((line) => doc.splitTextToSize(line, pageWidth / 2));
+        doc.text(wrapped, headerRightX, 18, { align: 'right' });
+      }
+
+      doc.setDrawColor(...accent);
+      doc.setLineWidth(0.5);
+      doc.line(margin, 32, pageWidth - margin, 32);
+
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(11);
+      return 40;
+    };
+
+    let y = drawHeader();
+
+    doc.setFontSize(12);
+    doc.text('Snapshot Summary', margin, y);
+    y += 6;
+
+    const narrativeLines = [];
+    if (reportMetadata.snapshotDescription) {
+      narrativeLines.push(`Inventory snapshot: ${reportMetadata.snapshotDescription}`);
+    }
+    if (reportMetadata.reportRange) {
+      narrativeLines.push(`Activity window: ${reportMetadata.reportRange}`);
+    }
+
+    if (narrativeLines.length) {
+      doc.setFontSize(10);
+      const wrappedSummary = narrativeLines.flatMap((line) => doc.splitTextToSize(line, pageWidth - margin * 2));
+      doc.text(wrappedSummary, margin, y);
+      y += wrappedSummary.length * 5 + 4;
+    }
+
+    const metrics = computeMetrics(inventoryData);
+    const summaryRows = [
+      ['Total Categories', numberFormatter.format(metrics.categoryCount ?? 0)],
+      ['Tracked Items', numberFormatter.format(metrics.totalTracked ?? 0)],
+      ['Low Stock Items', numberFormatter.format(metrics.lowStockCount ?? 0)]
+    ];
+
+    if (typeof doc.autoTable === 'function') {
+      doc.autoTable({
+        startY: y,
+        head: [['Metric', 'Value']],
+        body: summaryRows,
+        theme: 'striped',
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: accent, textColor: [255, 255, 255] },
+        columnStyles: {
+          0: { cellWidth: pageWidth - margin * 2 - 40 },
+          1: { cellWidth: 40, halign: 'right' }
+        },
+        margin: { left: margin, right: margin, top: 40 },
+        didDrawPage: drawHeader
+      });
+      y = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : y + 20;
+    } else {
+      doc.setFontSize(10);
+      summaryRows.forEach((row) => {
+        doc.text(`${row[0]}: ${row[1]}`, margin, y);
+        y += 5;
+      });
+      y += 5;
+    }
+
+    doc.setFontSize(12);
+    doc.text('Category Details', margin, y);
+    y += 6;
+
     const categories = Object.keys(inventoryData).sort((a, b) => a.localeCompare(b));
     if (!categories.length) {
-      doc.setFontSize(12);
-      doc.text('No inventory records found.', 14, y);
+      doc.setFontSize(11);
+      doc.text('No inventory records found.', margin, y);
       return doc;
     }
 
-    categories.forEach((category) => {
-      if (y > 260) {
-        doc.addPage();
-        y = 20;
+    const ensureSpace = (heightNeeded = 0) => {
+      if (y + heightNeeded <= pageHeight - margin) {
+        return;
       }
-      doc.setFontSize(14);
-      doc.text(category, 14, y);
+      doc.addPage();
+      y = drawHeader();
+      doc.setFontSize(12);
+      doc.text('Category Details (cont.)', margin, y);
+      y += 6;
+    };
+
+    categories.forEach((category, index) => {
+      ensureSpace(18);
+      doc.setFontSize(11);
+      doc.setTextColor(...accent);
+      doc.text(category, margin, y);
+      doc.setTextColor(0, 0, 0);
       y += 6;
 
       const body = (inventoryData[category] || []).map((item) => {
         const stock = Math.max(0, parseInt(item.stock, 10) || 0);
-        return [item.name || 'Unnamed Item', String(stock)];
+        return [item.name || 'Unnamed Item', numberFormatter.format(stock)];
       });
 
       if (!body.length) {
-        doc.setFontSize(12);
-        doc.text('No items in this category.', 18, y);
+        doc.setFontSize(10);
+        doc.text('No items in this category.', margin + 4, y);
         y += 8;
         return;
       }
@@ -1138,28 +1250,34 @@ document.addEventListener('DOMContentLoaded', () => {
       if (typeof doc.autoTable === 'function') {
         doc.autoTable({
           startY: y,
-          head: [['Item Name', 'Stock']],
+          head: [['Item Name', 'On Hand']],
           body,
           theme: 'grid',
-          styles: { fontSize: 10 }
+          styles: { fontSize: 10 },
+          headStyles: { fillColor: accent, textColor: [255, 255, 255] },
+          columnStyles: {
+            0: { cellWidth: pageWidth - margin * 2 - 35 },
+            1: { cellWidth: 35, halign: 'right' }
+          },
+          margin: { left: margin, right: margin, top: 40 },
+          didDrawPage: drawHeader
         });
-
-        if (doc.lastAutoTable) {
-          y = doc.lastAutoTable.finalY + 10;
-        } else {
-          y += 10;
-        }
+        y = doc.lastAutoTable ? doc.lastAutoTable.finalY + 8 : y + 12;
       } else {
-        doc.setFontSize(12);
+        doc.setFontSize(10);
         body.forEach((row) => {
-          if (y > 280) {
-            doc.addPage();
-            y = 20;
-          }
-          doc.text(`${row[0]} - ${row[1]}`, 18, y);
+          ensureSpace(12);
+          doc.text(`${row[0]} - ${row[1]} pcs`, margin + 4, y);
           y += 6;
         });
         y += 4;
+      }
+
+      if (index < categories.length - 1) {
+        ensureSpace(6);
+        doc.setDrawColor(220, 221, 225);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 6;
       }
     });
 
