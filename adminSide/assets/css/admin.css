@@ -195,6 +195,54 @@ img {
   margin: 0;
 }
 
+.chart-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.chart-caption {
+  font-size: 13px;
+  color: var(--muted-text);
+  margin: 4px 0 0;
+}
+
+.chart-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chart-filter-button {
+  border: 1px solid #dcdde1;
+  background: #ecf0f1;
+  color: #2c3e50;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.chart-filter-button:hover {
+  background: #d0d9df;
+  border-color: #c0cbd4;
+}
+
+.chart-filter-button.is-active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.chart-filter-button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .range-separator {
   color: var(--muted-text);
   font-size: 13px;

@@ -339,8 +339,9 @@ $lowStockProducts = [];
 $topProduct = null;
 $topProductName = null;
 $topProductQty = null;
-$monthlySales = [];
-$categoryRevenueShare = [];
+$salesTrendSeries = [];
+$categoryBreakdown = [];
+$categoryHasData = false;
 $recentOrders = [];
 $userFilterApplied = false;
 $inventoryFilterApplied = false;
@@ -438,7 +439,7 @@ if ($pdo) {
     $topProductQty = is_array($topProduct) && isset($topProduct['total_qty']) ? (int)$topProduct['total_qty'] : null;
 
     if ($salesGranularity === 'daily') {
-        $stmtDaily = $pdo->prepare("
+        $stmtDailyRevenue = $pdo->prepare("
             SELECT DATE(Payment_Date) AS period, COALESCE(SUM(Amount_Paid), 0) AS total
             FROM transaction
             WHERE Payment_Date IS NOT NULL
@@ -446,24 +447,43 @@ if ($pdo) {
             GROUP BY DATE(Payment_Date)
             ORDER BY period ASC
         ");
-        $stmtDaily->execute([
+        $stmtDailyRevenue->execute([
             ':start_date' => $rangeStartFormatted,
             ':end_date' => $rangeEndFormatted,
         ]);
-        $dailyTotals = [];
-        foreach ($stmtDaily->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $dailyTotals[$row['period']] = (float)$row['total'];
+        $dailyRevenueTotals = [];
+        foreach ($stmtDailyRevenue->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $dailyRevenueTotals[$row['period']] = (float)($row['total'] ?? 0);
+        }
+
+        $stmtDailyOrders = $pdo->prepare("
+            SELECT DATE(Order_Date) AS period, COUNT(*) AS total
+            FROM `order`
+            WHERE Order_Date BETWEEN :start_date AND :end_date
+            GROUP BY DATE(Order_Date)
+            ORDER BY period ASC
+        ");
+        $stmtDailyOrders->execute([
+            ':start_date' => $rangeStartFormatted,
+            ':end_date' => $rangeEndFormatted,
+        ]);
+        $dailyOrderTotals = [];
+        foreach ($stmtDailyOrders->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $dailyOrderTotals[$row['period']] = (int)($row['total'] ?? 0);
         }
 
         for ($date = $rangeStart; $date <= $rangeEnd; $date = $date->modify('+1 day')) {
             $key = $date->format('Y-m-d');
-            $monthlySales[] = [
+            $revenue = $dailyRevenueTotals[$key] ?? 0.0;
+            $orders = $dailyOrderTotals[$key] ?? 0;
+            $salesTrendSeries[] = [
                 'label' => $date->format('M j'),
-                'value' => round($dailyTotals[$key] ?? 0, 2),
+                'revenue' => round($revenue, 2),
+                'orders' => $orders,
             ];
         }
     } else {
-        $stmtMonthly = $pdo->prepare("
+        $stmtMonthlyRevenue = $pdo->prepare("
             SELECT DATE_FORMAT(Payment_Date, '%Y-%m') AS period, COALESCE(SUM(Amount_Paid), 0) AS total
             FROM transaction
             WHERE Payment_Date IS NOT NULL
@@ -471,13 +491,29 @@ if ($pdo) {
             GROUP BY DATE_FORMAT(Payment_Date, '%Y-%m')
             ORDER BY period ASC
         ");
-        $stmtMonthly->execute([
+        $stmtMonthlyRevenue->execute([
             ':start_date' => $rangeStartFormatted,
             ':end_date' => $rangeEndFormatted,
         ]);
-        $monthlyTotals = [];
-        foreach ($stmtMonthly->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $monthlyTotals[$row['period']] = (float)$row['total'];
+        $monthlyRevenueTotals = [];
+        foreach ($stmtMonthlyRevenue->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $monthlyRevenueTotals[$row['period']] = (float)($row['total'] ?? 0);
+        }
+
+        $stmtMonthlyOrders = $pdo->prepare("
+            SELECT DATE_FORMAT(Order_Date, '%Y-%m') AS period, COUNT(*) AS total
+            FROM `order`
+            WHERE Order_Date BETWEEN :start_date AND :end_date
+            GROUP BY DATE_FORMAT(Order_Date, '%Y-%m')
+            ORDER BY period ASC
+        ");
+        $stmtMonthlyOrders->execute([
+            ':start_date' => $rangeStartFormatted,
+            ':end_date' => $rangeEndFormatted,
+        ]);
+        $monthlyOrderTotals = [];
+        foreach ($stmtMonthlyOrders->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $monthlyOrderTotals[$row['period']] = (int)($row['total'] ?? 0);
         }
 
         $monthCursor = new DateTimeImmutable($rangeStart->format('Y-m-01'));
@@ -485,9 +521,12 @@ if ($pdo) {
 
         while ($monthCursor <= $monthEndCursor) {
             $key = $monthCursor->format('Y-m');
-            $monthlySales[] = [
+            $revenue = $monthlyRevenueTotals[$key] ?? 0.0;
+            $orders = $monthlyOrderTotals[$key] ?? 0;
+            $salesTrendSeries[] = [
                 'label' => $monthCursor->format('M Y'),
-                'value' => round($monthlyTotals[$key] ?? 0, 2),
+                'revenue' => round($revenue, 2),
+                'orders' => $orders,
             ];
             $monthCursor = $monthCursor->modify('+1 month');
         }
@@ -510,7 +549,8 @@ if ($pdo) {
     $categoryQuery = "
         SELECT
             $categoryExpression AS category_name,
-            COALESCE(SUM(oi.Subtotal), 0) AS total_revenue
+            COALESCE(SUM(oi.Subtotal), 0) AS total_revenue,
+            COALESCE(SUM(oi.Quantity), 0) AS total_units
         FROM order_item oi
         JOIN product p ON oi.Product_ID = p.Product_ID
         JOIN `order` o ON o.Order_ID = oi.Order_ID
@@ -527,17 +567,20 @@ if ($pdo) {
 
     $stmtCategory = $pdo->prepare($categoryQuery);
     $stmtCategory->execute($categoryParams);
-    $categoryRevenueShare = $stmtCategory->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    $categoryRows = $stmtCategory->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-    $categoryRevenueShare = array_values(array_filter($categoryRevenueShare, function ($row) {
-        return isset($row['total_revenue']) && (float)$row['total_revenue'] > 0;
+    $categoryRows = array_values(array_filter($categoryRows, static function ($row) {
+        $revenue = isset($row['total_revenue']) ? (float)$row['total_revenue'] : 0.0;
+        $units = isset($row['total_units']) ? (float)$row['total_units'] : 0.0;
+        return $revenue > 0 || $units > 0;
     }));
 
-    if (empty($categoryRevenueShare)) {
+    if (empty($categoryRows)) {
         $fallbackQuery = "
             SELECT
                 $categoryExpression AS category_name,
-                COALESCE(SUM(oi.Subtotal), 0) AS total_revenue
+                COALESCE(SUM(oi.Subtotal), 0) AS total_revenue,
+                COALESCE(SUM(oi.Quantity), 0) AS total_units
             FROM order_item oi
             JOIN product p ON oi.Product_ID = p.Product_ID
             JOIN `order` o ON o.Order_ID = oi.Order_ID
@@ -551,18 +594,25 @@ if ($pdo) {
             ':start_date' => $rangeStartFormatted,
             ':end_date' => $rangeEndFormatted,
         ]);
-        $categoryRevenueShare = $stmtFallback->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        $categoryRevenueShare = array_values(array_filter($categoryRevenueShare, function ($row) {
-            return isset($row['total_revenue']) && (float)$row['total_revenue'] > 0;
+        $categoryRows = $stmtFallback->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $categoryRows = array_values(array_filter($categoryRows, static function ($row) {
+            $revenue = isset($row['total_revenue']) ? (float)$row['total_revenue'] : 0.0;
+            $units = isset($row['total_units']) ? (float)$row['total_units'] : 0.0;
+            return $revenue > 0 || $units > 0;
         }));
     }
 
-    $categoryRevenueShare = array_map(static function ($row) {
-        if (isset($row['category_name'])) {
-            $row['category_name'] = normalizeProductCategoryValue($row['category_name']);
-        }
-        return $row;
-    }, $categoryRevenueShare);
+    $categoryBreakdown = array_map(static function ($row) {
+        $categoryName = $row['category_name'] ?? 'Uncategorized';
+        $normalized = normalizeProductCategoryValue($categoryName);
+        return [
+            'label' => $normalized === '' ? 'Uncategorized' : $normalized,
+            'revenue' => round((float)($row['total_revenue'] ?? 0), 2),
+            'units' => (int)round((float)($row['total_units'] ?? 0)),
+        ];
+    }, $categoryRows);
+
+    $categoryHasData = !empty($categoryBreakdown);
 
     $stmtRecent = $pdo->prepare("
         SELECT o.Order_ID, o.Order_Date, o.Status, u.Name, COALESCE(SUM(oi.Subtotal), 0) AS Total
@@ -581,16 +631,31 @@ if ($pdo) {
     $recentOrders = $stmtRecent->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
 
-$salesLabels = json_encode(!empty($monthlySales) ? array_column($monthlySales, 'label') : ['No Data']);
-$salesValues = json_encode(!empty($monthlySales) ? array_map(function ($item) { return round($item['value'], 2); }, $monthlySales) : [0]);
-$categoryLabels = json_encode(!empty($categoryRevenueShare) ? array_map(function ($item) {
-    $categoryName = $item['category_name'] ?? 'Uncategorized';
-    $normalized = normalizeProductCategoryValue($categoryName);
-    return $normalized === '' ? 'Uncategorized' : $normalized;
-}, $categoryRevenueShare) : ['No Data']);
-$categoryValues = json_encode(!empty($categoryRevenueShare) ? array_map(function ($item) {
-    return round((float)($item['total_revenue'] ?? 0), 2);
-}, $categoryRevenueShare) : [0]);
+if (empty($salesTrendSeries)) {
+    $salesTrendSeries[] = [
+        'label' => $salesGranularity === 'daily' ? $rangeStart->format('M j') : $rangeStart->format('M Y'),
+        'revenue' => 0.0,
+        'orders' => 0,
+    ];
+}
+
+$jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
+
+$salesSeriesJson = json_encode($salesTrendSeries, $jsonFlags);
+if ($salesSeriesJson === false) {
+    $salesSeriesJson = '[]';
+}
+
+$categorySeries = $categoryHasData ? $categoryBreakdown : [[
+    'label' => 'No Data',
+    'revenue' => 0.0,
+    'units' => 0,
+]];
+
+$categorySeriesJson = json_encode($categorySeries, $jsonFlags);
+if ($categorySeriesJson === false) {
+    $categorySeriesJson = '[]';
+}
 
 $ordersCardSubtitle = 'Orders placed in range';
 $pendingCardSubtitle = 'Pending orders in range';
@@ -693,7 +758,18 @@ include 'includes/sidebar.php';
 
   <div class="stats-grid columns-4" style="margin-top: 24px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
     <div class="card">
-      <h2 class="chart-title"><?= htmlspecialchars($salesChartTitle); ?></h2>
+      <div class="chart-card-header">
+        <div>
+          <h2 class="chart-title" style="margin:0;">
+            <?= htmlspecialchars($salesChartTitle); ?>
+          </h2>
+          <p class="chart-caption">Viewing <span id="salesMetricLabel">Revenue</span> totals &bull; <?= htmlspecialchars($rangeDisplay); ?></p>
+        </div>
+        <div class="chart-filter-group" role="group" aria-label="Sales metric">
+          <button type="button" class="chart-filter-button is-active" data-sales-metric="revenue" aria-pressed="true">Revenue</button>
+          <button type="button" class="chart-filter-button" data-sales-metric="orders" aria-pressed="false">Orders</button>
+        </div>
+      </div>
       <canvas id="salesChart" height="220"></canvas>
     </div>
     <div class="card">
@@ -748,9 +824,20 @@ include 'includes/sidebar.php';
       <?php endif; ?>
     </div>
     <div class="card">
-      <h2 style="font-size:18px;margin-bottom:16px;">Top Category Revenue Share</h2>
-      <?php if (empty($categoryRevenueShare)): ?>
-        <p class="table-empty">No revenue recorded by category yet.</p>
+      <div class="chart-card-header">
+        <div>
+          <h2 style="font-size:18px;margin:0;">Top Category Performance</h2>
+          <p class="chart-caption">Viewing <span id="categoryMetricLabel">Revenue</span> share &bull; <?= htmlspecialchars($rangeDisplay); ?></p>
+        </div>
+        <?php if ($categoryHasData): ?>
+          <div class="chart-filter-group" role="group" aria-label="Category metric">
+            <button type="button" class="chart-filter-button is-active" data-category-metric="revenue" aria-pressed="true">Revenue</button>
+            <button type="button" class="chart-filter-button" data-category-metric="units" aria-pressed="false">Units</button>
+          </div>
+        <?php endif; ?>
+      </div>
+      <?php if (!$categoryHasData): ?>
+        <p class="table-empty">No category performance recorded yet.</p>
       <?php else: ?>
         <canvas id="categoryChart" height="220"></canvas>
       <?php endif; ?>
@@ -793,25 +880,45 @@ $extraScripts = <<<JS
     }
   }
 
-  const salesLabels = $salesLabels;
-  const salesValues = $salesValues;
-  const categoryLabels = $categoryLabels;
-  const categoryValues = $categoryValues;
+  const salesSeries = $salesSeriesJson;
+  const categorySeries = $categorySeriesJson;
 
-  if (document.getElementById('salesChart')) {
-    const salesCanvas = document.getElementById('salesChart');
-    const salesCtx = salesCanvas.getContext('2d');
-    const gradient = salesCtx.createLinearGradient(0, 0, 0, salesCanvas.height || 400);
+  const formatCurrency = value => '₱' + Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const formatCurrencyAxis = value => '₱' + Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+  const formatInteger = value => Number(value || 0).toLocaleString();
+
+  const updatePressedState = (buttons, activeValue) => {
+    if (!buttons || !buttons.length) {
+      return;
+    }
+    buttons.forEach(button => {
+      const value = button.dataset.salesMetric || button.dataset.categoryMetric;
+      const isActive = value === activeValue;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+  };
+
+  const salesChartElement = document.getElementById('salesChart');
+  if (salesChartElement) {
+    const seriesData = Array.isArray(salesSeries) && salesSeries.length ? salesSeries : [{ label: 'No Data', revenue: 0, orders: 0 }];
+    const salesLabels = seriesData.map(item => typeof item.label === 'string' ? item.label : '');
+    const salesCtx = salesChartElement.getContext('2d');
+    const gradient = salesCtx.createLinearGradient(0, 0, 0, salesChartElement.height || 400);
     gradient.addColorStop(0, 'rgba(231, 76, 60, 0.9)');
     gradient.addColorStop(1, 'rgba(241, 196, 15, 0.9)');
 
-    new Chart(salesCtx, {
+    let currentSalesMetric = 'revenue';
+    const salesMetricLabel = document.getElementById('salesMetricLabel');
+    const salesMetricButtons = document.querySelectorAll('[data-sales-metric]');
+
+    const salesChart = new Chart(salesCtx, {
       type: 'line',
       data: {
         labels: salesLabels,
         datasets: [{
-          label: 'Sales (₱)',
-          data: salesValues,
+          label: 'Revenue (₱)',
+          data: seriesData.map(item => Number(item.revenue || 0)),
           backgroundColor: gradient,
           borderColor: '#e74c3c',
           borderWidth: 3,
@@ -825,6 +932,7 @@ $extraScripts = <<<JS
       },
       options: {
         responsive: true,
+        interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: {
             display: true,
@@ -835,9 +943,13 @@ $extraScripts = <<<JS
           },
           tooltip: {
             callbacks: {
-              label: function (context) {
-                const value = Number(context.raw || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                return '₱' + value;
+              label: context => {
+                const entry = seriesData[context.dataIndex] || {};
+                const revenueText = 'Revenue: ' + formatCurrency(entry.revenue);
+                const ordersText = 'Orders: ' + formatInteger(entry.orders);
+                return currentSalesMetric === 'orders'
+                  ? [ordersText, revenueText]
+                  : [revenueText, ordersText];
               }
             }
           }
@@ -851,33 +963,65 @@ $extraScripts = <<<JS
             beginAtZero: true,
             ticks: {
               color: '#2c3e50',
-              callback: value => '₱' + Number(value).toLocaleString()
+              callback: value => currentSalesMetric === 'orders'
+                ? formatInteger(value)
+                : formatCurrencyAxis(value)
             },
             grid: { color: 'rgba(0,0,0,0.05)' }
           }
         }
       }
     });
+
+    const updateSalesMetric = (metric, updateButtons = true) => {
+      currentSalesMetric = metric === 'orders' ? 'orders' : 'revenue';
+      const datasetValues = currentSalesMetric === 'orders'
+        ? seriesData.map(item => Number(item.orders || 0))
+        : seriesData.map(item => Number(item.revenue || 0));
+      salesChart.data.datasets[0].data = datasetValues;
+      salesChart.data.datasets[0].label = currentSalesMetric === 'orders' ? 'Orders' : 'Revenue (₱)';
+      if (salesMetricLabel) {
+        salesMetricLabel.textContent = currentSalesMetric === 'orders' ? 'Order count' : 'Revenue';
+      }
+      if (updateButtons) {
+        updatePressedState(salesMetricButtons, currentSalesMetric);
+      }
+      salesChart.update();
+    };
+
+    salesMetricButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const metric = button.dataset.salesMetric;
+        if (!metric || metric === currentSalesMetric) {
+          return;
+        }
+        updateSalesMetric(metric);
+      });
+    });
+
+    updateSalesMetric('revenue', false);
+    updatePressedState(salesMetricButtons, 'revenue');
   }
 
-  if (document.getElementById('categoryChart')) {
-    const categoryCanvas = document.getElementById('categoryChart');
-    const categoryCtx = categoryCanvas.getContext('2d');
-    const labelsData = Array.isArray(categoryLabels) ? categoryLabels : [];
-    const valuesData = Array.isArray(categoryValues) ? categoryValues : [];
-    const categoryChartLabels = labelsData.length ? labelsData : ['No Data'];
-    const categoryChartValues = valuesData.length ? valuesData : [0];
+  const categoryChartElement = document.getElementById('categoryChart');
+  if (categoryChartElement) {
+    const seriesData = Array.isArray(categorySeries) && categorySeries.length ? categorySeries : [{ label: 'No Data', revenue: 0, units: 0 }];
+    const categoryLabels = seriesData.map(item => typeof item.label === 'string' ? item.label : '');
     const palette = ['#e74c3c', '#f39c12', '#3498db', '#2ecc71', '#9b59b6', '#16a085', '#e67e22'];
-    const barColors = categoryChartLabels.map((_, index) => palette[index % palette.length]);
-    const totalCategoryRevenue = categoryChartValues.reduce((sum, value) => sum + Number(value || 0), 0);
+    const barColors = categoryLabels.map((_, index) => palette[index % palette.length]);
+    const categoryCtx = categoryChartElement.getContext('2d');
 
-    new Chart(categoryCtx, {
+    let currentCategoryMetric = 'revenue';
+    const categoryMetricLabel = document.getElementById('categoryMetricLabel');
+    const categoryMetricButtons = document.querySelectorAll('[data-category-metric]');
+
+    const categoryChart = new Chart(categoryCtx, {
       type: 'bar',
       data: {
-        labels: categoryChartLabels,
+        labels: categoryLabels,
         datasets: [{
           label: 'Revenue (₱)',
-          data: categoryChartValues,
+          data: seriesData.map(item => Number(item.revenue || 0)),
           backgroundColor: barColors,
           borderRadius: 8,
           borderSkipped: false
@@ -889,14 +1033,16 @@ $extraScripts = <<<JS
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: function (context) {
-                const numericValue = Number(context.raw || 0);
-                const formattedValue = numericValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                if (totalCategoryRevenue > 0) {
-                  const percentage = (numericValue / totalCategoryRevenue) * 100;
-                  return '₱' + formattedValue + ' (' + percentage.toFixed(1) + '%)';
+              label: context => {
+                const entry = seriesData[context.dataIndex] || {};
+                const revenueText = formatCurrency(entry.revenue);
+                const unitsText = formatInteger(entry.units);
+                const revenueLabel = 'Revenue: ' + revenueText;
+                const unitsLabel = 'Units sold: ' + unitsText;
+                if (currentCategoryMetric === 'units') {
+                  return [context.label + ': ' + unitsText + ' units', revenueLabel];
                 }
-                return '₱' + formattedValue;
+                return [context.label + ': ' + revenueText, unitsLabel];
               }
             }
           }
@@ -910,13 +1056,44 @@ $extraScripts = <<<JS
             beginAtZero: true,
             ticks: {
               color: '#2c3e50',
-              callback: value => '₱' + Number(value).toLocaleString()
+              callback: value => currentCategoryMetric === 'units'
+                ? formatInteger(value)
+                : formatCurrencyAxis(value)
             },
             grid: { color: 'rgba(0,0,0,0.05)' }
           }
         }
       }
     });
+
+    const updateCategoryMetric = (metric, updateButtons = true) => {
+      currentCategoryMetric = metric === 'units' ? 'units' : 'revenue';
+      const datasetValues = currentCategoryMetric === 'units'
+        ? seriesData.map(item => Number(item.units || 0))
+        : seriesData.map(item => Number(item.revenue || 0));
+      categoryChart.data.datasets[0].data = datasetValues;
+      categoryChart.data.datasets[0].label = currentCategoryMetric === 'units' ? 'Units Sold' : 'Revenue (₱)';
+      if (categoryMetricLabel) {
+        categoryMetricLabel.textContent = currentCategoryMetric === 'units' ? 'Units sold' : 'Revenue';
+      }
+      if (updateButtons) {
+        updatePressedState(categoryMetricButtons, currentCategoryMetric);
+      }
+      categoryChart.update();
+    };
+
+    categoryMetricButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const metric = button.dataset.categoryMetric;
+        if (!metric || metric === currentCategoryMetric) {
+          return;
+        }
+        updateCategoryMetric(metric);
+      });
+    });
+
+    updateCategoryMetric('revenue', false);
+    updatePressedState(categoryMetricButtons, 'revenue');
   }
 </script>
 JS;
