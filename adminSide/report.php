@@ -222,14 +222,6 @@ include 'includes/sidebar.php';
         <?php endif; ?>
       </form>
     </div>
-    <div class="inventory-calendar-wrapper">
-      <div id="inventoryCalendar" class="inventory-calendar" data-selected-date="<?= htmlspecialchars($reportDate ?? ''); ?>">
-        <div class="calendar-loading">Loading calendar…</div>
-      </div>
-      <noscript>
-        <p class="calendar-noscript">Enable JavaScript to browse daily inventory activity using the calendar. You can still pick a date using the field above.</p>
-      </noscript>
-    </div>
   </div>
 
   <?php if ($inventorySnapshotDescription !== ''): ?>
