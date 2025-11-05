@@ -309,6 +309,8 @@ $defaultDailyAverageMeta = 'Average per day (' . $defaultRangeContext . ')';
 $defaultAverageOrderMeta = 'Based on ' . number_format($defaultUniqueOrders) . ' orders';
 $defaultMethodCaption = 'Showing ' . $defaultSnapshotLabel;
 
+$jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
+
 $financeSnapshotsJson = json_encode($financeSnapshotsByRange, $jsonFlags);
 if ($financeSnapshotsJson === false) {
     $financeSnapshotsJson = '{}';
@@ -363,8 +365,6 @@ if (empty($revenueTrendByRange) && !empty($timeRanges)) {
         'rangeLabel' => $revenueTrendDefaultLabel,
     ];
 }
-
-$jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
 
 $revenueTrendDataJson = json_encode($revenueTrendByRange, $jsonFlags);
 if ($revenueTrendDataJson === false) {
