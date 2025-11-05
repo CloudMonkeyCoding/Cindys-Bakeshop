@@ -124,6 +124,11 @@ $rangeBoundaries = [];
 $uniqueOrdersByRange = [];
 $methodTotalsByRange = [];
 $statusTotalsByRange = [];
+$dailySnapshotsByDate = [];
+$dailyUniqueOrdersByDate = [];
+$dailyMethodTotalsByDate = [];
+$dailyStatusTotalsByDate = [];
+$dailyHourlyTotalsByDate = [];
 $todayStart = strtotime('today');
 $latestPaymentTimestamp = null;
 if ($todayStart === false) {
@@ -189,10 +194,48 @@ foreach ($reportRows as $row) {
     $methodName = $methodNameRaw !== '' ? $methodNameRaw : 'Unknown';
     $statusName = $statusNameRaw !== '' ? $statusNameRaw : 'Unknown';
 
+    $paymentTimestamp = null;
     if (!empty($row['Payment_Date'])) {
         $paymentTimestamp = strtotime($row['Payment_Date']);
         if ($paymentTimestamp !== false && ($latestPaymentTimestamp === null || $paymentTimestamp > $latestPaymentTimestamp)) {
             $latestPaymentTimestamp = $paymentTimestamp;
+        }
+    }
+
+    $dateKey = $timestamp !== false ? date('Y-m-d', $timestamp) : null;
+    if ($dateKey !== null) {
+        if (!isset($dailySnapshotsByDate[$dateKey])) {
+            $dailySnapshotsByDate[$dateKey] = [
+                'totalRevenue' => 0.0,
+                'transactionCount' => 0,
+            ];
+            $dailyUniqueOrdersByDate[$dateKey] = [];
+            $dailyMethodTotalsByDate[$dateKey] = [];
+            $dailyStatusTotalsByDate[$dateKey] = [];
+            $dailyHourlyTotalsByDate[$dateKey] = array_fill(0, 24, 0.0);
+        }
+
+        $dailySnapshotsByDate[$dateKey]['totalRevenue'] += $amountPaid;
+        $dailySnapshotsByDate[$dateKey]['transactionCount']++;
+        if ($orderId) {
+            $dailyUniqueOrdersByDate[$dateKey][$orderId] = true;
+        }
+
+        if (!isset($dailyMethodTotalsByDate[$dateKey][$methodName])) {
+            $dailyMethodTotalsByDate[$dateKey][$methodName] = 0.0;
+        }
+        $dailyMethodTotalsByDate[$dateKey][$methodName] += $amountPaid;
+
+        if (!isset($dailyStatusTotalsByDate[$dateKey][$statusName])) {
+            $dailyStatusTotalsByDate[$dateKey][$statusName] = 0.0;
+        }
+        $dailyStatusTotalsByDate[$dateKey][$statusName] += $amountPaid;
+
+        if ($paymentTimestamp !== null && $paymentTimestamp !== false) {
+            $hourIndex = (int)date('G', $paymentTimestamp);
+            if ($hourIndex >= 0 && $hourIndex <= 23) {
+                $dailyHourlyTotalsByDate[$dateKey][$hourIndex] += $amountPaid;
+            }
         }
     }
 
@@ -252,6 +295,76 @@ foreach ($financeSnapshotsByRange as $rangeKey => &$snapshot) {
     }
 }
 unset($snapshot);
+
+$dailySnapshotsOutput = [];
+$dailyTrendByDateOutput = [];
+$specificDayKeys = [];
+
+if (!empty($dailySnapshotsByDate)) {
+    ksort($dailySnapshotsByDate);
+}
+
+foreach ($dailySnapshotsByDate as $dateKey => $dailyTotals) {
+    if (!is_string($dateKey) || $dateKey === '') {
+        continue;
+    }
+
+    $uniqueOrdersForDay = isset($dailyUniqueOrdersByDate[$dateKey]) ? count($dailyUniqueOrdersByDate[$dateKey]) : 0;
+    $totalRevenueForDay = (float)($dailyTotals['totalRevenue'] ?? 0.0);
+    $transactionCountForDay = (int)($dailyTotals['transactionCount'] ?? 0);
+
+    $methodsForDay = $dailyMethodTotalsByDate[$dateKey] ?? [];
+    arsort($methodsForDay);
+    $methodList = [];
+    foreach ($methodsForDay as $methodName => $methodTotal) {
+        $methodList[] = [
+            'method' => (string)$methodName,
+            'total' => (float)$methodTotal,
+        ];
+    }
+
+    $statusesForDay = $dailyStatusTotalsByDate[$dateKey] ?? [];
+    arsort($statusesForDay);
+    $statusList = [];
+    foreach ($statusesForDay as $statusName => $statusTotal) {
+        $statusList[] = [
+            'status' => (string)$statusName,
+            'total' => (float)$statusTotal,
+        ];
+    }
+
+    $dateTimestamp = strtotime($dateKey);
+    $formattedLabel = $dateTimestamp ? date('M d, Y', $dateTimestamp) : $dateKey;
+
+    $dailySnapshotsOutput[$dateKey] = [
+        'label' => $formattedLabel,
+        'totalRevenue' => $totalRevenueForDay,
+        'transactionCount' => $transactionCountForDay,
+        'uniqueOrders' => $uniqueOrdersForDay,
+        'averageOrderValue' => $uniqueOrdersForDay > 0 ? $totalRevenueForDay / $uniqueOrdersForDay : 0.0,
+        'dailyAverageRevenue' => $totalRevenueForDay,
+        'methods' => $methodList,
+        'statuses' => $statusList,
+    ];
+
+    $hourlyTotals = $dailyHourlyTotalsByDate[$dateKey] ?? array_fill(0, 24, 0.0);
+    $hourLabels = [];
+    $hourValues = [];
+    for ($hour = 0; $hour < 24; $hour++) {
+        $hourLabels[] = date('g A', mktime($hour, 0, 0));
+        $hourValues[] = (int)round($hourlyTotals[$hour] ?? 0);
+    }
+
+    $dailyTrendByDateOutput[$dateKey] = [
+        'labels' => $hourLabels,
+        'values' => $hourValues,
+        'rangeLabel' => $formattedLabel . ' (hourly)',
+    ];
+
+    $specificDayKeys[] = $dateKey;
+}
+
+sort($specificDayKeys);
 
 if ($latestPaymentTimestamp !== null) {
     $existingLastPaymentTimestamp = $lastPaymentDate ? strtotime($lastPaymentDate) : false;
@@ -314,6 +427,30 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
 $financeSnapshotsJson = json_encode($financeSnapshotsByRange, $jsonFlags);
 if ($financeSnapshotsJson === false) {
     $financeSnapshotsJson = '{}';
+}
+
+$dailySnapshotsJson = json_encode($dailySnapshotsOutput, $jsonFlags);
+if ($dailySnapshotsJson === false) {
+    $dailySnapshotsJson = '{}';
+}
+
+$dailyTrendByDateJson = json_encode($dailyTrendByDateOutput, $jsonFlags);
+if ($dailyTrendByDateJson === false) {
+    $dailyTrendByDateJson = '{}';
+}
+
+$specificDayKeysJson = json_encode($specificDayKeys, $jsonFlags);
+if ($specificDayKeysJson === false) {
+    $specificDayKeysJson = '[]';
+}
+
+$specificDayMin = '';
+$specificDayMax = '';
+if (!empty($specificDayKeys)) {
+    $specificDayMin = min($specificDayKeys);
+    $specificDayMax = max($specificDayKeys);
+} else {
+    $specificDayMax = date('Y-m-d');
 }
 
 $currentTimestamp = time();
@@ -449,6 +586,18 @@ include 'includes/sidebar.php';
         aria-label="Search finance transactions"
       >
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <input
+            type="date"
+            id="financeDayFilter"
+            aria-label="Filter finance records by specific day"
+            style="padding:8px 12px;border:1px solid #dcdde1;border-radius:6px;font-size:14px;min-width:165px;"
+            value=""
+            <?php if ($specificDayMin !== ''): ?>min="<?= htmlspecialchars($specificDayMin); ?>"<?php endif; ?>
+            <?php if ($specificDayMax !== ''): ?>max="<?= htmlspecialchars($specificDayMax); ?>"<?php endif; ?>
+          >
+          <button type="button" class="btn btn-secondary" id="clearFinanceDay">Clear Day</button>
+        </div>
         <select
           id="financeTimeRange"
           aria-label="Filter finance records by time period"
@@ -491,8 +640,15 @@ include 'includes/sidebar.php';
                 $transactionDateForFilter = $rawPaymentDate ?: $rawOrderDate;
                 $transactionTimestamp = $transactionDateForFilter ? strtotime($transactionDateForFilter) : false;
                 $transactionTimestampAttr = $transactionTimestamp !== false ? (string)$transactionTimestamp : '';
+                $transactionDayAttr = '';
+                if ($transactionTimestamp !== false && $transactionTimestamp !== null) {
+                  $transactionDayAttr = date('Y-m-d', $transactionTimestamp);
+                }
               ?>
-              <tr data-transaction-ts="<?= htmlspecialchars($transactionTimestampAttr); ?>">
+              <tr
+                data-transaction-ts="<?= htmlspecialchars($transactionTimestampAttr); ?>"
+                data-transaction-day="<?= htmlspecialchars($transactionDayAttr); ?>"
+              >
                 <td>#<?= str_pad((int)$row['Transaction_ID'], 5, '0', STR_PAD_LEFT); ?></td>
                 <td><?= $row['Order_ID'] ? '#' . str_pad((int)$row['Order_ID'], 5, '0', STR_PAD_LEFT) : '—'; ?></td>
                 <td><?= htmlspecialchars($row['Order_Date'] ?? '—'); ?></td>
@@ -523,6 +679,9 @@ ob_start();
   const revenueTrendDataByRange = <?= $revenueTrendDataJson; ?>;
   const revenueTrendDefaultRange = <?= $revenueTrendDefaultRangeJson; ?>;
   const financeSnapshotsByRange = <?= $financeSnapshotsJson; ?>;
+  const dailySnapshotsByDate = <?= $dailySnapshotsJson; ?>;
+  const dailyTrendByDate = <?= $dailyTrendByDateJson; ?>;
+  const availableSpecificDayKeys = <?= $specificDayKeysJson; ?>;
   const MANILA_TIME_ZONE = 'Asia/Manila';
 
   const trendRangeOptions = (revenueTrendDataByRange && typeof revenueTrendDataByRange === 'object' && !Array.isArray(revenueTrendDataByRange))
@@ -541,6 +700,10 @@ ob_start();
     defaultRangeKey = snapshotKeys[0];
   }
 
+  const specificDayKeys = Array.isArray(availableSpecificDayKeys) ? availableSpecificDayKeys.slice() : [];
+  let activeRangeKey = defaultRangeKey;
+  let activeSpecificDay = null;
+
   const revenueTrendCanvas = document.getElementById('revenueTrendChart');
   const revenueTrendRangeSelect = document.getElementById('revenueTrendRange');
   const revenueTrendRangeCaption = document.getElementById('revenueTrendRangeCaption');
@@ -556,6 +719,9 @@ ob_start();
 
   let methodChart = null;
   let statusChart = null;
+  let revenueTrendChart = null;
+  let applyRangeSelection = () => {};
+  let applySpecificDaySelection = () => {};
 
   const fallbackSnapshot = {
     label: 'Selected Range',
@@ -568,6 +734,20 @@ ob_start();
     statuses: [],
   };
 
+  function buildEmptySnapshot(labelText) {
+    const resolvedLabel = typeof labelText === 'string' && labelText.trim() ? labelText.trim() : 'Selected Range';
+    return {
+      label: resolvedLabel,
+      totalRevenue: 0,
+      transactionCount: 0,
+      uniqueOrders: 0,
+      averageOrderValue: 0,
+      dailyAverageRevenue: 0,
+      methods: [],
+      statuses: [],
+    };
+  }
+
   function getSnapshotForRange(rangeKey) {
     if (financeSnapshotsByRange && typeof financeSnapshotsByRange === 'object' && !Array.isArray(financeSnapshotsByRange)) {
       if (rangeKey && Object.prototype.hasOwnProperty.call(financeSnapshotsByRange, rangeKey)) {
@@ -579,6 +759,36 @@ ob_start();
       }
     }
     return fallbackSnapshot;
+  }
+
+  function getSnapshotForSpecificDay(dayKey) {
+    if (!dayKey || !dailySnapshotsByDate || typeof dailySnapshotsByDate !== 'object' || Array.isArray(dailySnapshotsByDate)) {
+      return null;
+    }
+    if (Object.prototype.hasOwnProperty.call(dailySnapshotsByDate, dayKey)) {
+      return dailySnapshotsByDate[dayKey];
+    }
+    return null;
+  }
+
+  function formatSpecificDayLabel(dayKey) {
+    if (typeof dayKey !== 'string' || !dayKey) {
+      return 'Selected Day';
+    }
+    try {
+      const date = new Date(`${dayKey}T00:00:00`);
+      if (!Number.isNaN(date.getTime())) {
+        return date.toLocaleDateString(undefined, {
+          timeZone: MANILA_TIME_ZONE,
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        });
+      }
+    } catch (error) {
+      console.warn('Unable to format specific day label:', error);
+    }
+    return dayKey;
   }
 
   function formatCurrency(value) {
@@ -717,8 +927,8 @@ ob_start();
     }
   }
 
-  function applyFinanceSnapshot(rangeKey) {
-    const snapshot = getSnapshotForRange(rangeKey);
+  function applyFinanceSnapshot(rangeKey, snapshotOverride) {
+    const snapshot = snapshotOverride || getSnapshotForRange(rangeKey);
     updateFinanceSummary(snapshot);
     updateMethodChart(snapshot);
     updateStatusChart(snapshot);
@@ -732,6 +942,11 @@ ob_start();
 
     const fallbackLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const fallbackValues = new Array(fallbackLabels.length).fill(0);
+    const fallbackHourlyLabels = Array.from({ length: 24 }, (_, hour) => {
+      const baseDate = new Date(Date.UTC(1970, 0, 1, hour));
+      return baseDate.toLocaleTimeString(undefined, { hour: 'numeric', hour12: true, timeZone: MANILA_TIME_ZONE });
+    });
+    const fallbackHourlyValues = new Array(fallbackHourlyLabels.length).fill(0);
 
     const getPointStyling = labelCount => {
       const isDense = labelCount > 31;
@@ -741,24 +956,55 @@ ob_start();
       };
     };
 
+    const sanitizeValues = (labels, rawValues) => labels.map((_, index) => {
+      const value = rawValues[index] ?? 0;
+      const numericValue = Number.parseFloat(value);
+      return Number.isFinite(numericValue) ? Math.round(numericValue) : 0;
+    });
+
     const getDatasetForRange = rangeKey => {
       const dataset = rangeKey && Object.prototype.hasOwnProperty.call(trendRangeOptions, rangeKey) ? trendRangeOptions[rangeKey] : null;
       const labels = dataset && Array.isArray(dataset.labels) ? dataset.labels.slice() : fallbackLabels.slice();
       const rawValues = dataset && Array.isArray(dataset.values) ? dataset.values.slice() : fallbackValues.slice();
-      const sanitizedValues = labels.map((_, index) => {
-        const value = rawValues[index] ?? 0;
-        const numericValue = Number.parseFloat(value);
-        return Number.isFinite(numericValue) ? Math.round(numericValue) : 0;
-      });
+      const sanitizedValues = sanitizeValues(labels, rawValues);
       const rangeLabel = dataset && typeof dataset.rangeLabel === 'string' ? dataset.rangeLabel : 'No revenue recorded yet';
       return { labels, values: sanitizedValues, rangeLabel };
+    };
+
+    const getDatasetForSpecificDay = dayKey => {
+      const dataset = dayKey && dailyTrendByDate && typeof dailyTrendByDate === 'object' && !Array.isArray(dailyTrendByDate)
+        && Object.prototype.hasOwnProperty.call(dailyTrendByDate, dayKey)
+        ? dailyTrendByDate[dayKey]
+        : null;
+      const labels = dataset && Array.isArray(dataset.labels) ? dataset.labels.slice() : fallbackHourlyLabels.slice();
+      const rawValues = dataset && Array.isArray(dataset.values) ? dataset.values.slice() : fallbackHourlyValues.slice();
+      const sanitizedValues = sanitizeValues(labels, rawValues);
+      const defaultLabel = `${formatSpecificDayLabel(dayKey)} (hourly)`;
+      const rangeLabel = dataset && typeof dataset.rangeLabel === 'string' ? dataset.rangeLabel : defaultLabel;
+      return { labels, values: sanitizedValues, rangeLabel };
+    };
+
+    const setRevenueTrendDataset = dataset => {
+      if (!revenueTrendChart) {
+        return;
+      }
+      const safeDataset = dataset || { labels: fallbackLabels.slice(), values: fallbackValues.slice(), rangeLabel: 'No revenue recorded yet' };
+      const pointStyle = getPointStyling(safeDataset.labels.length);
+      revenueTrendChart.data.labels = safeDataset.labels;
+      revenueTrendChart.data.datasets[0].data = safeDataset.values;
+      revenueTrendChart.data.datasets[0].pointRadius = pointStyle.radius;
+      revenueTrendChart.data.datasets[0].pointHoverRadius = pointStyle.hoverRadius;
+      revenueTrendChart.update();
+      if (revenueTrendRangeCaption) {
+        revenueTrendRangeCaption.textContent = safeDataset.rangeLabel;
+      }
     };
 
     const resolvedDefaultKey = defaultRangeKey || (trendRangeKeys.length > 0 ? trendRangeKeys[0] : null);
     const initialDataset = getDatasetForRange(resolvedDefaultKey);
     const initialPointStyle = getPointStyling(initialDataset.labels.length);
 
-    const revenueTrendChart = new Chart(ctx, {
+    revenueTrendChart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: initialDataset.labels,
@@ -819,34 +1065,73 @@ ob_start();
       }
     }
 
-    const updateRevenueTrendRange = rangeKey => {
+    applyRangeSelection = rangeKey => {
       const dataset = getDatasetForRange(rangeKey);
-      const pointStyle = getPointStyling(dataset.labels.length);
-      revenueTrendChart.data.labels = dataset.labels;
-      revenueTrendChart.data.datasets[0].data = dataset.values;
-      revenueTrendChart.data.datasets[0].pointRadius = pointStyle.radius;
-      revenueTrendChart.data.datasets[0].pointHoverRadius = pointStyle.hoverRadius;
-      revenueTrendChart.update();
-      if (revenueTrendRangeCaption) {
-        revenueTrendRangeCaption.textContent = dataset.rangeLabel;
+      activeRangeKey = rangeKey;
+      activeSpecificDay = null;
+      setRevenueTrendDataset(dataset);
+      if (financeDayFilterInput) {
+        financeDayFilterInput.value = '';
+      }
+      if (revenueTrendRangeSelect && typeof rangeKey === 'string' && rangeKey) {
+        revenueTrendRangeSelect.value = rangeKey;
       }
       applyFinanceSnapshot(rangeKey);
     };
 
+    applySpecificDaySelection = dayKey => {
+      if (!dayKey) {
+        activeSpecificDay = null;
+        if (activeRangeKey) {
+          applyRangeSelection(activeRangeKey);
+        } else {
+          applyRangeSelection(resolvedDefaultKey);
+        }
+        return;
+      }
+      const dataset = getDatasetForSpecificDay(dayKey);
+      const snapshot = getSnapshotForSpecificDay(dayKey) || buildEmptySnapshot(formatSpecificDayLabel(dayKey));
+      activeSpecificDay = dayKey;
+      setRevenueTrendDataset(dataset);
+      applyFinanceSnapshot(null, snapshot);
+    };
+
     if (revenueTrendRangeSelect) {
       revenueTrendRangeSelect.addEventListener('change', event => {
-        updateRevenueTrendRange(event.target.value);
+        applyRangeSelection(event.target.value);
       });
     }
 
+    activeRangeKey = resolvedDefaultKey;
     applyFinanceSnapshot(resolvedDefaultKey);
   } else {
+    applyRangeSelection = rangeKey => {
+      activeRangeKey = rangeKey;
+      activeSpecificDay = null;
+      applyFinanceSnapshot(rangeKey);
+    };
+    applySpecificDaySelection = dayKey => {
+      if (!dayKey) {
+        activeSpecificDay = null;
+        if (activeRangeKey) {
+          applyRangeSelection(activeRangeKey);
+        } else {
+          applyFinanceSnapshot(defaultRangeKey);
+        }
+        return;
+      }
+      const snapshot = getSnapshotForSpecificDay(dayKey) || buildEmptySnapshot(formatSpecificDayLabel(dayKey));
+      activeSpecificDay = dayKey;
+      applyFinanceSnapshot(null, snapshot);
+    };
     applyFinanceSnapshot(defaultRangeKey);
   }
 
   const financeSearchInput = document.getElementById('financeSearch');
   const financeTimeRangeSelect = document.getElementById('financeTimeRange');
   const financeTableBody = document.querySelector('#financialTable tbody');
+  const financeDayFilterInput = document.getElementById('financeDayFilter');
+  const clearFinanceDayButton = document.getElementById('clearFinanceDay');
 
   const getSelectedFinanceRangeDays = () => {
     if (!financeTimeRangeSelect) {
@@ -865,6 +1150,9 @@ ob_start();
   };
 
   const getFinanceTimeRangeLabel = () => {
+    if (financeDayFilterInput && financeDayFilterInput.value) {
+      return formatSpecificDayLabel(financeDayFilterInput.value);
+    }
     if (!financeTimeRangeSelect) {
       return 'All Time';
     }
@@ -892,14 +1180,19 @@ ob_start();
       return;
     }
     const searchQuery = financeSearchInput ? financeSearchInput.value.trim().toLowerCase() : '';
-    const rangeDays = getSelectedFinanceRangeDays();
+    const specificDayValue = financeDayFilterInput ? financeDayFilterInput.value : '';
+    const hasSpecificDay = Boolean(specificDayValue);
+    const rangeDays = hasSpecificDay ? null : getSelectedFinanceRangeDays();
     const hasRangeFilter = typeof rangeDays === 'number';
     const cutoffMs = hasRangeFilter ? Date.now() - rangeDays * 24 * 60 * 60 * 1000 : null;
 
     rows.forEach(row => {
       const matchesSearch = !searchQuery || row.textContent.toLowerCase().includes(searchQuery);
       let matchesRange = true;
-      if (hasRangeFilter && cutoffMs !== null) {
+      if (hasSpecificDay) {
+        const rowDay = row.getAttribute('data-transaction-day') || '';
+        matchesRange = rowDay === specificDayValue;
+      } else if (hasRangeFilter && cutoffMs !== null) {
         const tsAttr = row.getAttribute('data-transaction-ts');
         const tsSeconds = tsAttr ? Number.parseInt(tsAttr, 10) : NaN;
         if (Number.isFinite(tsSeconds)) {
@@ -918,6 +1211,23 @@ ob_start();
 
   if (financeTimeRangeSelect) {
     financeTimeRangeSelect.addEventListener('change', applyFinanceFilters);
+  }
+
+  if (financeDayFilterInput) {
+    financeDayFilterInput.addEventListener('change', event => {
+      applySpecificDaySelection(event.target.value);
+      applyFinanceFilters();
+    });
+  }
+
+  if (clearFinanceDayButton) {
+    clearFinanceDayButton.addEventListener('click', () => {
+      if (financeDayFilterInput) {
+        financeDayFilterInput.value = '';
+      }
+      applySpecificDaySelection('');
+      applyFinanceFilters();
+    });
   }
 
   applyFinanceFilters();
@@ -1177,6 +1487,9 @@ ob_start();
             ? ` (${earliestLabel})`
             : ` (${earliestLabel} - ${latestLabel})`;
         }
+      }
+      if (coverageDetails && coverageDetails.trim() === `(${timeRangeLabel})`) {
+        coverageDetails = '';
       }
       const coverageText = `Time Range: ${timeRangeLabel}${coverageDetails}`;
 
