@@ -223,10 +223,10 @@
     .primary-btn {
       padding: 0.85rem 1.8rem;
       border-radius: var(--radius-pill);
-      background: linear-gradient(135deg, #0d6efd, #0a58ca);
+      background: linear-gradient(135deg, var(--primary-brown), var(--primary-brown-dark));
       color: #fff;
       font-weight: 600;
-      box-shadow: 0 16px 32px rgba(13, 110, 253, 0.35);
+      box-shadow: 0 16px 32px rgba(139, 69, 19, 0.2);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -252,6 +252,11 @@
 
     .primary-btn.is-loading .btn-spinner {
       display: inline-block;
+    }
+
+    .gcash-btn {
+      background: linear-gradient(135deg, #0d6efd, #0a58ca);
+      box-shadow: 0 16px 32px rgba(13, 110, 253, 0.35);
     }
 
     @keyframes spin {
@@ -544,7 +549,7 @@
             <textarea id="special-instructions" placeholder="Let us know about delivery notes or allergy information." maxlength="500"></textarea>
           </div>
 
-          <button type="submit" class="primary-btn" id="place-order-btn">
+          <button type="submit" class="primary-btn gcash-btn" id="place-order-btn">
             <span class="btn-spinner" aria-hidden="true"></span>
             <span class="btn-label">Pay with GCash</span>
           </button>
