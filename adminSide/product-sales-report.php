@@ -727,6 +727,7 @@ $extraScripts = <<<JS
   const categoryUnits = $categoryUnitsJson;
   const lastSaleLabel = $recentSaleLabelJson;
   const reportRangeLabel = $rangeSummaryJson;
+  const MANILA_TIME_ZONE = 'Asia/Manila';
 
   const rangeForm = document.getElementById('reportRangeForm');
   const viewModeSelect = document.getElementById('viewMode');
@@ -1292,14 +1293,14 @@ $extraScripts = <<<JS
       doc.setFontSize(11);
       doc.setTextColor(80);
 
-      const generatedAt = new Date();
-      const generatedLabel = generatedAt.toLocaleString(undefined, {
+      const generatedLabel = new Intl.DateTimeFormat(undefined, {
+        timeZone: MANILA_TIME_ZONE,
         year: 'numeric',
         month: 'short',
         day: 'numeric',
         hour: 'numeric',
-        minute: '2-digit'
-      });
+        minute: '2-digit',
+      }).format(new Date());
       let nextLineY = 26;
       doc.text('Generated on: ' + generatedLabel, 14, nextLineY);
       nextLineY += 8;

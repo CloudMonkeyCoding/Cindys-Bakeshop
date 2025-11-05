@@ -5,34 +5,30 @@ require_once '../PHP/db_connect.php';
 $activePage = 'financial-report';
 $pageTitle = "Financial Report - Cindy's Bakeshop";
 
-$totalRevenue = 0.0;
-$totalTransactions = 0;
-$uniqueOrders = 0;
-$averageOrderValue = 0.0;
 $lastPaymentDate = null;
-$dailyAverageRevenue = 0.0;
-$paymentMethods = [];
-$statusBreakdown = [];
 $reportRows = [];
 
 $timeRanges = [
-    '7d' => ['label' => 'Last 7 Days', 'days' => 7],
-    '30d' => ['label' => 'Last 30 Days', 'days' => 30],
-    '90d' => ['label' => 'Last 90 Days', 'days' => 90],
+    'today' => ['label' => 'Today', 'days' => 1, 'granularity' => 'hour'],
+    '7d' => ['label' => 'Last 7 Days', 'days' => 7, 'granularity' => 'day'],
+    '30d' => ['label' => 'Last 30 Days', 'days' => 30, 'granularity' => 'day'],
+    '90d' => ['label' => 'Last 90 Days', 'days' => 90, 'granularity' => 'day'],
 ];
 
-if (function_exists('array_key_first')) {
-    $revenueTrendDefaultRange = array_key_first($timeRanges) ?? '7d';
-} else {
-    reset($timeRanges);
-    $revenueTrendDefaultRange = key($timeRanges);
-    if ($revenueTrendDefaultRange === null) {
-        $revenueTrendDefaultRange = '7d';
+$revenueTrendDefaultRange = '7d';
+if (!array_key_exists($revenueTrendDefaultRange, $timeRanges)) {
+    if (function_exists('array_key_first')) {
+        $firstRangeKey = array_key_first($timeRanges);
+    } else {
+        reset($timeRanges);
+        $firstRangeKey = key($timeRanges);
     }
+    $revenueTrendDefaultRange = $firstRangeKey ?? 'today';
 }
 
-$revenueTrendDefaultLabel = $timeRanges[$revenueTrendDefaultRange]['label'] ?? 'Last 7 Days';
+$revenueTrendDefaultLabel = $timeRanges[$revenueTrendDefaultRange]['label'] ?? 'Selected Range';
 $dailyRevenueMap = [];
+$hourlyRevenueMap = array_fill(0, 24, 0.0);
 $revenueTrendByRange = [];
 $maxDays = 1;
 
@@ -47,13 +43,7 @@ if ($pdo) {
     $stmtSummary = $pdo->query("SELECT COALESCE(SUM(Amount_Paid),0) AS revenue, COUNT(*) AS transactions, COUNT(DISTINCT Order_ID) AS orders, MAX(Payment_Date) AS last_payment FROM transaction");
     if ($stmtSummary) {
         $summary = $stmtSummary->fetch(PDO::FETCH_ASSOC) ?: [];
-        $totalRevenue = (float)($summary['revenue'] ?? 0);
-        $totalTransactions = (int)($summary['transactions'] ?? 0);
-        $uniqueOrders = (int)($summary['orders'] ?? 0);
         $lastPaymentDate = $summary['last_payment'] ?? null;
-        if ($uniqueOrders > 0) {
-            $averageOrderValue = $totalRevenue / $uniqueOrders;
-        }
     }
 
     $daysInterval = max($maxDays - 1, 0);
@@ -78,6 +68,27 @@ if ($pdo) {
         }
     }
 
+    $hourlySql = "
+        SELECT
+            HOUR(Payment_Date) AS payment_hour,
+            COALESCE(SUM(Amount_Paid), 0) AS revenue
+        FROM transaction
+        WHERE Payment_Date IS NOT NULL
+          AND Payment_Date >= CURDATE()
+          AND Payment_Date < DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+        GROUP BY payment_hour
+        ORDER BY payment_hour ASC
+    ";
+    $stmtHourly = $pdo->query($hourlySql);
+    if ($stmtHourly) {
+        while ($row = $stmtHourly->fetch(PDO::FETCH_ASSOC)) {
+            $hourValue = isset($row['payment_hour']) ? (int)$row['payment_hour'] : null;
+            if ($hourValue !== null && $hourValue >= 0 && $hourValue <= 23) {
+                $hourlyRevenueMap[$hourValue] = (float)($row['revenue'] ?? 0);
+            }
+        }
+    }
+
     $daysForAverage = 30;
     if ($daysForAverage > 0) {
         $totalRevenueWindow = 0.0;
@@ -91,16 +102,6 @@ if ($pdo) {
             $totalRevenueWindow += (float)($dailyRevenueMap[$dateKey] ?? 0);
         }
         $dailyAverageRevenue = $totalRevenueWindow / $daysForAverage;
-    }
-
-    $stmtMethods = $pdo->query("SELECT COALESCE(Payment_Method, 'Unknown') AS method, COALESCE(SUM(Amount_Paid),0) AS total FROM transaction GROUP BY method ORDER BY total DESC");
-    if ($stmtMethods) {
-        $paymentMethods = $stmtMethods->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    $stmtStatus = $pdo->query("SELECT COALESCE(Payment_Status, 'Unknown') AS status, COUNT(*) AS count, COALESCE(SUM(Amount_Paid),0) AS total FROM transaction GROUP BY status ORDER BY total DESC");
-    if ($stmtStatus) {
-        $statusBreakdown = $stmtStatus->fetchAll(PDO::FETCH_ASSOC);
     }
 
     $stmtReport = $pdo->query(
@@ -118,8 +119,358 @@ if ($pdo) {
     }
 }
 
+$financeSnapshotsByRange = [];
+$rangeBoundaries = [];
+$uniqueOrdersByRange = [];
+$methodTotalsByRange = [];
+$statusTotalsByRange = [];
+$dailySnapshotsByDate = [];
+$dailyUniqueOrdersByDate = [];
+$dailyMethodTotalsByDate = [];
+$dailyStatusTotalsByDate = [];
+$dailyHourlyTotalsByDate = [];
+$todayStart = strtotime('today');
+$latestPaymentTimestamp = null;
+if ($todayStart === false) {
+    $todayStart = strtotime(date('Y-m-d')) ?: time();
+}
+
+foreach ($timeRanges as $rangeKey => $config) {
+    $rangeLabel = isset($config['label']) ? (string)$config['label'] : 'Selected Range';
+    if ($rangeLabel === '') {
+        $rangeLabel = 'Selected Range';
+    }
+    $days = isset($config['days']) ? (int)$config['days'] : 0;
+    $granularity = $config['granularity'] ?? 'day';
+    $daysForAverage = $days > 0 ? $days : 1;
+    $rangeStart = null;
+    if ($granularity === 'hour') {
+        $rangeStart = $todayStart;
+        $daysForAverage = 1;
+    } elseif ($daysForAverage > 0) {
+        $offsetDays = $daysForAverage - 1;
+        $rangeStart = strtotime('-' . $offsetDays . ' day', $todayStart);
+    }
+    if ($rangeStart === false) {
+        $rangeStart = null;
+    }
+    if ($daysForAverage <= 0) {
+        $daysForAverage = 1;
+    }
+
+    $financeSnapshotsByRange[$rangeKey] = [
+        'label' => $rangeLabel,
+        'totalRevenue' => 0.0,
+        'transactionCount' => 0,
+        'uniqueOrders' => 0,
+        'averageOrderValue' => 0.0,
+        'dailyAverageRevenue' => 0.0,
+        'methods' => [],
+        'statuses' => [],
+    ];
+    $rangeBoundaries[$rangeKey] = [
+        'start' => $rangeStart,
+        'days' => $daysForAverage,
+    ];
+    $uniqueOrdersByRange[$rangeKey] = [];
+    $methodTotalsByRange[$rangeKey] = [];
+    $statusTotalsByRange[$rangeKey] = [];
+}
+
+foreach ($reportRows as $row) {
+    $dateForFilter = $row['Payment_Date'] ?? null;
+    if (!$dateForFilter) {
+        $dateForFilter = $row['Order_Date'] ?? null;
+    }
+    $timestamp = $dateForFilter ? strtotime($dateForFilter) : false;
+    if ($timestamp === false || $timestamp === null) {
+        continue;
+    }
+
+    $amountPaid = (float)($row['Amount_Paid'] ?? 0);
+    $orderId = $row['Order_ID'] ?? null;
+    $methodNameRaw = isset($row['Payment_Method']) ? trim((string)$row['Payment_Method']) : '';
+    $statusNameRaw = isset($row['Payment_Status']) ? trim((string)$row['Payment_Status']) : '';
+    $methodName = $methodNameRaw !== '' ? $methodNameRaw : 'Unknown';
+    $statusName = $statusNameRaw !== '' ? $statusNameRaw : 'Unknown';
+
+    $paymentTimestamp = null;
+    if (!empty($row['Payment_Date'])) {
+        $paymentTimestamp = strtotime($row['Payment_Date']);
+        if ($paymentTimestamp !== false && ($latestPaymentTimestamp === null || $paymentTimestamp > $latestPaymentTimestamp)) {
+            $latestPaymentTimestamp = $paymentTimestamp;
+        }
+    }
+
+    $dateKey = $timestamp !== false ? date('Y-m-d', $timestamp) : null;
+    if ($dateKey !== null) {
+        if (!isset($dailySnapshotsByDate[$dateKey])) {
+            $dailySnapshotsByDate[$dateKey] = [
+                'totalRevenue' => 0.0,
+                'transactionCount' => 0,
+            ];
+            $dailyUniqueOrdersByDate[$dateKey] = [];
+            $dailyMethodTotalsByDate[$dateKey] = [];
+            $dailyStatusTotalsByDate[$dateKey] = [];
+            $dailyHourlyTotalsByDate[$dateKey] = array_fill(0, 24, 0.0);
+        }
+
+        $dailySnapshotsByDate[$dateKey]['totalRevenue'] += $amountPaid;
+        $dailySnapshotsByDate[$dateKey]['transactionCount']++;
+        if ($orderId) {
+            $dailyUniqueOrdersByDate[$dateKey][$orderId] = true;
+        }
+
+        if (!isset($dailyMethodTotalsByDate[$dateKey][$methodName])) {
+            $dailyMethodTotalsByDate[$dateKey][$methodName] = 0.0;
+        }
+        $dailyMethodTotalsByDate[$dateKey][$methodName] += $amountPaid;
+
+        if (!isset($dailyStatusTotalsByDate[$dateKey][$statusName])) {
+            $dailyStatusTotalsByDate[$dateKey][$statusName] = 0.0;
+        }
+        $dailyStatusTotalsByDate[$dateKey][$statusName] += $amountPaid;
+
+        if ($paymentTimestamp !== null && $paymentTimestamp !== false) {
+            $hourIndex = (int)date('G', $paymentTimestamp);
+            if ($hourIndex >= 0 && $hourIndex <= 23) {
+                $dailyHourlyTotalsByDate[$dateKey][$hourIndex] += $amountPaid;
+            }
+        }
+    }
+
+    foreach ($rangeBoundaries as $rangeKey => $boundary) {
+        $rangeStart = $boundary['start'];
+        if ($rangeStart !== null && $timestamp < $rangeStart) {
+            continue;
+        }
+
+        $financeSnapshotsByRange[$rangeKey]['totalRevenue'] += $amountPaid;
+        $financeSnapshotsByRange[$rangeKey]['transactionCount']++;
+        if ($orderId) {
+            $uniqueOrdersByRange[$rangeKey][$orderId] = true;
+        }
+
+        if (!isset($methodTotalsByRange[$rangeKey][$methodName])) {
+            $methodTotalsByRange[$rangeKey][$methodName] = 0.0;
+        }
+        $methodTotalsByRange[$rangeKey][$methodName] += $amountPaid;
+
+        if (!isset($statusTotalsByRange[$rangeKey][$statusName])) {
+            $statusTotalsByRange[$rangeKey][$statusName] = 0.0;
+        }
+        $statusTotalsByRange[$rangeKey][$statusName] += $amountPaid;
+    }
+}
+
+foreach ($financeSnapshotsByRange as $rangeKey => &$snapshot) {
+    $uniqueOrders = isset($uniqueOrdersByRange[$rangeKey]) ? count($uniqueOrdersByRange[$rangeKey]) : 0;
+    $snapshot['uniqueOrders'] = $uniqueOrders;
+    $snapshot['averageOrderValue'] = $uniqueOrders > 0 ? $snapshot['totalRevenue'] / $uniqueOrders : 0.0;
+
+    $daysForAverage = $rangeBoundaries[$rangeKey]['days'] ?? 1;
+    if ($daysForAverage <= 0) {
+        $daysForAverage = 1;
+    }
+    $snapshot['dailyAverageRevenue'] = $daysForAverage > 0 ? $snapshot['totalRevenue'] / $daysForAverage : 0.0;
+
+    $methods = $methodTotalsByRange[$rangeKey] ?? [];
+    arsort($methods);
+    $snapshot['methods'] = [];
+    foreach ($methods as $methodName => $methodTotal) {
+        $snapshot['methods'][] = [
+            'method' => $methodName,
+            'total' => $methodTotal,
+        ];
+    }
+
+    $statuses = $statusTotalsByRange[$rangeKey] ?? [];
+    arsort($statuses);
+    $snapshot['statuses'] = [];
+    foreach ($statuses as $statusName => $statusTotal) {
+        $snapshot['statuses'][] = [
+            'status' => $statusName,
+            'total' => $statusTotal,
+        ];
+    }
+}
+unset($snapshot);
+
+$dailySnapshotsOutput = [];
+$dailyTrendByDateOutput = [];
+$specificDayKeys = [];
+
+if (!empty($dailySnapshotsByDate)) {
+    ksort($dailySnapshotsByDate);
+}
+
+foreach ($dailySnapshotsByDate as $dateKey => $dailyTotals) {
+    if (!is_string($dateKey) || $dateKey === '') {
+        continue;
+    }
+
+    $uniqueOrdersForDay = isset($dailyUniqueOrdersByDate[$dateKey]) ? count($dailyUniqueOrdersByDate[$dateKey]) : 0;
+    $totalRevenueForDay = (float)($dailyTotals['totalRevenue'] ?? 0.0);
+    $transactionCountForDay = (int)($dailyTotals['transactionCount'] ?? 0);
+
+    $methodsForDay = $dailyMethodTotalsByDate[$dateKey] ?? [];
+    arsort($methodsForDay);
+    $methodList = [];
+    foreach ($methodsForDay as $methodName => $methodTotal) {
+        $methodList[] = [
+            'method' => (string)$methodName,
+            'total' => (float)$methodTotal,
+        ];
+    }
+
+    $statusesForDay = $dailyStatusTotalsByDate[$dateKey] ?? [];
+    arsort($statusesForDay);
+    $statusList = [];
+    foreach ($statusesForDay as $statusName => $statusTotal) {
+        $statusList[] = [
+            'status' => (string)$statusName,
+            'total' => (float)$statusTotal,
+        ];
+    }
+
+    $dateTimestamp = strtotime($dateKey);
+    $formattedLabel = $dateTimestamp ? date('M d, Y', $dateTimestamp) : $dateKey;
+
+    $dailySnapshotsOutput[$dateKey] = [
+        'label' => $formattedLabel,
+        'totalRevenue' => $totalRevenueForDay,
+        'transactionCount' => $transactionCountForDay,
+        'uniqueOrders' => $uniqueOrdersForDay,
+        'averageOrderValue' => $uniqueOrdersForDay > 0 ? $totalRevenueForDay / $uniqueOrdersForDay : 0.0,
+        'dailyAverageRevenue' => $totalRevenueForDay,
+        'methods' => $methodList,
+        'statuses' => $statusList,
+    ];
+
+    $hourlyTotals = $dailyHourlyTotalsByDate[$dateKey] ?? array_fill(0, 24, 0.0);
+    $hourLabels = [];
+    $hourValues = [];
+    for ($hour = 0; $hour < 24; $hour++) {
+        $hourLabels[] = date('g A', mktime($hour, 0, 0));
+        $hourValues[] = (int)round($hourlyTotals[$hour] ?? 0);
+    }
+
+    $dailyTrendByDateOutput[$dateKey] = [
+        'labels' => $hourLabels,
+        'values' => $hourValues,
+        'rangeLabel' => $formattedLabel . ' (hourly)',
+    ];
+
+    $specificDayKeys[] = $dateKey;
+}
+
+sort($specificDayKeys);
+
+if ($latestPaymentTimestamp !== null) {
+    $existingLastPaymentTimestamp = $lastPaymentDate ? strtotime($lastPaymentDate) : false;
+    if ($existingLastPaymentTimestamp === false || $latestPaymentTimestamp > $existingLastPaymentTimestamp) {
+        $lastPaymentDate = date('Y-m-d H:i:s', $latestPaymentTimestamp);
+    }
+}
+
+$defaultSnapshot = isset($financeSnapshotsByRange[$revenueTrendDefaultRange])
+    ? $financeSnapshotsByRange[$revenueTrendDefaultRange]
+    : null;
+if ($defaultSnapshot === null) {
+    if (function_exists('array_key_first')) {
+        $firstSnapshotKey = array_key_first($financeSnapshotsByRange);
+    } else {
+        reset($financeSnapshotsByRange);
+        $firstSnapshotKey = key($financeSnapshotsByRange);
+    }
+    if ($firstSnapshotKey !== null && isset($financeSnapshotsByRange[$firstSnapshotKey])) {
+        $defaultSnapshot = $financeSnapshotsByRange[$firstSnapshotKey];
+    }
+}
+
+$defaultSnapshotLabel = $defaultSnapshot['label'] ?? $revenueTrendDefaultLabel;
+if ($defaultSnapshotLabel === '' || $defaultSnapshotLabel === null) {
+    $defaultSnapshotLabel = 'Selected Range';
+}
+
+if ($defaultSnapshot === null) {
+    $defaultSnapshot = [
+        'label' => $defaultSnapshotLabel,
+        'totalRevenue' => 0.0,
+        'transactionCount' => 0,
+        'uniqueOrders' => 0,
+        'averageOrderValue' => 0.0,
+        'dailyAverageRevenue' => 0.0,
+        'methods' => [],
+        'statuses' => [],
+    ];
+}
+
+$defaultTotalRevenue = (float)($defaultSnapshot['totalRevenue'] ?? 0.0);
+$defaultTransactions = (int)($defaultSnapshot['transactionCount'] ?? 0);
+$defaultUniqueOrders = (int)($defaultSnapshot['uniqueOrders'] ?? 0);
+$defaultDailyAverage = (float)($defaultSnapshot['dailyAverageRevenue'] ?? 0.0);
+$defaultAverageOrderValue = (float)($defaultSnapshot['averageOrderValue'] ?? 0.0);
+
+$defaultRangeContext = strtolower($defaultSnapshotLabel);
+if ($defaultRangeContext === '') {
+    $defaultRangeContext = 'selected range';
+}
+
+$defaultTotalRevenueMeta = 'Across ' . number_format($defaultTransactions) . ' payments (' . $defaultRangeContext . ')';
+$defaultDailyAverageMeta = 'Average per day (' . $defaultRangeContext . ')';
+$defaultAverageOrderMeta = 'Based on ' . number_format($defaultUniqueOrders) . ' orders';
+$defaultMethodCaption = 'Showing ' . $defaultSnapshotLabel;
+
+$jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
+
+$financeSnapshotsJson = json_encode($financeSnapshotsByRange, $jsonFlags);
+if ($financeSnapshotsJson === false) {
+    $financeSnapshotsJson = '{}';
+}
+
+$dailySnapshotsJson = json_encode($dailySnapshotsOutput, $jsonFlags);
+if ($dailySnapshotsJson === false) {
+    $dailySnapshotsJson = '{}';
+}
+
+$dailyTrendByDateJson = json_encode($dailyTrendByDateOutput, $jsonFlags);
+if ($dailyTrendByDateJson === false) {
+    $dailyTrendByDateJson = '{}';
+}
+
+$specificDayKeysJson = json_encode($specificDayKeys, $jsonFlags);
+if ($specificDayKeysJson === false) {
+    $specificDayKeysJson = '[]';
+}
+
+$specificDayMin = '';
+$specificDayMax = '';
+if (!empty($specificDayKeys)) {
+    $specificDayMin = min($specificDayKeys);
+    $specificDayMax = max($specificDayKeys);
+} else {
+    $specificDayMax = date('Y-m-d');
+}
+
 $currentTimestamp = time();
 foreach ($timeRanges as $rangeKey => $config) {
+    $granularity = $config['granularity'] ?? 'day';
+    if ($granularity === 'hour') {
+        $labels = [];
+        $values = [];
+        for ($hour = 0; $hour < 24; $hour++) {
+            $labels[] = date('g A', mktime($hour, 0, 0));
+            $values[] = (int)round($hourlyRevenueMap[$hour] ?? 0);
+        }
+        $revenueTrendByRange[$rangeKey] = [
+            'labels' => $labels,
+            'values' => $values,
+            'rangeLabel' => ($config['label'] ?? 'Today') . ' (hourly)',
+        ];
+        continue;
+    }
+
     $days = isset($config['days']) ? (int)$config['days'] : 0;
     if ($days <= 0) {
         continue;
@@ -152,8 +503,6 @@ if (empty($revenueTrendByRange) && !empty($timeRanges)) {
     ];
 }
 
-$jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
-
 $revenueTrendDataJson = json_encode($revenueTrendByRange, $jsonFlags);
 if ($revenueTrendDataJson === false) {
     $revenueTrendDataJson = '{}';
@@ -162,34 +511,6 @@ if ($revenueTrendDataJson === false) {
 $revenueTrendDefaultRangeJson = json_encode($revenueTrendDefaultRange, $jsonFlags);
 if ($revenueTrendDefaultRangeJson === false) {
     $revenueTrendDefaultRangeJson = 'null';
-}
-
-$methodLabelsJson = json_encode(array_map(function ($item) {
-    return $item['method'];
-}, $paymentMethods), $jsonFlags);
-if ($methodLabelsJson === false) {
-    $methodLabelsJson = '[]';
-}
-
-$methodValuesJson = json_encode(array_map(function ($item) {
-    return (int)round((float)$item['total']);
-}, $paymentMethods), $jsonFlags);
-if ($methodValuesJson === false) {
-    $methodValuesJson = '[]';
-}
-
-$statusLabelsJson = json_encode(array_map(function ($item) {
-    return $item['status'];
-}, $statusBreakdown), $jsonFlags);
-if ($statusLabelsJson === false) {
-    $statusLabelsJson = '[]';
-}
-
-$statusValuesJson = json_encode(array_map(function ($item) {
-    return (int)round((float)$item['total']);
-}, $statusBreakdown), $jsonFlags);
-if ($statusValuesJson === false) {
-    $statusValuesJson = '[]';
 }
 
 $lastPaymentDisplay = $lastPaymentDate ? date('M d, Y', strtotime($lastPaymentDate)) : 'No payments recorded yet';
@@ -211,18 +532,18 @@ include 'includes/sidebar.php';
   <section class="stats-grid columns-4" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
     <div class="stat-card">
       <h3>Total Revenue</h3>
-      <div class="value">₱<?= number_format($totalRevenue, 0); ?></div>
-      <div class="meta">Across <?= number_format($totalTransactions); ?> payments</div>
+      <div class="value" id="statTotalRevenueValue">₱<?= number_format($defaultTotalRevenue, 0); ?></div>
+      <div class="meta" id="statTotalRevenueMeta"><?= htmlspecialchars($defaultTotalRevenueMeta); ?></div>
     </div>
     <div class="stat-card">
       <h3>Daily Avg Revenue</h3>
-      <div class="value">₱<?= number_format($dailyAverageRevenue, 0); ?></div>
-      <div class="meta">Average per day over last 30 days</div>
+      <div class="value" id="statDailyAverageValue">₱<?= number_format($defaultDailyAverage, 0); ?></div>
+      <div class="meta" id="statDailyAverageMeta"><?= htmlspecialchars($defaultDailyAverageMeta); ?></div>
     </div>
     <div class="stat-card">
       <h3>Average Order Value</h3>
-      <div class="value">₱<?= number_format($averageOrderValue, 0); ?></div>
-      <div class="meta">Based on <?= number_format($uniqueOrders); ?> orders</div>
+      <div class="value" id="statAverageOrderValue">₱<?= number_format($defaultAverageOrderValue, 0); ?></div>
+      <div class="meta" id="statAverageOrderMeta"><?= htmlspecialchars($defaultAverageOrderMeta); ?></div>
     </div>
   </section>
 
@@ -246,7 +567,12 @@ include 'includes/sidebar.php';
       <canvas id="revenueTrendChart" height="220"></canvas>
     </div>
     <div class="card">
-      <h2 style="font-size:18px;margin-bottom:16px;">Payment Methods</h2>
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px;">
+        <h2 style="font-size:18px;margin:0;">Payment Methods</h2>
+        <p id="methodRangeCaption" style="margin:4px 0 0;font-size:13px;color:#7f8c8d;">
+          <?= htmlspecialchars($defaultMethodCaption); ?>
+        </p>
+      </div>
       <canvas id="methodChart" height="220"></canvas>
     </div>
   </div>
@@ -260,6 +586,18 @@ include 'includes/sidebar.php';
         aria-label="Search finance transactions"
       >
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <input
+            type="date"
+            id="financeDayFilter"
+            aria-label="Filter finance records by specific day"
+            style="padding:8px 12px;border:1px solid #dcdde1;border-radius:6px;font-size:14px;min-width:165px;"
+            value=""
+            <?php if ($specificDayMin !== ''): ?>min="<?= htmlspecialchars($specificDayMin); ?>"<?php endif; ?>
+            <?php if ($specificDayMax !== ''): ?>max="<?= htmlspecialchars($specificDayMax); ?>"<?php endif; ?>
+          >
+          <button type="button" class="btn btn-secondary" id="clearFinanceDay">Clear Day</button>
+        </div>
         <select
           id="financeTimeRange"
           aria-label="Filter finance records by time period"
@@ -302,8 +640,15 @@ include 'includes/sidebar.php';
                 $transactionDateForFilter = $rawPaymentDate ?: $rawOrderDate;
                 $transactionTimestamp = $transactionDateForFilter ? strtotime($transactionDateForFilter) : false;
                 $transactionTimestampAttr = $transactionTimestamp !== false ? (string)$transactionTimestamp : '';
+                $transactionDayAttr = '';
+                if ($transactionTimestamp !== false && $transactionTimestamp !== null) {
+                  $transactionDayAttr = date('Y-m-d', $transactionTimestamp);
+                }
               ?>
-              <tr data-transaction-ts="<?= htmlspecialchars($transactionTimestampAttr); ?>">
+              <tr
+                data-transaction-ts="<?= htmlspecialchars($transactionTimestampAttr); ?>"
+                data-transaction-day="<?= htmlspecialchars($transactionDayAttr); ?>"
+              >
                 <td>#<?= str_pad((int)$row['Transaction_ID'], 5, '0', STR_PAD_LEFT); ?></td>
                 <td><?= $row['Order_ID'] ? '#' . str_pad((int)$row['Order_ID'], 5, '0', STR_PAD_LEFT) : '—'; ?></td>
                 <td><?= htmlspecialchars($row['Order_Date'] ?? '—'); ?></td>
@@ -333,29 +678,275 @@ ob_start();
 <script>
   const revenueTrendDataByRange = <?= $revenueTrendDataJson; ?>;
   const revenueTrendDefaultRange = <?= $revenueTrendDefaultRangeJson; ?>;
-  const methodLabelsRaw = <?= $methodLabelsJson; ?>;
-  const methodLabels = methodLabelsRaw.length ? methodLabelsRaw : ['No Data'];
-  const methodValuesRaw = <?= $methodValuesJson; ?>;
-  const methodValues = methodValuesRaw.length ? methodValuesRaw : [0];
-  const statusLabelsRaw = <?= $statusLabelsJson; ?>;
-  const statusLabels = statusLabelsRaw.length ? statusLabelsRaw : ['No Data'];
-  const statusValuesRaw = <?= $statusValuesJson; ?>;
-  const statusValues = statusValuesRaw.length ? statusValuesRaw : [0];
+  const financeSnapshotsByRange = <?= $financeSnapshotsJson; ?>;
+  const dailySnapshotsByDate = <?= $dailySnapshotsJson; ?>;
+  const dailyTrendByDate = <?= $dailyTrendByDateJson; ?>;
+  const availableSpecificDayKeys = <?= $specificDayKeysJson; ?>;
+  const MANILA_TIME_ZONE = 'Asia/Manila';
+
+  const trendRangeOptions = (revenueTrendDataByRange && typeof revenueTrendDataByRange === 'object' && !Array.isArray(revenueTrendDataByRange))
+    ? revenueTrendDataByRange
+    : {};
+  const trendRangeKeys = Object.keys(trendRangeOptions);
+  const snapshotKeys = (financeSnapshotsByRange && typeof financeSnapshotsByRange === 'object' && !Array.isArray(financeSnapshotsByRange))
+    ? Object.keys(financeSnapshotsByRange)
+    : [];
+  let defaultRangeKey = null;
+  if (typeof revenueTrendDefaultRange === 'string' && Object.prototype.hasOwnProperty.call(trendRangeOptions, revenueTrendDefaultRange)) {
+    defaultRangeKey = revenueTrendDefaultRange;
+  } else if (trendRangeKeys.length > 0) {
+    defaultRangeKey = trendRangeKeys[0];
+  } else if (snapshotKeys.length > 0) {
+    defaultRangeKey = snapshotKeys[0];
+  }
+
+  const specificDayKeys = Array.isArray(availableSpecificDayKeys) ? availableSpecificDayKeys.slice() : [];
+  let activeRangeKey = defaultRangeKey;
+  let activeSpecificDay = null;
 
   const revenueTrendCanvas = document.getElementById('revenueTrendChart');
   const revenueTrendRangeSelect = document.getElementById('revenueTrendRange');
   const revenueTrendRangeCaption = document.getElementById('revenueTrendRangeCaption');
+  const methodChartCanvas = document.getElementById('methodChart');
+  const methodRangeCaption = document.getElementById('methodRangeCaption');
+  const statusChartCanvas = document.getElementById('statusChart');
+  const statTotalRevenueValue = document.getElementById('statTotalRevenueValue');
+  const statTotalRevenueMeta = document.getElementById('statTotalRevenueMeta');
+  const statDailyAverageValue = document.getElementById('statDailyAverageValue');
+  const statDailyAverageMeta = document.getElementById('statDailyAverageMeta');
+  const statAverageOrderValue = document.getElementById('statAverageOrderValue');
+  const statAverageOrderMeta = document.getElementById('statAverageOrderMeta');
 
-  if (revenueTrendCanvas) {
+  let methodChart = null;
+  let statusChart = null;
+  let revenueTrendChart = null;
+  let applyRangeSelection = () => {};
+  let applySpecificDaySelection = () => {};
+
+  const fallbackSnapshot = {
+    label: 'Selected Range',
+    totalRevenue: 0,
+    transactionCount: 0,
+    uniqueOrders: 0,
+    averageOrderValue: 0,
+    dailyAverageRevenue: 0,
+    methods: [],
+    statuses: [],
+  };
+
+  function buildEmptySnapshot(labelText) {
+    const resolvedLabel = typeof labelText === 'string' && labelText.trim() ? labelText.trim() : 'Selected Range';
+    return {
+      label: resolvedLabel,
+      totalRevenue: 0,
+      transactionCount: 0,
+      uniqueOrders: 0,
+      averageOrderValue: 0,
+      dailyAverageRevenue: 0,
+      methods: [],
+      statuses: [],
+    };
+  }
+
+  function getSnapshotForRange(rangeKey) {
+    if (financeSnapshotsByRange && typeof financeSnapshotsByRange === 'object' && !Array.isArray(financeSnapshotsByRange)) {
+      if (rangeKey && Object.prototype.hasOwnProperty.call(financeSnapshotsByRange, rangeKey)) {
+        return financeSnapshotsByRange[rangeKey];
+      }
+      const availableKeys = Object.keys(financeSnapshotsByRange);
+      if (availableKeys.length > 0) {
+        return financeSnapshotsByRange[availableKeys[0]];
+      }
+    }
+    return fallbackSnapshot;
+  }
+
+  function getSnapshotForSpecificDay(dayKey) {
+    if (!dayKey || !dailySnapshotsByDate || typeof dailySnapshotsByDate !== 'object' || Array.isArray(dailySnapshotsByDate)) {
+      return null;
+    }
+    if (Object.prototype.hasOwnProperty.call(dailySnapshotsByDate, dayKey)) {
+      return dailySnapshotsByDate[dayKey];
+    }
+    return null;
+  }
+
+  function formatSpecificDayLabel(dayKey) {
+    if (typeof dayKey !== 'string' || !dayKey) {
+      return 'Selected Day';
+    }
+    try {
+      const date = new Date(`${dayKey}T00:00:00`);
+      if (!Number.isNaN(date.getTime())) {
+        return date.toLocaleDateString(undefined, {
+          timeZone: MANILA_TIME_ZONE,
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        });
+      }
+    } catch (error) {
+      console.warn('Unable to format specific day label:', error);
+    }
+    return dayKey;
+  }
+
+  function formatCurrency(value) {
+    const numericValue = Number.parseFloat(value);
+    const safeValue = Number.isFinite(numericValue) ? Math.round(numericValue) : 0;
+    return `₱${safeValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  }
+
+  function formatRangeContext(label) {
+    if (typeof label !== 'string' || !label.trim()) {
+      return 'selected range';
+    }
+    return label.trim().toLowerCase();
+  }
+
+  function updateFinanceSummary(snapshot) {
+    const activeSnapshot = snapshot || fallbackSnapshot;
+    if (statTotalRevenueValue) {
+      statTotalRevenueValue.textContent = formatCurrency(activeSnapshot.totalRevenue);
+    }
+    if (statTotalRevenueMeta) {
+      const paymentCount = Number(activeSnapshot.transactionCount) || 0;
+      statTotalRevenueMeta.textContent = `Across ${paymentCount.toLocaleString()} payments (${formatRangeContext(activeSnapshot.label)})`;
+    }
+    if (statDailyAverageValue) {
+      statDailyAverageValue.textContent = formatCurrency(activeSnapshot.dailyAverageRevenue);
+    }
+    if (statDailyAverageMeta) {
+      statDailyAverageMeta.textContent = `Average per day (${formatRangeContext(activeSnapshot.label)})`;
+    }
+    if (statAverageOrderValue) {
+      statAverageOrderValue.textContent = formatCurrency(activeSnapshot.averageOrderValue);
+    }
+    if (statAverageOrderMeta) {
+      const orderCount = Number(activeSnapshot.uniqueOrders) || 0;
+      statAverageOrderMeta.textContent = `Based on ${orderCount.toLocaleString()} orders`;
+    }
+  }
+
+  function buildMethodDataset(snapshot) {
+    const methods = snapshot && Array.isArray(snapshot.methods) ? snapshot.methods : [];
+    const labels = [];
+    const values = [];
+    methods.forEach(entry => {
+      const methodName = typeof entry.method === 'string' && entry.method.trim() ? entry.method : 'Unknown';
+      const numericValue = Number.parseFloat(entry.total);
+      labels.push(methodName);
+      values.push(Number.isFinite(numericValue) ? Math.round(numericValue) : 0);
+    });
+    if (!labels.length) {
+      labels.push('No Data');
+      values.push(0);
+    }
+    return { labels, values };
+  }
+
+  function buildStatusDataset(snapshot) {
+    const statuses = snapshot && Array.isArray(snapshot.statuses) ? snapshot.statuses : [];
+    const labels = [];
+    const values = [];
+    statuses.forEach(entry => {
+      const statusName = typeof entry.status === 'string' && entry.status.trim() ? entry.status : 'Unknown';
+      const numericValue = Number.parseFloat(entry.total);
+      labels.push(statusName);
+      values.push(Number.isFinite(numericValue) ? Math.round(numericValue) : 0);
+    });
+    if (!labels.length) {
+      labels.push('No Data');
+      values.push(0);
+    }
+    return { labels, values };
+  }
+
+  function updateMethodChart(snapshot) {
+    if (!methodChartCanvas || typeof Chart === 'undefined') {
+      return;
+    }
+    const dataset = buildMethodDataset(snapshot);
+    if (!methodChart) {
+      methodChart = new Chart(methodChartCanvas, {
+        type: 'doughnut',
+        data: {
+          labels: dataset.labels,
+          datasets: [{
+            data: dataset.values,
+            backgroundColor: ['#3498db', '#9b59b6', '#1abc9c', '#f1c40f', '#e74c3c']
+          }]
+        },
+        options: {
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    } else {
+      methodChart.data.labels = dataset.labels;
+      methodChart.data.datasets[0].data = dataset.values;
+      methodChart.update();
+    }
+    if (methodRangeCaption) {
+      const label = snapshot && snapshot.label ? snapshot.label : 'Selected Range';
+      methodRangeCaption.textContent = `Showing ${label}`;
+    }
+  }
+
+  function updateStatusChart(snapshot) {
+    if (!statusChartCanvas || typeof Chart === 'undefined') {
+      return;
+    }
+    const dataset = buildStatusDataset(snapshot);
+    if (!statusChart) {
+      statusChart = new Chart(statusChartCanvas, {
+        type: 'bar',
+        data: {
+          labels: dataset.labels,
+          datasets: [{
+            label: 'Revenue (₱)',
+            data: dataset.values,
+            backgroundColor: '#2ecc71'
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: value => `₱${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+              }
+            }
+          }
+        }
+      });
+    } else {
+      statusChart.data.labels = dataset.labels;
+      statusChart.data.datasets[0].data = dataset.values;
+      statusChart.update();
+    }
+  }
+
+  function applyFinanceSnapshot(rangeKey, snapshotOverride) {
+    const snapshot = snapshotOverride || getSnapshotForRange(rangeKey);
+    updateFinanceSummary(snapshot);
+    updateMethodChart(snapshot);
+    updateStatusChart(snapshot);
+  }
+
+  if (revenueTrendCanvas && typeof Chart !== 'undefined') {
     const ctx = revenueTrendCanvas.getContext('2d');
     const gradient = ctx.createLinearGradient(0, 0, 0, revenueTrendCanvas.height || 400);
     gradient.addColorStop(0, 'rgba(230, 126, 34, 0.4)');
     gradient.addColorStop(1, 'rgba(230, 126, 34, 0)');
 
-    const rangeOptions = (revenueTrendDataByRange && typeof revenueTrendDataByRange === 'object' && !Array.isArray(revenueTrendDataByRange)) ? revenueTrendDataByRange : {};
-    const rangeKeys = Object.keys(rangeOptions);
     const fallbackLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const fallbackValues = new Array(fallbackLabels.length).fill(0);
+    const fallbackHourlyLabels = Array.from({ length: 24 }, (_, hour) => {
+      const baseDate = new Date(Date.UTC(1970, 0, 1, hour));
+      return baseDate.toLocaleTimeString(undefined, { hour: 'numeric', hour12: true, timeZone: MANILA_TIME_ZONE });
+    });
+    const fallbackHourlyValues = new Array(fallbackHourlyLabels.length).fill(0);
 
     const getPointStyling = labelCount => {
       const isDense = labelCount > 31;
@@ -365,27 +956,55 @@ ob_start();
       };
     };
 
+    const sanitizeValues = (labels, rawValues) => labels.map((_, index) => {
+      const value = rawValues[index] ?? 0;
+      const numericValue = Number.parseFloat(value);
+      return Number.isFinite(numericValue) ? Math.round(numericValue) : 0;
+    });
+
     const getDatasetForRange = rangeKey => {
-      const dataset = rangeKey && Object.prototype.hasOwnProperty.call(rangeOptions, rangeKey) ? rangeOptions[rangeKey] : null;
+      const dataset = rangeKey && Object.prototype.hasOwnProperty.call(trendRangeOptions, rangeKey) ? trendRangeOptions[rangeKey] : null;
       const labels = dataset && Array.isArray(dataset.labels) ? dataset.labels.slice() : fallbackLabels.slice();
       const rawValues = dataset && Array.isArray(dataset.values) ? dataset.values.slice() : fallbackValues.slice();
-      const sanitizedValues = labels.map((_, index) => {
-        const value = rawValues[index] ?? 0;
-        const numericValue = Number.parseFloat(value);
-        return Number.isFinite(numericValue) ? Math.round(numericValue) : 0;
-      });
+      const sanitizedValues = sanitizeValues(labels, rawValues);
       const rangeLabel = dataset && typeof dataset.rangeLabel === 'string' ? dataset.rangeLabel : 'No revenue recorded yet';
       return { labels, values: sanitizedValues, rangeLabel };
     };
 
-    const defaultRangeKey = typeof revenueTrendDefaultRange === 'string' && Object.prototype.hasOwnProperty.call(rangeOptions, revenueTrendDefaultRange)
-      ? revenueTrendDefaultRange
-      : (rangeKeys.length > 0 ? rangeKeys[0] : null);
+    const getDatasetForSpecificDay = dayKey => {
+      const dataset = dayKey && dailyTrendByDate && typeof dailyTrendByDate === 'object' && !Array.isArray(dailyTrendByDate)
+        && Object.prototype.hasOwnProperty.call(dailyTrendByDate, dayKey)
+        ? dailyTrendByDate[dayKey]
+        : null;
+      const labels = dataset && Array.isArray(dataset.labels) ? dataset.labels.slice() : fallbackHourlyLabels.slice();
+      const rawValues = dataset && Array.isArray(dataset.values) ? dataset.values.slice() : fallbackHourlyValues.slice();
+      const sanitizedValues = sanitizeValues(labels, rawValues);
+      const defaultLabel = `${formatSpecificDayLabel(dayKey)} (hourly)`;
+      const rangeLabel = dataset && typeof dataset.rangeLabel === 'string' ? dataset.rangeLabel : defaultLabel;
+      return { labels, values: sanitizedValues, rangeLabel };
+    };
 
-    const initialDataset = getDatasetForRange(defaultRangeKey);
+    const setRevenueTrendDataset = dataset => {
+      if (!revenueTrendChart) {
+        return;
+      }
+      const safeDataset = dataset || { labels: fallbackLabels.slice(), values: fallbackValues.slice(), rangeLabel: 'No revenue recorded yet' };
+      const pointStyle = getPointStyling(safeDataset.labels.length);
+      revenueTrendChart.data.labels = safeDataset.labels;
+      revenueTrendChart.data.datasets[0].data = safeDataset.values;
+      revenueTrendChart.data.datasets[0].pointRadius = pointStyle.radius;
+      revenueTrendChart.data.datasets[0].pointHoverRadius = pointStyle.hoverRadius;
+      revenueTrendChart.update();
+      if (revenueTrendRangeCaption) {
+        revenueTrendRangeCaption.textContent = safeDataset.rangeLabel;
+      }
+    };
+
+    const resolvedDefaultKey = defaultRangeKey || (trendRangeKeys.length > 0 ? trendRangeKeys[0] : null);
+    const initialDataset = getDatasetForRange(resolvedDefaultKey);
     const initialPointStyle = getPointStyling(initialDataset.labels.length);
 
-    const revenueTrendChart = new Chart(ctx, {
+    revenueTrendChart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: initialDataset.labels,
@@ -438,73 +1057,81 @@ ob_start();
       revenueTrendRangeCaption.textContent = initialDataset.rangeLabel;
     }
 
-    const updateRevenueTrendRange = rangeKey => {
-      const dataset = getDatasetForRange(rangeKey);
-      const pointStyle = getPointStyling(dataset.labels.length);
-      revenueTrendChart.data.labels = dataset.labels;
-      revenueTrendChart.data.datasets[0].data = dataset.values;
-      revenueTrendChart.data.datasets[0].pointRadius = pointStyle.radius;
-      revenueTrendChart.data.datasets[0].pointHoverRadius = pointStyle.hoverRadius;
-      revenueTrendChart.update();
-      if (revenueTrendRangeCaption) {
-        revenueTrendRangeCaption.textContent = dataset.rangeLabel;
+    if (revenueTrendRangeSelect) {
+      if (resolvedDefaultKey) {
+        revenueTrendRangeSelect.value = resolvedDefaultKey;
+      } else if (!revenueTrendRangeSelect.value && revenueTrendRangeSelect.options.length > 0) {
+        revenueTrendRangeSelect.selectedIndex = 0;
       }
+    }
+
+    applyRangeSelection = rangeKey => {
+      const dataset = getDatasetForRange(rangeKey);
+      activeRangeKey = rangeKey;
+      activeSpecificDay = null;
+      setRevenueTrendDataset(dataset);
+      if (financeDayFilterInput) {
+        financeDayFilterInput.value = '';
+      }
+      if (revenueTrendRangeSelect && typeof rangeKey === 'string' && rangeKey) {
+        revenueTrendRangeSelect.value = rangeKey;
+      }
+      applyFinanceSnapshot(rangeKey);
+    };
+
+    applySpecificDaySelection = dayKey => {
+      if (!dayKey) {
+        activeSpecificDay = null;
+        if (activeRangeKey) {
+          applyRangeSelection(activeRangeKey);
+        } else {
+          applyRangeSelection(resolvedDefaultKey);
+        }
+        return;
+      }
+      const dataset = getDatasetForSpecificDay(dayKey);
+      const snapshot = getSnapshotForSpecificDay(dayKey) || buildEmptySnapshot(formatSpecificDayLabel(dayKey));
+      activeSpecificDay = dayKey;
+      setRevenueTrendDataset(dataset);
+      applyFinanceSnapshot(null, snapshot);
     };
 
     if (revenueTrendRangeSelect) {
-      if (defaultRangeKey) {
-        revenueTrendRangeSelect.value = defaultRangeKey;
-      }
       revenueTrendRangeSelect.addEventListener('change', event => {
-        updateRevenueTrendRange(event.target.value);
+        applyRangeSelection(event.target.value);
       });
     }
-  }
 
-  if (document.getElementById('methodChart')) {
-    new Chart(document.getElementById('methodChart'), {
-      type: 'doughnut',
-      data: {
-        labels: methodLabels,
-        datasets: [{
-          data: methodValues,
-          backgroundColor: ['#3498db', '#9b59b6', '#1abc9c', '#f1c40f', '#e74c3c']
-        }]
-      },
-      options: {
-        plugins: { legend: { position: 'bottom' } }
-      }
-    });
-  }
-
-  if (document.getElementById('statusChart')) {
-    new Chart(document.getElementById('statusChart'), {
-      type: 'bar',
-      data: {
-        labels: statusLabels,
-        datasets: [{
-          label: 'Revenue (₱)',
-          data: statusValues,
-          backgroundColor: '#2ecc71'
-        }]
-      },
-      options: {
-        plugins: { legend: { display: false } },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              callback: value => `₱${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-            }
-          }
+    activeRangeKey = resolvedDefaultKey;
+    applyFinanceSnapshot(resolvedDefaultKey);
+  } else {
+    applyRangeSelection = rangeKey => {
+      activeRangeKey = rangeKey;
+      activeSpecificDay = null;
+      applyFinanceSnapshot(rangeKey);
+    };
+    applySpecificDaySelection = dayKey => {
+      if (!dayKey) {
+        activeSpecificDay = null;
+        if (activeRangeKey) {
+          applyRangeSelection(activeRangeKey);
+        } else {
+          applyFinanceSnapshot(defaultRangeKey);
         }
+        return;
       }
-    });
+      const snapshot = getSnapshotForSpecificDay(dayKey) || buildEmptySnapshot(formatSpecificDayLabel(dayKey));
+      activeSpecificDay = dayKey;
+      applyFinanceSnapshot(null, snapshot);
+    };
+    applyFinanceSnapshot(defaultRangeKey);
   }
 
   const financeSearchInput = document.getElementById('financeSearch');
   const financeTimeRangeSelect = document.getElementById('financeTimeRange');
   const financeTableBody = document.querySelector('#financialTable tbody');
+  const financeDayFilterInput = document.getElementById('financeDayFilter');
+  const clearFinanceDayButton = document.getElementById('clearFinanceDay');
 
   const getSelectedFinanceRangeDays = () => {
     if (!financeTimeRangeSelect) {
@@ -523,6 +1150,9 @@ ob_start();
   };
 
   const getFinanceTimeRangeLabel = () => {
+    if (financeDayFilterInput && financeDayFilterInput.value) {
+      return formatSpecificDayLabel(financeDayFilterInput.value);
+    }
     if (!financeTimeRangeSelect) {
       return 'All Time';
     }
@@ -550,14 +1180,19 @@ ob_start();
       return;
     }
     const searchQuery = financeSearchInput ? financeSearchInput.value.trim().toLowerCase() : '';
-    const rangeDays = getSelectedFinanceRangeDays();
+    const specificDayValue = financeDayFilterInput ? financeDayFilterInput.value : '';
+    const hasSpecificDay = Boolean(specificDayValue);
+    const rangeDays = hasSpecificDay ? null : getSelectedFinanceRangeDays();
     const hasRangeFilter = typeof rangeDays === 'number';
     const cutoffMs = hasRangeFilter ? Date.now() - rangeDays * 24 * 60 * 60 * 1000 : null;
 
     rows.forEach(row => {
       const matchesSearch = !searchQuery || row.textContent.toLowerCase().includes(searchQuery);
       let matchesRange = true;
-      if (hasRangeFilter && cutoffMs !== null) {
+      if (hasSpecificDay) {
+        const rowDay = row.getAttribute('data-transaction-day') || '';
+        matchesRange = rowDay === specificDayValue;
+      } else if (hasRangeFilter && cutoffMs !== null) {
         const tsAttr = row.getAttribute('data-transaction-ts');
         const tsSeconds = tsAttr ? Number.parseInt(tsAttr, 10) : NaN;
         if (Number.isFinite(tsSeconds)) {
@@ -576,6 +1211,23 @@ ob_start();
 
   if (financeTimeRangeSelect) {
     financeTimeRangeSelect.addEventListener('change', applyFinanceFilters);
+  }
+
+  if (financeDayFilterInput) {
+    financeDayFilterInput.addEventListener('change', event => {
+      applySpecificDaySelection(event.target.value);
+      applyFinanceFilters();
+    });
+  }
+
+  if (clearFinanceDayButton) {
+    clearFinanceDayButton.addEventListener('click', () => {
+      if (financeDayFilterInput) {
+        financeDayFilterInput.value = '';
+      }
+      applySpecificDaySelection('');
+      applyFinanceFilters();
+    });
   }
 
   applyFinanceFilters();
@@ -807,9 +1459,10 @@ ob_start();
           return null;
         }
         return date.toLocaleDateString(undefined, {
+          timeZone: MANILA_TIME_ZONE,
           year: 'numeric',
           month: 'short',
-          day: 'numeric'
+          day: 'numeric',
         });
       };
 
@@ -834,6 +1487,9 @@ ob_start();
             ? ` (${earliestLabel})`
             : ` (${earliestLabel} - ${latestLabel})`;
         }
+      }
+      if (coverageDetails && coverageDetails.trim() === `(${timeRangeLabel})`) {
+        coverageDetails = '';
       }
       const coverageText = `Time Range: ${timeRangeLabel}${coverageDetails}`;
 
