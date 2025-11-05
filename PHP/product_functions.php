@@ -1,4 +1,19 @@
 <?php
+
+function normalizeProductCategoryValue($category)
+{
+    if (!is_string($category)) {
+        return '';
+    }
+
+    $trimmed = trim($category);
+    if ($trimmed === '') {
+        return '';
+    }
+
+    return stripos($trimmed, 'pastry') !== false ? 'Bread' : $trimmed;
+}
+
 // 1) Add a new product
 function addProduct($pdo, $name, $description, $price, $stock_quantity, $category, $imageFile = null) {
     $imageName = null;

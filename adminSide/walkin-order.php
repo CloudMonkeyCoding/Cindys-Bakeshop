@@ -5,6 +5,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 require_once '../PHP/db_connect.php';
+require_once '../PHP/product_functions.php';
 
 $productCatalog = [];
 if ($pdo) {
@@ -16,11 +17,12 @@ if ($pdo) {
             foreach ($rows as $row) {
                 $rawStock = array_key_exists('Stock_Quantity', $row) ? $row['Stock_Quantity'] : null;
                 $stockNotTracked = !empty($row['Stock_Not_Tracked']);
+                $categoryValue = normalizeProductCategoryValue($row['Category'] ?? '');
                 $productCatalog[] = [
                     'id' => (int)$row['Product_ID'],
                     'name' => (string)($row['Name'] ?? ''),
                     'price' => isset($row['Price']) ? (float)$row['Price'] : 0.0,
-                    'category' => isset($row['Category']) ? (string)$row['Category'] : '',
+                    'category' => $categoryValue === '' ? 'Uncategorized' : $categoryValue,
                     'stock' => $stockNotTracked ? null : ($rawStock === null ? null : (int)$rawStock),
                 ];
             }
@@ -141,7 +143,7 @@ $scriptTemplate = <<<'JS'
   const csrfToken = %s;
   const apiUrl = %s;
   const ordersUrl = %s;
-  const productCatalog = %s;
+  const rawProductCatalog = %s;
   const form = document.getElementById('walkinOrderForm');
   const fulfillmentTypeSelect = document.getElementById('fulfillmentType');
   const orderStatusInput = document.getElementById('orderStatus');
@@ -158,6 +160,23 @@ $scriptTemplate = <<<'JS'
   const messages = document.getElementById('walkinMessages');
 
   const hasConsole = typeof console !== 'undefined';
+
+  const normalizeCategoryLabel = (value) => {
+    if (typeof value !== 'string') {
+      return value || '';
+    }
+    const trimmed = value.trim();
+    if (trimmed === '') {
+      return 'Uncategorized';
+    }
+    return trimmed.toLowerCase().includes('pastry') ? 'Bread' : trimmed;
+  };
+
+  const productCatalog = Array.isArray(rawProductCatalog)
+    ? rawProductCatalog.map((product) => Object.assign({}, product, {
+        category: normalizeCategoryLabel(product.category),
+      }))
+    : [];
   const log = (level, ...args) => {
     if (!hasConsole) return;
     const method = console[level] || console.log;

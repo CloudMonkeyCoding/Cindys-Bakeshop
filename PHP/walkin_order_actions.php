@@ -143,7 +143,7 @@ switch ($action) {
                 'id' => (int)$row['Product_ID'],
                 'name' => $row['Name'],
                 'price' => (float)$row['Price'],
-                'category' => $row['Category'],
+                'category' => normalizeProductCategoryValue($row['Category'] ?? ''),
                 'stock' => $stockValue
             ];
         }

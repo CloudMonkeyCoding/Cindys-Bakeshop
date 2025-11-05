@@ -133,7 +133,7 @@ foreach ($timeRanges as $rangeKey => $config) {
         }
         $dateKey = date('Y-m-d', $timestamp);
         $labels[] = $days <= 7 ? date('D', $timestamp) : date('M d', $timestamp);
-        $values[] = round($dailyRevenueMap[$dateKey] ?? 0, 2);
+        $values[] = (int)round($dailyRevenueMap[$dateKey] ?? 0);
     }
     if (!empty($labels)) {
         $revenueTrendByRange[$rangeKey] = [
@@ -172,7 +172,7 @@ if ($methodLabelsJson === false) {
 }
 
 $methodValuesJson = json_encode(array_map(function ($item) {
-    return round((float)$item['total'], 2);
+    return (int)round((float)$item['total']);
 }, $paymentMethods), $jsonFlags);
 if ($methodValuesJson === false) {
     $methodValuesJson = '[]';
@@ -186,7 +186,7 @@ if ($statusLabelsJson === false) {
 }
 
 $statusValuesJson = json_encode(array_map(function ($item) {
-    return round((float)$item['total'], 2);
+    return (int)round((float)$item['total']);
 }, $statusBreakdown), $jsonFlags);
 if ($statusValuesJson === false) {
     $statusValuesJson = '[]';
@@ -211,17 +211,17 @@ include 'includes/sidebar.php';
   <section class="stats-grid columns-4" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
     <div class="stat-card">
       <h3>Total Revenue</h3>
-      <div class="value">₱<?= number_format($totalRevenue, 2); ?></div>
+      <div class="value">₱<?= number_format($totalRevenue, 0); ?></div>
       <div class="meta">Across <?= number_format($totalTransactions); ?> payments</div>
     </div>
     <div class="stat-card">
       <h3>Daily Avg Revenue</h3>
-      <div class="value">₱<?= number_format($dailyAverageRevenue, 2); ?></div>
+      <div class="value">₱<?= number_format($dailyAverageRevenue, 0); ?></div>
       <div class="meta">Average per day over last 30 days</div>
     </div>
     <div class="stat-card">
       <h3>Average Order Value</h3>
-      <div class="value">₱<?= number_format($averageOrderValue, 2); ?></div>
+      <div class="value">₱<?= number_format($averageOrderValue, 0); ?></div>
       <div class="meta">Based on <?= number_format($uniqueOrders); ?> orders</div>
     </div>
   </section>
@@ -309,8 +309,8 @@ include 'includes/sidebar.php';
                 <td><?= htmlspecialchars($row['Order_Date'] ?? '—'); ?></td>
                 <td><?= htmlspecialchars($row['Payment_Date'] ?? '—'); ?></td>
                 <td><?= htmlspecialchars($row['Customer'] ?? 'Walk-in'); ?></td>
-                <td>₱<?= number_format((float)($row['Product_Total'] ?? 0), 2); ?></td>
-                <td>₱<?= number_format((float)($row['Amount_Paid'] ?? 0), 2); ?></td>
+                <td>₱<?= number_format((float)($row['Product_Total'] ?? 0), 0); ?></td>
+                <td>₱<?= number_format((float)($row['Amount_Paid'] ?? 0), 0); ?></td>
                 <td><?= htmlspecialchars($row['Payment_Method'] ?? 'Unknown'); ?></td>
                 <td>
                   <span class="status-pill status-<?= strtolower(str_replace(' ', '-', $row['Payment_Status'] ?? 'unknown')); ?>">
@@ -372,7 +372,7 @@ ob_start();
       const sanitizedValues = labels.map((_, index) => {
         const value = rawValues[index] ?? 0;
         const numericValue = Number.parseFloat(value);
-        return Number.isFinite(numericValue) ? numericValue : 0;
+        return Number.isFinite(numericValue) ? Math.round(numericValue) : 0;
       });
       const rangeLabel = dataset && typeof dataset.rangeLabel === 'string' ? dataset.rangeLabel : 'No revenue recorded yet';
       return { labels, values: sanitizedValues, rangeLabel };
@@ -411,7 +411,7 @@ ob_start();
             callbacks: {
               label: context => {
                 const value = context.parsed.y ?? 0;
-                return 'Revenue: ₱' + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                return 'Revenue: ₱' + Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 });
               }
             }
           }
@@ -427,7 +427,7 @@ ob_start();
           y: {
             beginAtZero: true,
             ticks: {
-              callback: value => '₱' + Number(value).toLocaleString()
+              callback: value => '₱' + Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })
             }
           }
         }
@@ -494,7 +494,7 @@ ob_start();
           y: {
             beginAtZero: true,
             ticks: {
-              callback: value => `₱${Number(value).toLocaleString()}`
+              callback: value => `₱${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
             }
           }
         }
