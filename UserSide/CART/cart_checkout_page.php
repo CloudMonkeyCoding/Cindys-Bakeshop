@@ -201,10 +201,10 @@
     .primary-btn {
       padding: 0.85rem 1.8rem;
       border-radius: var(--radius-pill);
-      background: linear-gradient(135deg, var(--primary-brown), var(--primary-brown-dark));
+      background: linear-gradient(135deg, #0d6efd, #0a58ca);
       color: #fff;
       font-weight: 600;
-      box-shadow: 0 16px 32px rgba(139, 69, 19, 0.25);
+      box-shadow: 0 16px 32px rgba(13, 110, 253, 0.35);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -223,7 +223,7 @@
       width: 1.1rem;
       height: 1.1rem;
       border-radius: 50%;
-      border: 3px solid rgba(255, 255, 255, 0.4);
+      border: 3px solid rgba(255, 255, 255, 0.35);
       border-top-color: #fff;
       animation: spin 0.75s linear infinite;
     }
@@ -524,7 +524,7 @@
 
           <button type="submit" class="primary-btn" id="place-order-btn">
             <span class="btn-spinner" aria-hidden="true"></span>
-            <span class="btn-label">Place order</span>
+            <span class="btn-label">Pay with GCash</span>
           </button>
         </form>
         <div class="confirmation" id="confirmationMsg"></div>
@@ -558,7 +558,7 @@
     const totalItemsLabel = document.querySelector('.total-items');
     const placeOrderButton = document.getElementById('place-order-btn');
     const placeOrderButtonLabel = placeOrderButton?.querySelector('.btn-label');
-    const defaultPlaceOrderText = placeOrderButtonLabel?.textContent?.trim() || 'Place order';
+    const defaultPlaceOrderText = placeOrderButtonLabel?.textContent?.trim() || 'Pay with GCash';
     if (placeOrderButton) {
       placeOrderButton.setAttribute('aria-busy', 'false');
     }
@@ -972,7 +972,7 @@
       placeOrderButton.setAttribute('aria-busy', isLoading ? 'true' : 'false');
 
       if (placeOrderButtonLabel) {
-        placeOrderButtonLabel.textContent = isLoading ? 'Placing order...' : defaultPlaceOrderText;
+        placeOrderButtonLabel.textContent = isLoading ? 'Processing GCash payment...' : defaultPlaceOrderText;
       }
     }
 
