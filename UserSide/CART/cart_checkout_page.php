@@ -147,10 +147,32 @@
       box-shadow: none;
     }
 
-    .qty-display {
-      min-width: 32px;
+    .qty-input {
+      width: 64px;
       text-align: center;
       font-weight: 600;
+      border-radius: 12px;
+      border: 1px solid rgba(139, 69, 19, 0.16);
+      padding: 0.45rem 0.25rem;
+      font-size: 0.95rem;
+      background: #fff;
+      color: #2c2c2c;
+    }
+
+    .qty-input:focus {
+      outline: none;
+      border-color: rgba(74, 144, 226, 0.7);
+      box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
+    }
+
+    .qty-input::-webkit-outer-spin-button,
+    .qty-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .qty-input[type="number"] {
+      -moz-appearance: textfield;
     }
 
     .edit-btn,
@@ -909,7 +931,15 @@
           </div>
           <div class="item-actions">
             <button class="qty-btn decrease-btn" type="button">-</button>
-            <div class="qty-display">${item.Quantity}</div>
+            <input
+              class="qty-input"
+              type="number"
+              value="${item.Quantity}"
+              min="1"
+              step="1"
+              inputmode="numeric"
+              aria-label="Quantity for ${item.Name}"
+            />
             <button class="qty-btn increase-btn" type="button">+</button>
             <button class="edit-btn" type="button">✏️</button>
             <button class="remove-btn" type="button">🗑️</button>
@@ -917,8 +947,19 @@
         `;
         cartContainer.appendChild(div);
 
-        div.querySelector('.decrease-btn').addEventListener('click', e => decreaseQty(e.target));
-        div.querySelector('.increase-btn').addEventListener('click', e => increaseQty(e.target));
+        const decreaseButton = div.querySelector('.decrease-btn');
+        const increaseButton = div.querySelector('.increase-btn');
+        const qtyInput = div.querySelector('.qty-input');
+
+        if (qtyInput) {
+          const initialQty = parseInt(qtyInput.value, 10);
+          qtyInput.dataset.lastValue = Number.isNaN(initialQty) ? '0' : String(initialQty);
+          qtyInput.addEventListener('change', () => commitQtyInputValue(qtyInput));
+          qtyInput.addEventListener('input', () => updateQuantityControls(div));
+        }
+
+        decreaseButton.addEventListener('click', e => decreaseQty(e.target));
+        increaseButton.addEventListener('click', e => increaseQty(e.target));
         div.querySelector('.edit-btn').addEventListener('click', e => toggleEdit(e.target));
         div.querySelector('.remove-btn').addEventListener('click', e => removeItem(e.target));
 
@@ -984,8 +1025,8 @@
           return;
         }
 
-        const qtyDisplay = item.querySelector('.qty-display');
-        let qty = parseInt(qtyDisplay?.textContent, 10);
+        const qtyInput = item.querySelector('.qty-input');
+        let qty = parseInt(qtyInput?.value, 10);
         if (Number.isNaN(qty)) {
           qty = 0;
         }
@@ -1036,9 +1077,9 @@
 
           alert(`${data.name} quantity reduced to available stock of ${stock}.`);
           qty = stock;
-          const qtyDisplay = data.element.querySelector('.qty-display');
-          if (qtyDisplay) {
-            qtyDisplay.textContent = stock;
+          const qtyInput = data.element.querySelector('.qty-input');
+          if (qtyInput) {
+            qtyInput.value = stock;
           }
           const increaseBtn = data.element.querySelector('.increase-btn');
           if (increaseBtn) {
@@ -1089,7 +1130,14 @@
     function updateQuantityControls(item) {
       const decreaseBtn = item.querySelector('.decrease-btn');
       const increaseBtn = item.querySelector('.increase-btn');
-      const qty = parseInt(item.querySelector('.qty-display').textContent, 10);
+      const qtyInput = item.querySelector('.qty-input');
+      if (!qtyInput) {
+        decreaseBtn.disabled = true;
+        increaseBtn.disabled = true;
+        return;
+      }
+      const parsedQty = parseInt(qtyInput?.value, 10);
+      const qty = Number.isNaN(parsedQty) ? 0 : parsedQty;
       const stockAttr = item.getAttribute('data-stock');
       const stock = stockAttr !== null ? parseInt(stockAttr, 10) : NaN;
 
@@ -1106,10 +1154,43 @@
       }
     }
 
+    function commitQtyInputValue(input) {
+      if (!input) return;
+
+      const item = input.closest('.cart-item');
+      if (!item) return;
+
+      const stockAttr = item.getAttribute('data-stock');
+      const stock = stockAttr !== null ? parseInt(stockAttr, 10) : NaN;
+      const rawValue = parseInt(input.value, 10);
+      let newQty = Number.isNaN(rawValue) ? 1 : rawValue;
+
+      if (newQty < 1) {
+        newQty = 1;
+      }
+
+      if (!Number.isNaN(stock) && stock > 0 && newQty > stock) {
+        newQty = stock;
+      }
+
+      input.value = newQty;
+
+      const lastValue = parseInt(input.dataset.lastValue || '', 10);
+      if (Number.isNaN(lastValue) || lastValue !== newQty) {
+        saveQty(input, newQty);
+        updateTotal();
+      }
+
+      updateQuantityControls(item);
+    }
+
     function increaseQty(button) {
       const item = button.closest('.cart-item');
-      const qtyDisplay = button.previousElementSibling;
-      let qty = parseInt(qtyDisplay.textContent);
+      const qtyInput = button.previousElementSibling;
+      let qty = parseInt(qtyInput.value, 10);
+      if (Number.isNaN(qty)) {
+        qty = 0;
+      }
       const stockAttr = item.getAttribute('data-stock');
       const stock = stockAttr !== null ? parseInt(stockAttr, 10) : NaN;
 
@@ -1118,7 +1199,8 @@
         return;
       }
 
-      qtyDisplay.textContent = qty + 1;
+      const newQty = qty + 1;
+      qtyInput.value = newQty;
       saveQty(button, qty + 1);
       updateTotal();
       updateQuantityControls(item);
@@ -1126,11 +1208,15 @@
 
     function decreaseQty(button) {
       const item = button.closest('.cart-item');
-      const qtyDisplay = button.nextElementSibling;
-      let qty = parseInt(qtyDisplay.textContent);
+      const qtyInput = button.nextElementSibling;
+      let qty = parseInt(qtyInput.value, 10);
+      if (Number.isNaN(qty)) {
+        qty = 0;
+      }
       if (qty > 1) {
-        qtyDisplay.textContent = qty - 1;
-        saveQty(button, qty - 1);
+        const newQty = qty - 1;
+        qtyInput.value = newQty;
+        saveQty(button, newQty);
         updateTotal();
         updateQuantityControls(item);
       } else {
@@ -1138,14 +1224,18 @@
       }
     }
 
-    function saveQty(button, newQty) {
-      const item = button.closest('.cart-item');
+    function saveQty(sourceElement, newQty) {
+      const item = sourceElement.closest('.cart-item');
       const id = item.getAttribute('data-id');
       fetch(`${apiBase}cart_api.php?action=update`, {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: `cart_item_id=${id}&quantity=${newQty}`
       }).then(() => {
+        const qtyInput = item.querySelector('.qty-input');
+        if (qtyInput) {
+          qtyInput.dataset.lastValue = String(newQty);
+        }
         if (newQty <= 0) {
           item.remove();
         }
