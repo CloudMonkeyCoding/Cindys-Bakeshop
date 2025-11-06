@@ -139,16 +139,17 @@ $ordersJson = json_encode(array_map(static function ($order) {
         'fulfillment' => $order['Fulfillment_Type'] ?? '',
     ];
 }, $orders));
-$csrfToken = json_encode($_SESSION['csrf_token']);
 $extraScripts = <<<JS
 <script>
+  console.log('[Orders Debug] Initializing admin orders script');
   const ordersData = $ordersJson;
-  const csrfToken = $csrfToken;
+  console.log('[Orders Debug] Loaded orders data:', ordersData);
   const modal = document.getElementById('orderModal');
   const modalOrderId = document.getElementById('modalOrderId');
   const modalStatus = document.getElementById('modalStatus');
   const closeModalBtn = document.getElementById('closeModal');
   const updateForm = document.getElementById('updateStatusForm');
+  const csrfField = updateForm.querySelector('input[name="csrf_token"]');
   const searchBox = document.getElementById('searchBox');
   const filterStatus = document.getElementById('filterStatus');
 
@@ -162,18 +163,26 @@ $extraScripts = <<<JS
   }
 
   function openModal(orderId, currentStatus) {
+    console.log('[Orders Debug] Opening modal for order', orderId, 'with status', currentStatus);
     modal.classList.add('active');
     modalOrderId.value = orderId;
     modalStatus.value = currentStatus || 'Pending';
   }
 
   function closeModal() {
+    console.log('[Orders Debug] Closing modal');
     modal.classList.remove('active');
   }
 
-  closeModalBtn.addEventListener('click', closeModal);
+  closeModalBtn.addEventListener('click', () => {
+    console.log('[Orders Debug] Close button clicked');
+    closeModal();
+  });
   modal.addEventListener('click', (event) => {
-    if (event.target === modal) closeModal();
+    if (event.target === modal) {
+      console.log('[Orders Debug] Modal backdrop clicked');
+      closeModal();
+    }
   });
 
   document.querySelectorAll('.btn-edit').forEach(button => {
@@ -181,6 +190,7 @@ $extraScripts = <<<JS
       const orderId = button.dataset.order;
       const row = document.querySelector(`tr[data-order-id="\${orderId}"]`);
       const status = row ? row.dataset.status : 'Pending';
+      console.log('[Orders Debug] Edit button clicked for order', orderId, 'current status', status);
       openModal(orderId, status);
     });
   });
@@ -188,37 +198,58 @@ $extraScripts = <<<JS
   document.querySelectorAll('.btn-view').forEach(button => {
     button.addEventListener('click', () => {
       const orderId = button.dataset.order;
+      console.log('[Orders Debug] View button clicked for order', orderId);
       window.location.href = `order-details.php?order_id=\${orderId}`;
     });
   });
 
   function refreshRow(orderId, newStatus) {
     const row = document.querySelector(`tr[data-order-id="\${orderId}"]`);
-    if (!row) return;
+    if (!row) {
+      console.warn('[Orders Debug] Unable to find row for order', orderId, 'to refresh status');
+      return;
+    }
     row.dataset.status = newStatus;
     const pill = row.querySelector('.status-pill');
+    console.log('[Orders Debug] Updating status pill for order', orderId, 'to', newStatus);
     pill.textContent = newStatus;
     pill.className = 'status-pill status-' + newStatus.toLowerCase();
   }
 
   async function updateStatus(orderId, status) {
+    const csrfTokenValue = csrfField ? csrfField.value : '';
+    if (!csrfTokenValue) {
+      console.error('[Orders Debug] Missing CSRF token when attempting to update order', orderId);
+      throw new Error('Missing CSRF token. Please refresh the page and try again.');
+    }
+
+    console.log('[Orders Debug] Sending update request', { orderId, status, csrfTokenValue });
     try {
       const response = await fetch('../PHP/order_actions.php', {
         method: 'POST',
-        headers: { 'Accept': 'application/json' },
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+        },
+        credentials: 'same-origin',
         body: new URLSearchParams({
-          action: 'update_status',
+          action: 'updateStatus',
           order_id: orderId,
           status,
-          csrf_token: csrfToken
-        })
+          csrf_token: csrfTokenValue
+        }).toString()
       });
+      console.log('[Orders Debug] Received response status', response.status);
       const result = await response.json();
+      console.log('[Orders Debug] Parsed response JSON', result);
       if (!response.ok || !result.success) {
+        console.error('[Orders Debug] Update failed', { orderId, status, responseStatus: response.status, result });
         throw new Error(result.message || 'Failed to update status');
       }
+      console.log('[Orders Debug] Update succeeded for order', orderId, 'new status', status);
       refreshRow(orderId, status);
     } catch (error) {
+      console.error('[Orders Debug] Update threw error', error);
       alert(error.message);
     }
   }
@@ -227,6 +258,7 @@ $extraScripts = <<<JS
     event.preventDefault();
     const orderId = modalOrderId.value;
     const status = modalStatus.value;
+    console.log('[Orders Debug] Form submitted for order', orderId, 'with status', status);
     await updateStatus(orderId, status);
     closeModal();
   });
@@ -234,6 +266,7 @@ $extraScripts = <<<JS
   function applyFilters() {
     const query = searchBox.value.toLowerCase();
     const status = filterStatus.value;
+    console.log('[Orders Debug] Applying filters', { query, status });
     document.querySelectorAll('#orderTable tbody tr').forEach(row => {
       if (row.classList.contains('hidden-row')) return;
       const cells = row.querySelectorAll('td');
@@ -246,12 +279,14 @@ $extraScripts = <<<JS
       const rowStatus = row.dataset.status;
       const matchesSearch = id.includes(query) || customer.includes(query) || summary.includes(query) || source.includes(query) || fulfillment.includes(query);
       const matchesStatus = status === 'all' || rowStatus === status;
+      console.log('[Orders Debug] Row evaluation', { orderId: row.dataset.orderId, matchesSearch, matchesStatus });
       row.style.display = matchesSearch && matchesStatus ? '' : 'none';
     });
   }
 
   searchBox.addEventListener('input', applyFilters);
   filterStatus.addEventListener('change', applyFilters);
+  console.log('[Orders Debug] Setting initial filter state');
   applyFilters();
 </script>
 JS;

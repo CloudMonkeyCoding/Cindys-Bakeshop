@@ -17,6 +17,7 @@ requireCsrfToken($token);
 
 switch ($action) {
     case 'update_status':
+    case 'updateStatus':
         $orderId = filter_input(INPUT_POST, 'order_id', FILTER_VALIDATE_INT);
         $status = filter_input(INPUT_POST, 'status', FILTER_SANITIZE_SPECIAL_CHARS) ?: 'Pending';
         $allowedStatuses = ['Pending', 'Confirmed', 'Shipped', 'Delivered'];
