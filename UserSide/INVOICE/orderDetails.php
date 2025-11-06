@@ -194,7 +194,7 @@
 
       <div class="total-row">Total: ₱<span id="total">0.00</span></div>
 
-      <div class="action-row">
+      <div class="action-row no-print">
         <a href="../PRODUCT/MENU.php">← Back to menu</a>
         <button id="download-btn">⬇ Download PDF</button>
       </div>
@@ -295,7 +295,8 @@
           scale: 2,
           scrollY: 0,
           windowWidth: invoiceEl.scrollWidth,
-          windowHeight: invoiceEl.scrollHeight
+          windowHeight: invoiceEl.scrollHeight,
+          ignoreElements: element => element.classList && element.classList.contains('no-print')
         },
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
         pagebreak: { mode: ['css', 'legacy'] }
