@@ -21,9 +21,8 @@ if (!$input) {
 $name = $input['fullName'] ?? '';
 $email = $input['email'] ?? '';
 $password = $input['password'] ?? '';
-$faceImage = $input['faceImage'] ?? '';
 
-if (!$name || !$email || !$password || !$faceImage) {
+if (!$name || !$email || !$password) {
     http_response_code(400);
     echo json_encode(['error' => 'Missing required fields']);
     exit;
@@ -36,26 +35,9 @@ if (checkEmailExists($pdo, $email)) {
     exit;
 }
 
-$parts = explode(',', $faceImage);
-if (count($parts) < 2) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Invalid image data']);
-    exit;
-}
-
-$imageData = base64_decode($parts[1]);
-$facesDir = __DIR__ . '/../user_faces';
-if (!is_dir($facesDir)) {
-    mkdir($facesDir, 0777, true);
-}
-$filename = uniqid('face_', true) . '.png';
-$filepath = $facesDir . '/' . $filename;
-file_put_contents($filepath, $imageData);
-$relativePath = 'user_faces/' . $filename;
-
 try {
-    $userId = addUser($pdo, $name, $email, $password, '', 0, $relativePath);
-    echo json_encode(['success' => true, 'userId' => $userId, 'imagePath' => $relativePath]);
+    $userId = addUser($pdo, $name, $email, $password, '', 0, null);
+    echo json_encode(['success' => true, 'userId' => $userId]);
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['error' => 'Failed to register user']);
