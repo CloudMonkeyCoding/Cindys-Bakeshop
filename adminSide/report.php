@@ -199,7 +199,31 @@ if ($inventoryLogDateCountsJson === 'null') {
     $inventoryLogDateCountsJson = '{}';
 }
 
-$extraHead = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>';
+$extraHead = <<<'HTML'
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+<style>
+  .table-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 12px 0 0;
+  }
+
+  .table-pagination .btn {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .table-pagination-status {
+    font-size: 14px;
+    color: #2c3e50;
+  }
+</style>
+HTML;
 
 include 'includes/header.php';
 include 'includes/sidebar.php';
@@ -318,7 +342,8 @@ include 'includes/sidebar.php';
             <?php foreach ($inventoryLogEntries as $entry): ?>
               <?php
                 $changeValue = (int)($entry['change'] ?? 0);
-                $changeLabel = ($changeValue > 0 ? '+' : '') . number_format($changeValue) . ' pcs';
+                $changeUnit = abs($changeValue) === 1 ? ' pc' : ' pcs';
+                $changeLabel = ($changeValue > 0 ? '+' : '') . number_format($changeValue) . $changeUnit;
                 $changeClass = $changeValue > 0 ? 'stock-change-positive' : ($changeValue < 0 ? 'stock-change-negative' : 'stock-change-zero');
                 $customerName = $entry['customer_name'] ?? '';
                 $referenceLabel = $entry['reference_label'] ?? $entry['order_code'] ?? ($entry['order_id'] ?? 0 ? '#' . str_pad((string)($entry['order_id'] ?? 0), 5, '0', STR_PAD_LEFT) : '—');
@@ -332,8 +357,9 @@ include 'includes/sidebar.php';
               </tr>
             <?php endforeach; ?>
           <?php endif; ?>
-        </tbody>
-      </table>
+      </tbody>
+    </table>
+    <div class="table-pagination" id="inventoryLogPagination" aria-live="polite"></div>
   </div>
 </div>
 <?php
@@ -349,6 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const editingLockedForDate = editToggleBtn?.dataset?.editingLocked === '1';
   const logSearchInput = document.getElementById('inventoryLogSearch');
   const logTableBody = document.getElementById('inventoryLogBody');
+  const logPaginationContainer = document.getElementById('inventoryLogPagination');
   const reportForm = document.querySelector('.inventory-log-filter');
   const reportDateInput = document.getElementById('reportDate');
   const logCalendarContainer = document.getElementById('inventoryCalendar');
@@ -387,8 +414,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     return trimmed.toLowerCase().includes('pastry') ? 'Bread' : trimmed;
   };
+  const LOG_PAGE_SIZE = 20;
   let currentSearchTerm = '';
   let currentLogSearchTerm = '';
+  let currentLogPage = 1;
   let latestUpdateToken = 0;
   let categoryChartInstance = null;
   let inventoryIndex = new Map();
@@ -495,6 +524,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentLogSearchTerm = logSearchInput.value.trim().toLowerCase();
     logSearchInput.addEventListener('input', () => {
       currentLogSearchTerm = logSearchInput.value.trim().toLowerCase();
+      currentLogPage = 1;
       renderInventoryLogTable();
     });
   }
@@ -1476,11 +1506,20 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const entries = inventoryLogEntries.filter((entry) => matchesLogSearch(entry));
+    const filteredEntries = inventoryLogEntries.filter((entry) => matchesLogSearch(entry));
+    const totalEntries = filteredEntries.length;
+    const totalPages = totalEntries ? Math.ceil(totalEntries / LOG_PAGE_SIZE) : 1;
+
+    if (currentLogPage > totalPages) {
+      currentLogPage = totalPages;
+    }
+    if (currentLogPage < 1) {
+      currentLogPage = 1;
+    }
 
     logTableBody.innerHTML = '';
 
-    if (!entries.length) {
+    if (!totalEntries) {
       const emptyRow = document.createElement('tr');
       const emptyCell = document.createElement('td');
       emptyCell.colSpan = 5;
@@ -1488,12 +1527,15 @@ document.addEventListener('DOMContentLoaded', () => {
       emptyCell.textContent = 'No inventory changes recorded.';
       emptyRow.appendChild(emptyCell);
       logTableBody.appendChild(emptyRow);
+      renderInventoryLogPagination(totalPages, totalEntries);
       return;
     }
 
+    const startIndex = (currentLogPage - 1) * LOG_PAGE_SIZE;
+    const pageEntries = filteredEntries.slice(startIndex, startIndex + LOG_PAGE_SIZE);
     const fragment = document.createDocumentFragment();
 
-    entries.forEach((entry) => {
+    pageEntries.forEach((entry) => {
       const row = document.createElement('tr');
       if (entry.orderId) {
         row.dataset.orderId = String(entry.orderId);
@@ -1530,8 +1572,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (changeClass) {
         changeSpan.className = changeClass;
       }
-      const formattedChange = `${changeValue > 0 ? '+' : ''}${numberFormatter.format(changeValue)} pcs`;
-      changeSpan.textContent = formattedChange;
+      changeSpan.textContent = formatChangeLabel(changeValue);
       changeCell.appendChild(changeSpan);
       row.appendChild(changeCell);
 
@@ -1539,6 +1580,56 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     logTableBody.appendChild(fragment);
+    renderInventoryLogPagination(totalPages, totalEntries);
+  }
+
+  function renderInventoryLogPagination(totalPages, totalEntries) {
+    if (!logPaginationContainer) {
+      return;
+    }
+
+    logPaginationContainer.innerHTML = '';
+
+    if (!totalEntries || totalPages <= 1) {
+      logPaginationContainer.style.display = 'none';
+      return;
+    }
+
+    logPaginationContainer.style.display = '';
+
+    const prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.className = 'btn btn-secondary';
+    prevBtn.textContent = 'Previous';
+    prevBtn.disabled = currentLogPage <= 1;
+    prevBtn.addEventListener('click', () => {
+      if (currentLogPage > 1) {
+        currentLogPage -= 1;
+        renderInventoryLogTable();
+      }
+    });
+
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.className = 'btn btn-secondary';
+    nextBtn.textContent = 'Next';
+    nextBtn.disabled = currentLogPage >= totalPages;
+    nextBtn.addEventListener('click', () => {
+      if (currentLogPage < totalPages) {
+        currentLogPage += 1;
+        renderInventoryLogTable();
+      }
+    });
+
+    const status = document.createElement('span');
+    status.className = 'table-pagination-status';
+    status.setAttribute('aria-live', 'polite');
+    status.setAttribute('role', 'status');
+    const startEntry = (currentLogPage - 1) * LOG_PAGE_SIZE + 1;
+    const endEntry = Math.min(currentLogPage * LOG_PAGE_SIZE, totalEntries);
+    status.textContent = `Showing ${numberFormatter.format(startEntry)}–${numberFormatter.format(endEntry)} of ${numberFormatter.format(totalEntries)} (Page ${numberFormatter.format(currentLogPage)} of ${numberFormatter.format(totalPages)})`;
+
+    logPaginationContainer.append(prevBtn, status, nextBtn);
   }
 
   function matchesLogSearch(entry) {
@@ -1571,6 +1662,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return 'stock-change-negative';
     }
     return 'stock-change-zero';
+  }
+
+  function formatChangeLabel(changeValue) {
+    const normalized = typeof changeValue === 'number' && !Number.isNaN(changeValue) ? changeValue : 0;
+    const unit = Math.abs(normalized) === 1 ? ' pc' : ' pcs';
+    const prefix = normalized > 0 ? '+' : '';
+    return `${prefix}${numberFormatter.format(normalized)}${unit}`;
   }
 
   function formatDateForDisplay(dateString) {
@@ -2019,6 +2117,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return false;
     });
   }
+  currentLogPage = 1;
   logDateCountsByDate = normalizeLogDateCounts(<?= $inventoryLogDateCountsJson; ?>);
   renderInventoryUI();
   renderInventoryLogTable();
