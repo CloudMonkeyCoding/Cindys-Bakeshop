@@ -785,21 +785,22 @@ nav ul li a:hover {
       <div class="form-group face-capture-group">
         <label for="video">Face Capture</label>
         <div class="face-capture-wrapper">
-          <video id="video" playsinline autoplay muted></video>
+          <video id="video" playsinline autoplay muted style="display: none;"></video>
           <img id="capturedImage" alt="Captured preview" />
         </div>
         <div class="capture-actions">
-          <button type="button" id="captureBtn" class="capture-btn">Capture Face</button>
+          <button type="button" id="startCaptureBtn" class="capture-btn">Start Face Capture</button>
+          <button type="button" id="captureBtn" class="capture-btn" style="display: none;">Capture Face</button>
           <button type="button" id="retakeBtn" class="capture-btn secondary" style="display: none;">Retake</button>
         </div>
-        <div class="helper-text">Allow camera access and capture a clear photo of your face to help us verify your orders.</div>
+        <div class="helper-text">Allow camera access and capture a clear photo of your face. We use this image to verify your identity for orders and set it as your default profile picture, which you can change later in your account.</div>
         <div class="error-message" id="faceError"></div>
         <input type="hidden" id="faceImage" name="faceImage">
       </div>
 
       <div class="checkbox-group">
         <input type="checkbox" id="terms" name="terms" required>
-        <label for="terms">I agree to the <a href="#" onclick="alert('Terms and Conditions would be displayed here')">Terms and Conditions</a> and <a href="#" onclick="alert('Privacy Policy would be displayed here')">Privacy Policy</a></label>
+        <label for="terms">I agree to the <a href="terms-and-conditions.html" target="_blank" rel="noopener">Terms and Conditions</a> and <a href="#" onclick="alert('Privacy Policy would be displayed here')">Privacy Policy</a></label>
       </div>
       
       <button type="submit" class="signup-btn" id="signupBtn">
@@ -834,6 +835,7 @@ const faceImageInput = document.getElementById('faceImage');
 const faceError = document.getElementById('faceError');
 const video = document.getElementById('video');
 const capturedImage = document.getElementById('capturedImage');
+const startCaptureBtn = document.getElementById('startCaptureBtn');
 const captureBtn = document.getElementById('captureBtn');
 const retakeBtn = document.getElementById('retakeBtn');
 
@@ -1188,13 +1190,39 @@ async function getAuthInstance() {
   return getAuth();
 }
 
-async function startCamera() {
+async function startCamera(initiatedByUser = false) {
   if (!video) return;
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if (faceError) {
+      setErrorMessage(faceError, 'Camera access is not supported in this browser.');
+    }
+    if (startCaptureBtn) {
+      startCaptureBtn.disabled = true;
+    }
+    return;
+  }
+
+  if (initiatedByUser && startCaptureBtn) {
+    startCaptureBtn.disabled = true;
+    startCaptureBtn.textContent = 'Starting camera...';
+  }
+
   try {
     mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
     video.srcObject = mediaStream;
     video.play();
     video.style.display = 'block';
+    if (captureBtn) {
+      captureBtn.style.display = 'inline-flex';
+      captureBtn.disabled = false;
+      captureBtn.textContent = 'Capture Face';
+    }
+    if (startCaptureBtn) {
+      startCaptureBtn.style.display = 'none';
+      startCaptureBtn.disabled = false;
+      startCaptureBtn.textContent = 'Start Face Capture';
+    }
     if (capturedImage) {
       capturedImage.style.display = 'none';
     }
@@ -1204,6 +1232,10 @@ async function startCamera() {
   } catch (error) {
     console.error('Camera access denied:', error);
     setErrorMessage(faceError, 'Unable to access camera. Please allow camera permissions or try a different device.');
+    if (startCaptureBtn) {
+      startCaptureBtn.disabled = false;
+      startCaptureBtn.textContent = 'Start Face Capture';
+    }
   }
 }
 
@@ -1211,6 +1243,23 @@ function stopCamera() {
   if (mediaStream) {
     mediaStream.getTracks().forEach((track) => track.stop());
     mediaStream = null;
+  }
+  if (video) {
+    video.style.display = 'none';
+    video.srcObject = null;
+  }
+  if (captureBtn) {
+    captureBtn.style.display = 'none';
+    captureBtn.disabled = false;
+    captureBtn.textContent = 'Capture Face';
+  }
+  if (retakeBtn) {
+    retakeBtn.style.display = 'none';
+  }
+  if (startCaptureBtn) {
+    startCaptureBtn.style.display = 'inline-flex';
+    startCaptureBtn.disabled = false;
+    startCaptureBtn.textContent = 'Start Face Capture';
   }
 }
 
@@ -1296,10 +1345,23 @@ function resetCapture() {
   if (captureBtn) {
     captureBtn.textContent = 'Capture Face';
     captureBtn.disabled = false;
+    captureBtn.style.display = mediaStream ? 'inline-flex' : 'none';
   }
   if (retakeBtn) {
     retakeBtn.style.display = 'none';
   }
+  if (!mediaStream && startCaptureBtn) {
+    startCaptureBtn.style.display = 'inline-flex';
+    startCaptureBtn.disabled = false;
+    startCaptureBtn.textContent = 'Start Face Capture';
+  }
+}
+
+if (startCaptureBtn) {
+  startCaptureBtn.addEventListener('click', async () => {
+    setErrorMessage(faceError, '');
+    await startCamera(true);
+  });
 }
 
 if (captureBtn) {
@@ -1332,10 +1394,13 @@ if (retakeBtn) {
   });
 }
 
-if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-  startCamera();
-} else if (faceError) {
-  setErrorMessage(faceError, 'Camera access is not supported in this browser.');
+if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+  if (faceError) {
+    setErrorMessage(faceError, 'Camera access is not supported in this browser.');
+  }
+  if (startCaptureBtn) {
+    startCaptureBtn.disabled = true;
+  }
 }
 
 window.addEventListener('beforeunload', stopCamera);
