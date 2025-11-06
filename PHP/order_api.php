@@ -71,6 +71,8 @@ switch ($action) {
                 $specialInstructions = null;
             }
 
+            $normalizedItems = [];
+            $adjustments = [];
             foreach ($items as $it) {
                 $productId = (int)($it['product_id'] ?? 0);
                 $quantity = (int)($it['quantity'] ?? 0);
@@ -80,10 +82,39 @@ switch ($action) {
                 }
 
                 $inventory = getInventoryByProductId($pdo, $productId);
-                if (!$inventory || $inventory['Stock_Quantity'] < $quantity) {
-                    sendJsonResponse(['error' => 'Insufficient stock for product ID ' . $productId], 400);
+                $stockQuantity = $inventory ? (int)$inventory['Stock_Quantity'] : 0;
+
+                if ($stockQuantity <= 0) {
+                    $adjustments[] = [
+                        'product_id' => $productId,
+                        'original_quantity' => $quantity,
+                        'adjusted_quantity' => 0,
+                        'action' => 'removed',
+                    ];
+                    continue;
                 }
+
+                if ($quantity > $stockQuantity) {
+                    $adjustments[] = [
+                        'product_id' => $productId,
+                        'original_quantity' => $quantity,
+                        'adjusted_quantity' => $stockQuantity,
+                        'action' => 'reduced',
+                    ];
+                    $quantity = $stockQuantity;
+                }
+
+                $normalizedItems[] = [
+                    'product_id' => $productId,
+                    'quantity' => $quantity,
+                ];
             }
+
+            if (empty($normalizedItems)) {
+                sendJsonResponse(['error' => 'The selected items are no longer available in stock.'], 400);
+            }
+
+            $items = $normalizedItems;
 
             $orderId = addOrder($pdo, $userId, date('Y-m-d H:i:s'), 'Pending', 'online', $orderType, $specialInstructions);
             if (!$orderId) {
@@ -157,7 +188,12 @@ switch ($action) {
                 ],
             ]);
 
-            sendJsonResponse(['order_id' => $orderId]);
+            $responsePayload = ['order_id' => $orderId];
+            if (!empty($adjustments)) {
+                $responsePayload['adjustments'] = $adjustments;
+            }
+
+            sendJsonResponse($responsePayload);
         } catch (Throwable $exception) {
             error_log(sprintf('[order_api] Failed to create order: %s in %s on line %d', $exception->getMessage(), $exception->getFile(), $exception->getLine()));
             $response = [
