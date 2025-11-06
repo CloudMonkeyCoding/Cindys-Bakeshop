@@ -29,6 +29,31 @@
       border: none;
       box-shadow: none;
       background: #fff;
+      padding: 1.8rem;
+      gap: 1.5rem;
+      font-size: 0.92rem;
+    }
+
+    .invoice-wrapper.pdf-export .invoice-header h1 {
+      font-size: 2rem;
+    }
+
+    .invoice-wrapper.pdf-export .invoice-meta {
+      font-size: 0.85rem;
+      gap: 0.45rem;
+    }
+
+    .invoice-wrapper.pdf-export .detail-card {
+      padding: 0.85rem 1rem;
+      gap: 0.25rem;
+    }
+
+    .invoice-wrapper.pdf-export .detail-card span {
+      font-size: 0.78rem;
+    }
+
+    .invoice-wrapper.pdf-export .detail-card strong {
+      font-size: 0.95rem;
     }
 
     .invoice-header {
@@ -42,6 +67,10 @@
       font-size: clamp(2rem, 3vw, 2.6rem);
       font-weight: 700;
       color: var(--primary-brown);
+    }
+
+    .invoice-wrapper.pdf-export .invoice-header p {
+      font-size: 0.85rem;
     }
 
     .invoice-meta {
@@ -95,6 +124,7 @@
     .invoice-wrapper.pdf-export table {
       box-shadow: none;
       border-radius: 0;
+      font-size: 0.9rem;
     }
 
     #invoice-items-section {
@@ -103,8 +133,7 @@
     }
 
     .invoice-wrapper.pdf-export #invoice-items-section {
-      break-before: page;
-      page-break-before: always;
+      gap: 0.8rem;
     }
 
     thead {
@@ -115,6 +144,11 @@
     th, td {
       padding: 1rem 1.2rem;
       text-align: left;
+    }
+
+    .invoice-wrapper.pdf-export th,
+    .invoice-wrapper.pdf-export td {
+      padding: 0.7rem 0.9rem;
     }
 
     tbody tr:nth-child(odd) {
@@ -131,6 +165,11 @@
       padding: 1rem 1.2rem;
       font-size: 1.15rem;
       color: var(--primary-brown);
+    }
+
+    .invoice-wrapper.pdf-export .total-row {
+      padding: 0.7rem 0.9rem;
+      font-size: 1rem;
     }
 
     .action-row {
@@ -313,18 +352,17 @@
       invoiceEl.classList.add('pdf-export');
 
       const opt = {
-        margin: 0.5,
+        margin: 0.35,
         filename: 'CindysBakeshop_Invoice.pdf',
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
-          scale: 2,
+          scale: 1.8,
           scrollY: 0,
           windowWidth: invoiceEl.scrollWidth,
           windowHeight: invoiceEl.scrollHeight,
           ignoreElements: element => element.classList && element.classList.contains('no-print')
         },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'], before: '#invoice-items-section' }
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
       };
       const worker = html2pdf().set(opt).from(invoiceEl);
       worker.save().finally(() => {
