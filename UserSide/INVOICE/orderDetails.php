@@ -25,6 +25,12 @@
       gap: 2rem;
     }
 
+    .invoice-wrapper.pdf-export {
+      border: none;
+      box-shadow: none;
+      background: #fff;
+    }
+
     .invoice-header {
       display: flex;
       flex-wrap: wrap;
@@ -84,6 +90,21 @@
       border-radius: 20px;
       overflow: hidden;
       box-shadow: 0 18px 36px rgba(139, 69, 19, 0.12);
+    }
+
+    .invoice-wrapper.pdf-export table {
+      box-shadow: none;
+      border-radius: 0;
+    }
+
+    #invoice-items-section {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .invoice-wrapper.pdf-export #invoice-items-section {
+      break-before: page;
+      page-break-before: always;
     }
 
     thead {
@@ -182,17 +203,19 @@
         </div>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th style="text-align:right;">Subtotal</th>
-          </tr>
-        </thead>
-        <tbody id="items-list"></tbody>
-      </table>
+      <section id="invoice-items-section">
+        <table id="invoice-items-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th style="text-align:right;">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody id="items-list"></tbody>
+        </table>
 
-      <div class="total-row">Total: ₱<span id="total">0.00</span></div>
+        <div class="total-row">Total: ₱<span id="total">0.00</span></div>
+      </section>
 
       <div class="action-row no-print">
         <a href="../PRODUCT/MENU.php">← Back to menu</a>
@@ -287,6 +310,8 @@
     }
 
     document.getElementById('download-btn').addEventListener('click', () => {
+      invoiceEl.classList.add('pdf-export');
+
       const opt = {
         margin: 0.5,
         filename: 'CindysBakeshop_Invoice.pdf',
@@ -299,9 +324,12 @@
           ignoreElements: element => element.classList && element.classList.contains('no-print')
         },
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'] }
+        pagebreak: { mode: ['css', 'legacy'], before: '#invoice-items-section' }
       };
-      html2pdf().set(opt).from(invoiceEl).save();
+      const worker = html2pdf().set(opt).from(invoiceEl);
+      worker.save().finally(() => {
+        invoiceEl.classList.remove('pdf-export');
+      });
     });
   </script>
   <script type="module" src="../firebase-init.js"></script>
