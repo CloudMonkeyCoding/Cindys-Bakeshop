@@ -49,7 +49,8 @@ function getAllProducts($pdo) {
         . "    IFNULL(p.Is_Archived, 0) AS Is_Archived\n"
         . "FROM product p\n"
         . "LEFT JOIN inventory i ON i.Product_ID = p.Product_ID\n"
-        . "WHERE IFNULL(p.Is_Archived, 0) = 0";
+        . "WHERE IFNULL(p.Is_Archived, 0) = 0\n"
+        . "ORDER BY p.Product_ID DESC";
 
     $stmt = $pdo->query($sql);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -67,7 +68,8 @@ function getArchivedProducts($pdo) {
         . "    IFNULL(p.Is_Archived, 0) AS Is_Archived\n"
         . "FROM product p\n"
         . "LEFT JOIN inventory i ON i.Product_ID = p.Product_ID\n"
-        . "WHERE IFNULL(p.Is_Archived, 0) = 1";
+        . "WHERE IFNULL(p.Is_Archived, 0) = 1\n"
+        . "ORDER BY p.Product_ID DESC";
 
     $stmt = $pdo->query($sql);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
