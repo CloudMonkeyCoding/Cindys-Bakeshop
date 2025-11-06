@@ -204,6 +204,128 @@ $extraHead = <<<'HTML'
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
 <style>
+  .inventory-calendar {
+    margin-top: 16px;
+    border: 1px solid #e0e6ed;
+    border-radius: 10px;
+    padding: 16px;
+    background: #ffffff;
+    display: grid;
+    gap: 12px;
+  }
+
+  .inventory-calendar:empty {
+    display: none;
+  }
+
+  .calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    color: #2c3e50;
+  }
+
+  .calendar-nav {
+    border: none;
+    background: #ecf0f1;
+    color: #2c3e50;
+    font-size: 18px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .calendar-nav:hover {
+    background: #d6dbdf;
+    color: #1a252f;
+  }
+
+  .calendar-title {
+    font-size: 16px;
+  }
+
+  .calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    text-align: center;
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #7f8c8d;
+    gap: 6px;
+  }
+
+  .calendar-weekdays span {
+    padding: 4px 0;
+  }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .calendar-day {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 0;
+    background: #f8f9fa;
+    color: #2c3e50;
+    font-size: 14px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .calendar-day:hover {
+    background: #eaeff2;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  .calendar-day.is-outside {
+    background: #f1f4f6;
+    color: #95a5a6;
+  }
+
+  .calendar-day.is-selected {
+    background: #3498db;
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  .calendar-day.is-today:not(.is-selected) {
+    border: 1px solid #3498db;
+  }
+
+  .calendar-day.has-entries:not(.is-selected) {
+    background: #eaf7f0;
+    color: #1e8449;
+  }
+
+  .calendar-day:disabled {
+    background: #f4f6f7;
+    color: #c0c7ce;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  .calendar-count {
+    position: absolute;
+    bottom: 4px;
+    right: 6px;
+    background: rgba(39, 174, 96, 0.9);
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 2px 6px;
+    font-size: 10px;
+    line-height: 1;
+  }
+
   .table-pagination {
     display: flex;
     flex-wrap: wrap;
@@ -249,6 +371,12 @@ include 'includes/sidebar.php';
         <?php endif; ?>
       </form>
     </div>
+    <div
+      id="inventoryCalendar"
+      class="inventory-calendar"
+      data-selected-date="<?= htmlspecialchars($reportDate ?? ''); ?>"
+      aria-live="polite"
+    ></div>
   </div>
 
   <section class="stats-grid columns-4" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
@@ -428,6 +556,17 @@ document.addEventListener('DOMContentLoaded', () => {
   let calendarFocusMonth = null;
   let inventoryEditingEnabled = false;
 
+  function submitReportForm() {
+    if (!reportForm) {
+      return;
+    }
+    if (typeof reportForm.requestSubmit === 'function') {
+      reportForm.requestSubmit();
+      return;
+    }
+    reportForm.submit();
+  }
+
   if (searchInput) {
     currentSearchTerm = searchInput.value.toLowerCase();
     searchInput.addEventListener('input', () => {
@@ -517,6 +656,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       showInventoryPdfPreview(doc, 'inventory-report.pdf');
+    });
+  }
+
+  if (reportDateInput && reportForm) {
+    reportDateInput.addEventListener('change', () => {
+      submitReportForm();
     });
   }
 
@@ -2093,9 +2238,7 @@ document.addEventListener('DOMContentLoaded', () => {
       reportDateInput.value = isoValue;
     }
 
-    if (reportForm) {
-      reportForm.submit();
-    }
+    submitReportForm();
   }
 
   inventoryData = normalizeInventoryData(<?= $inventoryJson; ?>);
