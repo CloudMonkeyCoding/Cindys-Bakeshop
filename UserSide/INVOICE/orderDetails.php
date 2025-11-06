@@ -291,8 +291,14 @@
         margin: 0.5,
         filename: 'CindysBakeshop_Invoice.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        html2canvas: {
+          scale: 2,
+          scrollY: 0,
+          windowWidth: invoiceEl.scrollWidth,
+          windowHeight: invoiceEl.scrollHeight
+        },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] }
       };
       html2pdf().set(opt).from(invoiceEl).save();
     });
