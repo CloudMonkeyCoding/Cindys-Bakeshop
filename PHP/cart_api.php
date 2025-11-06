@@ -6,6 +6,8 @@ require_once __DIR__ . '/product_functions.php';
 require_once __DIR__ . '/inventory_functions.php';
 require_once __DIR__ . '/user_request_helpers.php';
 
+const PREORDER_MAX_QUANTITY = 10;
+
 startJsonResponse();
 requireDatabaseConnection($pdo);
 
@@ -60,8 +62,11 @@ switch ($action) {
         }
 
         $inventory = getInventoryByProductId($pdo, $productId);
-        $available = $inventory ? (int)$inventory['Stock_Quantity'] : (int)($product['Stock_Quantity'] ?? 0);
-        if ($available <= 0) {
+        $productStock = (int)($product['Stock_Quantity'] ?? 0);
+        $available = $inventory ? (int)$inventory['Stock_Quantity'] : $productStock;
+        $isPreorder = $available <= 0;
+
+        if (!$isPreorder && $available <= 0) {
             sendJsonResponse(['error' => 'Product out of stock'], 400);
         }
 
@@ -77,9 +82,14 @@ switch ($action) {
 
         $existing = getCartItemByCartAndProduct($pdo, $cartId, $productId);
         $existingQty = $existing ? (int)$existing['Quantity'] : 0;
-        $maxAdd = $available - $existingQty;
+
+        $maxAllowed = $isPreorder ? PREORDER_MAX_QUANTITY : $available;
+        $maxAdd = $maxAllowed - $existingQty;
         if ($maxAdd <= 0) {
-            sendJsonResponse(['error' => 'Requested quantity exceeds available stock'], 400);
+            $message = $isPreorder
+                ? 'Pre-order limit reached for this item'
+                : 'Requested quantity exceeds available stock';
+            sendJsonResponse(['error' => $message], 400);
         }
 
         $capped = false;
@@ -105,6 +115,9 @@ switch ($action) {
         if ($capped) {
             $response['capped'] = true;
         }
+        if ($isPreorder) {
+            $response['preorder'] = true;
+        }
 
         sendJsonResponse($response);
 
@@ -128,21 +141,35 @@ switch ($action) {
         }
 
         $inventory = getInventoryByProductId($pdo, $productId);
-        $available = $inventory ? (int)$inventory['Stock_Quantity'] : (int)($product['Stock_Quantity'] ?? 0);
-        if ($available <= 0) {
+        $productStock = (int)($product['Stock_Quantity'] ?? 0);
+        $available = $inventory ? (int)$inventory['Stock_Quantity'] : $productStock;
+        $isPreorder = $available <= 0;
+
+        if (!$isPreorder && $available <= 0) {
             sendJsonResponse(['error' => 'Product out of stock'], 400);
         }
 
         $capped = false;
-        if ($qty > $available) {
-            $qty = $available;
+        $maxAllowed = $isPreorder ? PREORDER_MAX_QUANTITY : $available;
+        if ($qty > $maxAllowed) {
+            $qty = $maxAllowed;
             $capped = true;
+        }
+
+        if ($maxAllowed <= 0) {
+            $message = $isPreorder
+                ? 'Pre-order limit reached for this item'
+                : 'Product out of stock';
+            sendJsonResponse(['error' => $message], 400);
         }
 
         $result = updateCartItemQuantity($pdo, $cartItemId, $qty);
         $response = ['updated' => $result, 'cart_item_id' => $cartItemId, 'quantity' => $qty];
         if ($capped) {
             $response['capped'] = true;
+        }
+        if ($isPreorder) {
+            $response['preorder'] = true;
         }
 
         sendJsonResponse($response);
