@@ -11,9 +11,29 @@ if ($pdo) {
     }
 }
 
+function normalizeCategory(string $rawCategory): string
+{
+    $category = strtolower(trim($rawCategory));
+    if ($category === '') {
+        return 'other';
+    }
+
+    $breadAliases = ['bread', 'breads', 'pastry', 'pastries'];
+    if (in_array($category, $breadAliases, true)) {
+        return 'bread';
+    }
+
+    $cakeAliases = ['cake', 'cakes'];
+    if (in_array($category, $cakeAliases, true)) {
+        return 'cake';
+    }
+
+    return $category;
+}
+
 function buildProductPayload(array $product): array
 {
-    $category = strtolower(trim((string)($product['Category'] ?? '')));
+    $category = normalizeCategory((string)($product['Category'] ?? ''));
     $stock = (int)($product['Stock_Quantity'] ?? 0);
     if ($stock < 0) {
         $stock = 0;
@@ -24,7 +44,7 @@ function buildProductPayload(array $product): array
         'description' => (string)($product['Description'] ?? ''),
         'price' => (float)($product['Price'] ?? 0),
         'stock' => $stock,
-        'category' => $category !== '' ? $category : 'other',
+        'category' => $category,
         'image' => getProductImageUrl($product, '../../'),
         'isPreorder' => false,
     ];
@@ -745,7 +765,7 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
   <main>
     <section class="page-header">
       <h1>Freshly Baked with Love</h1>
-      <p>Delicious breads, cakes, and pastries made daily.</p>
+      <p>Delicious breads and cakes made daily.</p>
     </section>
 
     <div class="controls">
@@ -862,8 +882,6 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       ['breads', 'Breads'],
       ['cake', 'Cakes'],
       ['cakes', 'Cakes'],
-      ['pastry', 'Pastries'],
-      ['pastries', 'Pastries'],
     ]);
 
     function getMaxSelectableQuantity() {
