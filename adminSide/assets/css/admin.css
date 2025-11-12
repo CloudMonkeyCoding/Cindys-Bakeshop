@@ -462,6 +462,12 @@ table td {
   border-bottom: 1px solid #eee;
 }
 
+.currency-cell {
+  white-space: nowrap;
+  letter-spacing: normal;
+  font-variant-numeric: tabular-nums;
+}
+
 .table-action-list {
   display: flex;
   flex-direction: column;

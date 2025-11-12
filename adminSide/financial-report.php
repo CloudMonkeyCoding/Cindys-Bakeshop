@@ -27,6 +27,14 @@ if (!array_key_exists($revenueTrendDefaultRange, $timeRanges)) {
 }
 
 $revenueTrendDefaultLabel = $timeRanges[$revenueTrendDefaultRange]['label'] ?? 'Selected Range';
+if (!function_exists('formatPesoAmount')) {
+    function formatPesoAmount($value, int $decimals = 2): string
+    {
+        $numericValue = is_numeric($value) ? (float)$value : 0.0;
+        $formatted = number_format($numericValue, $decimals, '.', ',');
+        return '₱' . $formatted;
+    }
+}
 $dailyRevenueMap = [];
 $hourlyRevenueMap = array_fill(0, 24, 0.0);
 $revenueTrendByRange = [];
@@ -544,17 +552,17 @@ include 'includes/sidebar.php';
   <section class="stats-grid columns-4" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
     <div class="stat-card">
       <h3>Total Revenue</h3>
-      <div class="value" id="statTotalRevenueValue">₱<?= number_format($defaultTotalRevenue, 0); ?></div>
+      <div class="value" id="statTotalRevenueValue"><?= htmlspecialchars(formatPesoAmount($defaultTotalRevenue)); ?></div>
       <div class="meta" id="statTotalRevenueMeta"><?= htmlspecialchars($defaultTotalRevenueMeta); ?></div>
     </div>
     <div class="stat-card">
       <h3>Daily Avg Revenue</h3>
-      <div class="value" id="statDailyAverageValue">₱<?= number_format($defaultDailyAverage, 0); ?></div>
+      <div class="value" id="statDailyAverageValue"><?= htmlspecialchars(formatPesoAmount($defaultDailyAverage)); ?></div>
       <div class="meta" id="statDailyAverageMeta"><?= htmlspecialchars($defaultDailyAverageMeta); ?></div>
     </div>
     <div class="stat-card">
       <h3>Average Order Value</h3>
-      <div class="value" id="statAverageOrderValue">₱<?= number_format($defaultAverageOrderValue, 0); ?></div>
+      <div class="value" id="statAverageOrderValue"><?= htmlspecialchars(formatPesoAmount($defaultAverageOrderValue)); ?></div>
       <div class="meta" id="statAverageOrderMeta"><?= htmlspecialchars($defaultAverageOrderMeta); ?></div>
     </div>
   </section>
@@ -684,8 +692,8 @@ include 'includes/sidebar.php';
                 <td><?= htmlspecialchars($formattedOrderDate); ?></td>
                 <td><?= htmlspecialchars($formattedPaymentDate); ?></td>
                 <td><?= htmlspecialchars($row['Customer'] ?? 'Walk-in'); ?></td>
-                <td>₱<?= number_format((float)($row['Product_Total'] ?? 0), 0); ?></td>
-                <td>₱<?= number_format((float)($row['Amount_Paid'] ?? 0), 0); ?></td>
+                <td class="currency-cell"><?= htmlspecialchars(formatPesoAmount($row['Product_Total'] ?? 0)); ?></td>
+                <td class="currency-cell"><?= htmlspecialchars(formatPesoAmount($row['Amount_Paid'] ?? 0)); ?></td>
                 <td><?= htmlspecialchars($row['Payment_Method'] ?? 'Unknown'); ?></td>
                 <td>
                   <span class="status-pill status-<?= strtolower(str_replace(' ', '-', $row['Payment_Status'] ?? 'unknown')); ?>">
@@ -823,8 +831,11 @@ ob_start();
 
   function formatCurrency(value) {
     const numericValue = Number.parseFloat(value);
-    const safeValue = Number.isFinite(numericValue) ? Math.round(numericValue) : 0;
-    return `₱${safeValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+    if (!Number.isFinite(numericValue)) {
+      return '₱0.00';
+    }
+    const safeValue = Math.max(0, numericValue);
+    return `₱${safeValue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
   function formatRangeContext(label) {
@@ -944,7 +955,7 @@ ob_start();
             y: {
               beginAtZero: true,
               ticks: {
-                callback: value => `₱${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                callback: value => `₱${Number(value).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
               }
             }
           }
@@ -1060,7 +1071,7 @@ ob_start();
             callbacks: {
               label: context => {
                 const value = context.parsed.y ?? 0;
-                return 'Revenue: ₱' + Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 });
+                return 'Revenue: ₱' + Number(value).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
               }
             }
           }
@@ -1076,7 +1087,7 @@ ob_start();
           y: {
             beginAtZero: true,
             ticks: {
-              callback: value => '₱' + Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })
+              callback: value => '₱' + Number(value).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
             }
           }
         }
