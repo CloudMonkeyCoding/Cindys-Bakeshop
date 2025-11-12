@@ -15,7 +15,7 @@ $statusOptions = ['Pending', 'Confirmed', 'Shipped', 'Delivered'];
 if ($pdo) {
     $sql = "SELECT o.Order_ID, o.Order_Date, o.Status, o.Source, o.Fulfillment_Type, u.Name, 
                    COALESCE(SUM(oi.Quantity), 0) AS Item_Count,
-                   ROUND(COALESCE(SUM(oi.Subtotal), 0)) AS Total_Amount,
+                   COALESCE(SUM(oi.Subtotal), 0) AS Total_Amount,
                    GROUP_CONCAT(CONCAT(p.Name, ' x', oi.Quantity) SEPARATOR ', ') AS Item_Summary
             FROM `order` o
             LEFT JOIN user u ON o.User_ID = u.User_ID
@@ -95,7 +95,7 @@ include 'includes/sidebar.php';
               <td><?= htmlspecialchars($itemSummary); ?></td>
               <td><?= htmlspecialchars($sourceLabel); ?></td>
               <td><?= htmlspecialchars($fulfillmentLabel); ?></td>
-              <td>₱<?= number_format((float)($order['Total_Amount'] ?? 0), 0); ?></td>
+              <td>₱<?= number_format((float)($order['Total_Amount'] ?? 0), 2); ?></td>
               <td>
                 <span class="status-pill status-<?= strtolower($order['Status']); ?>">
                   <?= htmlspecialchars($order['Status']); ?>
