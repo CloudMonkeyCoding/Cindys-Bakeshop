@@ -77,6 +77,36 @@ function getArchivedProducts($pdo) {
 
 // 2a) Get products by category
 function getProductsByCategory($pdo, $category) {
+    if (!is_string($category)) {
+        return [];
+    }
+
+    $normalized = strtolower(trim($category));
+    if ($normalized === '') {
+        return [];
+    }
+
+    $categoryGroups = [
+        'bread' => ['bread', 'breads', 'pastry', 'pastries'],
+        'cake' => ['cake', 'cakes'],
+    ];
+
+    if (isset($categoryGroups[$normalized])) {
+        $matches = $categoryGroups[$normalized];
+    } elseif ($normalized === 'breads') {
+        $matches = $categoryGroups['bread'];
+    } elseif ($normalized === 'cakes') {
+        $matches = $categoryGroups['cake'];
+    } elseif (in_array($normalized, $categoryGroups['bread'], true)) {
+        $matches = $categoryGroups['bread'];
+    } elseif (in_array($normalized, $categoryGroups['cake'], true)) {
+        $matches = $categoryGroups['cake'];
+    } else {
+        $matches = [$normalized];
+    }
+
+    $placeholders = implode(', ', array_fill(0, count($matches), '?'));
+
     $sql = "SELECT\n"
         . "    p.Product_ID,\n"
         . "    p.Name,\n"
@@ -88,10 +118,11 @@ function getProductsByCategory($pdo, $category) {
         . "    IFNULL(p.Is_Archived, 0) AS Is_Archived\n"
         . "FROM product p\n"
         . "LEFT JOIN inventory i ON i.Product_ID = p.Product_ID\n"
-        . "WHERE p.Category = :category AND IFNULL(p.Is_Archived, 0) = 0";
+        . "WHERE LOWER(p.Category) IN ($placeholders) AND IFNULL(p.Is_Archived, 0) = 0\n"
+        . "ORDER BY p.Product_ID DESC";
 
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([':category' => $category]);
+    $stmt->execute(array_map('strtolower', $matches));
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 

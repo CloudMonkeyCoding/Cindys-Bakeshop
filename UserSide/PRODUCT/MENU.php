@@ -880,6 +880,8 @@ $dataJson = json_encode($pageData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP |
       ['all', 'All'],
       ['bread', 'Breads'],
       ['breads', 'Breads'],
+      ['pastry', 'Breads'],
+      ['pastries', 'Breads'],
       ['cake', 'Cakes'],
       ['cakes', 'Cakes'],
     ]);
