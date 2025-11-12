@@ -76,6 +76,14 @@ include 'includes/sidebar.php';
               $sourceLabel = $sourceValue ? ucwords(str_replace(['-', '_'], [' ', ' '], $sourceValue)) : '—';
               $fulfillmentLabel = $order['Fulfillment_Type'] ?? '—';
               $itemSummary = $order['Item_Summary'] ?? 'No items recorded';
+              $formattedOrderDate = '—';
+              if (!empty($order['Order_Date'])) {
+                  try {
+                      $formattedOrderDate = (new \DateTime($order['Order_Date']))->format('F j, Y');
+                  } catch (\Exception $exception) {
+                      $formattedOrderDate = $order['Order_Date'];
+                  }
+              }
             ?>
             <tr data-order-id="<?= $order['Order_ID']; ?>"
                 data-status="<?= htmlspecialchars($order['Status']); ?>"
@@ -93,7 +101,7 @@ include 'includes/sidebar.php';
                   <?= htmlspecialchars($order['Status']); ?>
                 </span>
               </td>
-              <td><?= htmlspecialchars($order['Order_Date']); ?></td>
+              <td><?= htmlspecialchars($formattedOrderDate); ?></td>
               <td style="display:flex;gap:8px;flex-wrap:wrap;">
                 <button class="btn btn-primary btn-view" data-order="<?= $order['Order_ID']; ?>">View</button>
                 <button class="btn btn-secondary btn-edit" data-order="<?= $order['Order_ID']; ?>">Update</button>
@@ -130,11 +138,20 @@ include 'includes/sidebar.php';
 
 <?php
 $ordersJson = json_encode(array_map(static function ($order) {
+    $formattedDate = '';
+    if (!empty($order['Order_Date'])) {
+        try {
+            $formattedDate = (new \DateTime($order['Order_Date']))->format('F j, Y');
+        } catch (\Exception $exception) {
+            $formattedDate = $order['Order_Date'];
+        }
+    }
+
     return [
         'id' => (int)$order['Order_ID'],
         'status' => $order['Status'],
         'summary' => $order['Item_Summary'] ?? '',
-        'date' => $order['Order_Date'] ?? '',
+        'date' => $formattedDate,
         'source' => $order['Source'] ?? '',
         'fulfillment' => $order['Fulfillment_Type'] ?? '',
     ];
