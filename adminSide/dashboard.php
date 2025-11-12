@@ -319,7 +319,7 @@ if ($selectedTimeframe === 'custom') {
 
 $rangeStartFormatted = $rangeStart->format('Y-m-d');
 $rangeEndFormatted = $rangeEnd->format('Y-m-d');
-$rangeDisplay = $rangeStart->format('M d, Y') . ' – ' . $rangeEnd->format('M d, Y');
+$rangeDisplay = $rangeStart->format('F j, Y') . ' – ' . $rangeEnd->format('F j, Y');
 $rangeDays = (int)$rangeStart->diff($rangeEnd)->format('%a') + 1;
 $salesGranularity = $rangeDays <= 31 ? 'daily' : 'monthly';
 $salesGranularityLabel = $salesGranularity === 'daily' ? 'Daily' : 'Monthly';
@@ -629,6 +629,23 @@ if ($pdo) {
         ':end_date' => $rangeEndFormatted,
     ]);
     $recentOrders = $stmtRecent->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    if ($recentOrders) {
+        $recentOrders = array_map(static function (array $order): array {
+            $rawDate = $order['Order_Date'] ?? null;
+            if ($rawDate) {
+                try {
+                    $date = new DateTimeImmutable($rawDate);
+                    $order['Order_Date_Formatted'] = $date->format('F j, Y');
+                } catch (Exception $e) {
+                    $order['Order_Date_Formatted'] = $rawDate;
+                }
+            } else {
+                $order['Order_Date_Formatted'] = '';
+            }
+
+            return $order;
+        }, $recentOrders);
+    }
 }
 
 if (empty($salesTrendSeries)) {
@@ -816,7 +833,7 @@ include 'includes/sidebar.php';
                     <?= htmlspecialchars($order['Status']); ?>
                   </span>
                 </td>
-                <td><?= htmlspecialchars($order['Order_Date']); ?></td>
+                <td><?= htmlspecialchars($order['Order_Date_Formatted'] ?? $order['Order_Date'] ?? ''); ?></td>
               </tr>
             <?php endforeach; ?>
           </tbody>
