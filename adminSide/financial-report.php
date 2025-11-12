@@ -334,7 +334,11 @@ foreach ($dailySnapshotsByDate as $dateKey => $dailyTotals) {
     }
 
     $dateTimestamp = strtotime($dateKey);
-    $formattedLabel = $dateTimestamp ? date('M d, Y', $dateTimestamp) : $dateKey;
+    if ($dateTimestamp !== false) {
+        $formattedLabel = date('F j, Y', $dateTimestamp);
+    } else {
+        $formattedLabel = $dateKey;
+    }
 
     $dailySnapshotsOutput[$dateKey] = [
         'label' => $formattedLabel,
@@ -513,7 +517,15 @@ if ($revenueTrendDefaultRangeJson === false) {
     $revenueTrendDefaultRangeJson = 'null';
 }
 
-$lastPaymentDisplay = $lastPaymentDate ? date('M d, Y', strtotime($lastPaymentDate)) : 'No payments recorded yet';
+$lastPaymentDisplay = 'No payments recorded yet';
+if (!empty($lastPaymentDate)) {
+    try {
+        $lastPaymentDisplay = (new \DateTime($lastPaymentDate))->format('F j, Y');
+    } catch (\Exception $exception) {
+        $timestamp = strtotime($lastPaymentDate);
+        $lastPaymentDisplay = $timestamp ? date('F j, Y', $timestamp) : $lastPaymentDate;
+    }
+}
 
 $extraHead = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>';
 
@@ -644,6 +656,24 @@ include 'includes/sidebar.php';
                 if ($transactionTimestamp !== false && $transactionTimestamp !== null) {
                   $transactionDayAttr = date('Y-m-d', $transactionTimestamp);
                 }
+                $formattedPaymentDate = '—';
+                if (!empty($rawPaymentDate)) {
+                  try {
+                    $formattedPaymentDate = (new \DateTime($rawPaymentDate))->format('F j, Y');
+                  } catch (\Exception $exception) {
+                    $fallbackTimestamp = strtotime($rawPaymentDate);
+                    $formattedPaymentDate = $fallbackTimestamp ? date('F j, Y', $fallbackTimestamp) : $rawPaymentDate;
+                  }
+                }
+                $formattedOrderDate = '—';
+                if (!empty($rawOrderDate)) {
+                  try {
+                    $formattedOrderDate = (new \DateTime($rawOrderDate))->format('F j, Y');
+                  } catch (\Exception $exception) {
+                    $fallbackTimestamp = strtotime($rawOrderDate);
+                    $formattedOrderDate = $fallbackTimestamp ? date('F j, Y', $fallbackTimestamp) : $rawOrderDate;
+                  }
+                }
               ?>
               <tr
                 data-transaction-ts="<?= htmlspecialchars($transactionTimestampAttr); ?>"
@@ -651,8 +681,8 @@ include 'includes/sidebar.php';
               >
                 <td>#<?= str_pad((int)$row['Transaction_ID'], 5, '0', STR_PAD_LEFT); ?></td>
                 <td><?= $row['Order_ID'] ? '#' . str_pad((int)$row['Order_ID'], 5, '0', STR_PAD_LEFT) : '—'; ?></td>
-                <td><?= htmlspecialchars($row['Order_Date'] ?? '—'); ?></td>
-                <td><?= htmlspecialchars($row['Payment_Date'] ?? '—'); ?></td>
+                <td><?= htmlspecialchars($formattedOrderDate); ?></td>
+                <td><?= htmlspecialchars($formattedPaymentDate); ?></td>
                 <td><?= htmlspecialchars($row['Customer'] ?? 'Walk-in'); ?></td>
                 <td>₱<?= number_format((float)($row['Product_Total'] ?? 0), 0); ?></td>
                 <td>₱<?= number_format((float)($row['Amount_Paid'] ?? 0), 0); ?></td>
@@ -781,7 +811,7 @@ ob_start();
         return date.toLocaleDateString(undefined, {
           timeZone: MANILA_TIME_ZONE,
           year: 'numeric',
-          month: 'short',
+          month: 'long',
           day: 'numeric',
         });
       }
@@ -1461,7 +1491,7 @@ ob_start();
         return date.toLocaleDateString(undefined, {
           timeZone: MANILA_TIME_ZONE,
           year: 'numeric',
-          month: 'short',
+          month: 'long',
           day: 'numeric',
         });
       };
