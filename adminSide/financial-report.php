@@ -682,10 +682,17 @@ include 'includes/sidebar.php';
                     $formattedOrderDate = $fallbackTimestamp ? date('F j, Y', $fallbackTimestamp) : $rawOrderDate;
                   }
                 }
+
+                $productTotalValue = (float)($row['Product_Total'] ?? 0);
+                $amountPaidValue = (float)($row['Amount_Paid'] ?? 0);
+                $productTotalAttr = number_format($productTotalValue, 2, '.', '');
+                $amountPaidAttr = number_format($amountPaidValue, 2, '.', '');
               ?>
               <tr
                 data-transaction-ts="<?= htmlspecialchars($transactionTimestampAttr); ?>"
                 data-transaction-day="<?= htmlspecialchars($transactionDayAttr); ?>"
+                data-product-total="<?= htmlspecialchars($productTotalAttr); ?>"
+                data-amount-paid="<?= htmlspecialchars($amountPaidAttr); ?>"
               >
                 <td>#<?= str_pad((int)$row['Transaction_ID'], 5, '0', STR_PAD_LEFT); ?></td>
                 <td><?= $row['Order_ID'] ? '#' . str_pad((int)$row['Order_ID'], 5, '0', STR_PAD_LEFT) : '—'; ?></td>
@@ -1462,6 +1469,40 @@ ob_start();
 
   const warnOnEmptyFilteredExport = true;
   const exportBtn = document.getElementById('exportFinance');
+
+  const normalizeWhitespace = value => {
+    if (typeof value !== 'string') {
+      return '';
+    }
+    return value.replace(/\s+/g, ' ').trim();
+  };
+
+  const parseNumericString = rawValue => {
+    if (typeof rawValue === 'number') {
+      return Number.isFinite(rawValue) ? rawValue : null;
+    }
+    if (typeof rawValue !== 'string') {
+      return null;
+    }
+    const cleaned = rawValue.replace(/[^0-9.\-]/g, '');
+    const parsed = Number.parseFloat(cleaned);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const formatPesoForPdf = rawValue => {
+    const numeric = parseNumericString(rawValue);
+    if (!Number.isFinite(numeric)) {
+      const fallback = typeof rawValue === 'string' ? normalizeWhitespace(rawValue) : '';
+      return fallback || '₱0.00';
+    }
+    const isNegative = numeric < 0;
+    const absolute = Math.abs(numeric);
+    const formattedNumber = absolute
+      .toFixed(2)
+      .replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return `${isNegative ? '-₱' : '₱'}${formattedNumber}`;
+  };
+
   if (exportBtn) {
     exportBtn.addEventListener('click', () => {
       if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
@@ -1477,7 +1518,17 @@ ob_start();
         if (rowIsHidden(tr)) {
           return;
         }
-        const cells = Array.from(tr.cells).map(td => td.textContent.trim());
+        const productTotalRaw = tr.dataset ? tr.dataset.productTotal : tr.getAttribute('data-product-total');
+        const amountPaidRaw = tr.dataset ? tr.dataset.amountPaid : tr.getAttribute('data-amount-paid');
+        const cells = Array.from(tr.cells).map((td, cellIndex) => {
+          if (cellIndex === 5) {
+            return formatPesoForPdf(productTotalRaw ?? td.textContent);
+          }
+          if (cellIndex === 6) {
+            return formatPesoForPdf(amountPaidRaw ?? td.textContent);
+          }
+          return normalizeWhitespace(td.textContent || '');
+        });
         rows.push(cells);
         const tsAttr = tr.getAttribute('data-transaction-ts');
         const tsSeconds = tsAttr ? Number.parseInt(tsAttr, 10) : NaN;
