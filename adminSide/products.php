@@ -70,7 +70,7 @@ include 'includes/sidebar.php';
               <td><img src="<?= htmlspecialchars($product['Image_Url']); ?>" alt="<?= htmlspecialchars($product['Name']); ?>" style="width:60px;height:60px;border-radius:8px;object-fit:cover;"></td>
               <td><?= htmlspecialchars($product['Name']); ?></td>
               <td><?= number_format($product['Stock_Quantity'] ?? 0); ?></td>
-              <td>₱<?= number_format($product['Price'], 0); ?></td>
+              <td>₱<?= number_format((float)($product['Price'] ?? 0), 2); ?></td>
               <td><?= htmlspecialchars(normalizeProductCategoryValue($product['Category'] ?? '')); ?></td>
               <td style="display:flex;gap:10px;flex-wrap:wrap;">
                 <button class="btn btn-secondary btn-edit" data-id="<?= $product['Product_ID']; ?>">Edit</button>
@@ -199,7 +199,7 @@ $extraScripts = <<<JS
   }
 
   function formatWholePrice(value) {
-    return parseWholePrice(value).toLocaleString();
+    return parseWholePrice(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function normalizeProduct(product) {

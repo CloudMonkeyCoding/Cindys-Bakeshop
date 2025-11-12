@@ -558,10 +558,10 @@ include 'includes/sidebar.php';
   <section class="stats-grid columns-4" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
     <div class="stat-card">
       <h3>Total Product Revenue</h3>
-      <div class="value">₱<?= number_format($totalRevenue, 0); ?></div>
+      <div class="value">₱<?= number_format((float)$totalRevenue, 2); ?></div>
       <div class="meta">
         <?php if ($topCategoryRevenue > 0): ?>
-          Top category: <?= htmlspecialchars($topCategoryName); ?> (₱<?= number_format($topCategoryRevenue, 0); ?>)
+          Top category: <?= htmlspecialchars($topCategoryName); ?> (₱<?= number_format((float)$topCategoryRevenue, 2); ?>)
         <?php else: ?>
           No category sales yet
         <?php endif; ?>
@@ -581,12 +581,12 @@ include 'includes/sidebar.php';
     <div class="stat-card">
       <h3>Orders with Sales</h3>
       <div class="value"><?= number_format($totalOrders); ?></div>
-      <div class="meta">Average order value: ₱<?= number_format($averageOrderValue, 0); ?></div>
+      <div class="meta">Average order value: ₱<?= number_format((float)$averageOrderValue, 2); ?></div>
     </div>
     <div class="stat-card">
       <h3>Products Sold</h3>
       <div class="value"><?= number_format($productsWithSales); ?></div>
-      <div class="meta">Avg item price: ₱<?= number_format($averageSellingPrice, 0); ?> &bull; Catalog: <?= number_format($catalogSize); ?> items</div>
+      <div class="meta">Avg item price: ₱<?= number_format((float)$averageSellingPrice, 2); ?> &bull; Catalog: <?= number_format($catalogSize); ?> items</div>
     </div>
   </section>
 
@@ -649,7 +649,7 @@ include 'includes/sidebar.php';
                   </span>
                 </td>
                 <td><?= number_format($statusUnits); ?></td>
-                <td>₱<?= number_format($statusRevenue, 0); ?></td>
+                <td>₱<?= number_format((float)$statusRevenue, 2); ?></td>
               </tr>
             <?php endforeach; ?>
           </tbody>
@@ -694,11 +694,11 @@ include 'includes/sidebar.php';
               <td><?= htmlspecialchars($product['Name']); ?></td>
               <td><?= htmlspecialchars($product['Category']); ?></td>
               <td><?= number_format($unitsSold); ?></td>
-              <td>₱<?= number_format($revenue, 0); ?></td>
+              <td>₱<?= number_format((float)$revenue, 2); ?></td>
               <td><?= number_format($product['order_count']); ?></td>
               <td><?= $firstSale ? htmlspecialchars(date('M d, Y g:i A', $firstSale)) : '—'; ?></td>
               <td><?= $lastSale ? htmlspecialchars(date('M d, Y g:i A', $lastSale)) : '—'; ?></td>
-              <td><?= $unitsSold > 0 ? '₱' . number_format($avgPrice, 0) : '—'; ?></td>
+              <td><?= $unitsSold > 0 ? '₱' . number_format((float)$avgPrice, 2) : '—'; ?></td>
             </tr>
           <?php endforeach; ?>
         </tbody>
@@ -912,7 +912,7 @@ $extraScripts = <<<JS
             callbacks: {
               label: context => {
                 const value = context.parsed.y ?? 0;
-                const revenueLabel = 'Revenue: ₱' + Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 });
+                const revenueLabel = 'Revenue: ₱' + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 const unitsCollection = Array.isArray(context.dataset.units) ? context.dataset.units : [];
                 const unitsValue = unitsCollection[context.dataIndex] ?? 0;
                 const unitsLabel = 'Units sold: ' + Number(unitsValue).toLocaleString();
@@ -933,7 +933,7 @@ $extraScripts = <<<JS
           y: {
             beginAtZero: true,
             ticks: {
-              callback: value => '₱' + Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })
+              callback: value => '₱' + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
             }
           }
         }
@@ -986,7 +986,7 @@ $extraScripts = <<<JS
               label: context => {
                 const revenue = context.parsed.y ?? 0;
                 const units = unitData[context.dataIndex] ?? 0;
-                const revenueLabel = 'Revenue: ₱' + Number(revenue).toLocaleString(undefined, { maximumFractionDigits: 0 });
+                const revenueLabel = 'Revenue: ₱' + Number(revenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 const unitsLabel = 'Units sold: ' + Number(units).toLocaleString();
                 return [revenueLabel, unitsLabel];
               }
@@ -998,7 +998,7 @@ $extraScripts = <<<JS
           y: {
             beginAtZero: true,
             ticks: {
-              callback: value => '₱' + Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })
+              callback: value => '₱' + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
             }
           }
         }
@@ -1031,7 +1031,7 @@ $extraScripts = <<<JS
               label: context => {
                 const revenue = context.parsed ?? 0;
                 const units = unitData[context.dataIndex] ?? 0;
-                const revenueLabel = 'Revenue: ₱' + Number(revenue).toLocaleString(undefined, { maximumFractionDigits: 0 });
+                const revenueLabel = 'Revenue: ₱' + Number(revenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 const unitsLabel = 'Units sold: ' + Number(units).toLocaleString();
                 return context.label + ': ' + revenueLabel + ' • ' + unitsLabel;
               }
