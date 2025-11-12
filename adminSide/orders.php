@@ -79,9 +79,10 @@ include 'includes/sidebar.php';
               $formattedOrderDate = '—';
               if (!empty($order['Order_Date'])) {
                   try {
-                      $formattedOrderDate = (new \DateTime($order['Order_Date']))->format('F j, Y');
+                      $formattedOrderDate = (new \DateTime($order['Order_Date']))->format('F j, Y g:i A');
                   } catch (\Exception $exception) {
-                      $formattedOrderDate = $order['Order_Date'];
+                      $timestamp = strtotime($order['Order_Date']);
+                      $formattedOrderDate = $timestamp ? date('F j, Y g:i A', $timestamp) : $order['Order_Date'];
                   }
               }
             ?>
@@ -141,9 +142,10 @@ $ordersJson = json_encode(array_map(static function ($order) {
     $formattedDate = '';
     if (!empty($order['Order_Date'])) {
         try {
-            $formattedDate = (new \DateTime($order['Order_Date']))->format('F j, Y');
+            $formattedDate = (new \DateTime($order['Order_Date']))->format('F j, Y g:i A');
         } catch (\Exception $exception) {
-            $formattedDate = $order['Order_Date'];
+            $timestamp = strtotime($order['Order_Date']);
+            $formattedDate = $timestamp ? date('F j, Y g:i A', $timestamp) : $order['Order_Date'];
         }
     }
 
