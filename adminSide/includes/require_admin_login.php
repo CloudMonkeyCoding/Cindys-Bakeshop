@@ -7,6 +7,44 @@ if (function_exists('date_default_timezone_set')) {
     date_default_timezone_set('Asia/Manila');
 }
 
+if (!function_exists('getManilaTimezone')) {
+    function getManilaTimezone(): DateTimeZone
+    {
+        static $manilaTimezone = null;
+
+        if ($manilaTimezone === null) {
+            $manilaTimezone = new DateTimeZone('Asia/Manila');
+        }
+
+        return $manilaTimezone;
+    }
+}
+
+if (!function_exists('formatAdminDateTime')) {
+    function formatAdminDateTime(?string $value, string $format = 'F j, Y g:i A', ?string $fallbackValue = null): string
+    {
+        $normalized = is_string($value) ? trim($value) : '';
+        if ($normalized === '') {
+            return $fallbackValue ?? '';
+        }
+
+        try {
+            $date = new DateTimeImmutable($normalized);
+        } catch (Exception $exception) {
+            $timestamp = strtotime($normalized);
+            if ($timestamp === false) {
+                return $fallbackValue ?? $normalized;
+            }
+
+            $date = new DateTimeImmutable('@' . $timestamp);
+        }
+
+        $date = $date->setTimezone(getManilaTimezone());
+
+        return $date->format($format);
+    }
+}
+
 if (!function_exists('redirectToAdminLogin')) {
     function redirectToAdminLogin(string $messageKey, string $message): void
     {

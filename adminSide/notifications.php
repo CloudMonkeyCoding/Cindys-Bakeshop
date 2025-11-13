@@ -37,11 +37,15 @@ include 'includes/sidebar.php';
           <tr><td colspan="5" class="table-empty">No notifications yet.</td></tr>
         <?php else: ?>
           <?php foreach ($notifications as $notification): ?>
+            <?php
+              $createdAtRaw = $notification['Created_At'] ?? null;
+              $createdAtDisplay = formatAdminDateTime($createdAtRaw, 'F j, Y g:i A', '—');
+            ?>
             <tr data-id="<?= $notification['Notification_ID']; ?>" data-read="<?= (int)$notification['Is_Read']; ?>">
               <td><?= htmlspecialchars(ucfirst($notification['Type'] ?? 'System')); ?></td>
               <td><?= htmlspecialchars($notification['Message'] ?? ''); ?></td>
               <td><?= htmlspecialchars($notification['Reference_ID'] ?? ''); ?></td>
-              <td><?= htmlspecialchars($notification['Created_At'] ?? ''); ?></td>
+              <td><?= htmlspecialchars($createdAtDisplay); ?></td>
               <td>
                 <span class="badge <?= $notification['Is_Read'] ? 'badge-success' : 'badge-warning'; ?>">
                   <?= $notification['Is_Read'] ? 'Read' : 'Unread'; ?>

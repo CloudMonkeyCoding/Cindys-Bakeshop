@@ -527,11 +527,11 @@ if ($revenueTrendDefaultRangeJson === false) {
 
 $lastPaymentDisplay = 'No payments recorded yet';
 if (!empty($lastPaymentDate)) {
-    try {
-        $lastPaymentDisplay = (new \DateTime($lastPaymentDate))->format('F j, Y');
-    } catch (\Exception $exception) {
-        $timestamp = strtotime($lastPaymentDate);
-        $lastPaymentDisplay = $timestamp ? date('F j, Y', $timestamp) : $lastPaymentDate;
+    $formattedLastPayment = formatAdminDateTime($lastPaymentDate, 'F j, Y');
+    if ($formattedLastPayment !== '') {
+        $lastPaymentDisplay = $formattedLastPayment;
+    } else {
+        $lastPaymentDisplay = $lastPaymentDate;
     }
 }
 
@@ -664,24 +664,8 @@ include 'includes/sidebar.php';
                 if ($transactionTimestamp !== false && $transactionTimestamp !== null) {
                   $transactionDayAttr = date('Y-m-d', $transactionTimestamp);
                 }
-                $formattedPaymentDate = '—';
-                if (!empty($rawPaymentDate)) {
-                  try {
-                    $formattedPaymentDate = (new \DateTime($rawPaymentDate))->format('F j, Y');
-                  } catch (\Exception $exception) {
-                    $fallbackTimestamp = strtotime($rawPaymentDate);
-                    $formattedPaymentDate = $fallbackTimestamp ? date('F j, Y', $fallbackTimestamp) : $rawPaymentDate;
-                  }
-                }
-                $formattedOrderDate = '—';
-                if (!empty($rawOrderDate)) {
-                  try {
-                    $formattedOrderDate = (new \DateTime($rawOrderDate))->format('F j, Y');
-                  } catch (\Exception $exception) {
-                    $fallbackTimestamp = strtotime($rawOrderDate);
-                    $formattedOrderDate = $fallbackTimestamp ? date('F j, Y', $fallbackTimestamp) : $rawOrderDate;
-                  }
-                }
+                $formattedPaymentDate = formatAdminDateTime($rawPaymentDate, 'F j, Y', '—');
+                $formattedOrderDate = formatAdminDateTime($rawOrderDate, 'F j, Y', '—');
 
                 $productTotalValue = (float)($row['Product_Total'] ?? 0);
                 $amountPaidValue = (float)($row['Amount_Paid'] ?? 0);

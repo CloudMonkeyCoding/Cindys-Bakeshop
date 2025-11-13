@@ -633,12 +633,8 @@ if ($pdo) {
         $recentOrders = array_map(static function (array $order): array {
             $rawDate = $order['Order_Date'] ?? null;
             if ($rawDate) {
-                try {
-                    $date = new DateTimeImmutable($rawDate);
-                    $order['Order_Date_Formatted'] = $date->format('F j, Y');
-                } catch (Exception $e) {
-                    $order['Order_Date_Formatted'] = $rawDate;
-                }
+                $formatted = formatAdminDateTime($rawDate, 'F j, Y');
+                $order['Order_Date_Formatted'] = $formatted !== '' ? $formatted : $rawDate;
             } else {
                 $order['Order_Date_Formatted'] = '';
             }

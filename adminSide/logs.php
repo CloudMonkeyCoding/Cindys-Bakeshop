@@ -64,18 +64,7 @@ include 'includes/sidebar.php';
               $source = $log['Source'] ?? '';
               $metadata = isset($log['Metadata']) && is_array($log['Metadata']) ? $log['Metadata'] : [];
               $metadataDisplay = $metadata ? json_encode($metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
-              $timestampFormatted = '—';
-              if (!empty($timestamp)) {
-                  try {
-                      $timestampObject = new DateTime($timestamp);
-                      $timestampFormatted = $timestampObject->format('F j, Y g:i A');
-                  } catch (Exception $e) {
-                      $timeValue = strtotime($timestamp);
-                      if ($timeValue !== false) {
-                          $timestampFormatted = date('F j, Y g:i A', $timeValue);
-                      }
-                  }
-              }
+              $timestampFormatted = formatAdminDateTime($timestamp, 'F j, Y g:i A', '—');
             ?>
             <tr>
               <td><?= htmlspecialchars($timestampFormatted); ?></td>

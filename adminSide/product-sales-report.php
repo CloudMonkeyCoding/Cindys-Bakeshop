@@ -687,8 +687,8 @@ include 'includes/sidebar.php';
               $unitsSold = $product['units_sold'];
               $revenue = $product['revenue'];
               $avgPrice = $unitsSold > 0 ? (int)round($revenue / max($unitsSold, 1)) : 0;
-              $firstSale = $product['first_sale'] ? strtotime($product['first_sale']) : false;
-              $lastSale = $product['last_sale'] ? strtotime($product['last_sale']) : false;
+              $firstSaleDisplay = formatAdminDateTime($product['first_sale'] ?? null, $recentSaleDisplayDateFormat, '—');
+              $lastSaleDisplay = formatAdminDateTime($product['last_sale'] ?? null, $recentSaleDisplayDateFormat, '—');
             ?>
             <tr>
               <td><?= htmlspecialchars($product['Name']); ?></td>
@@ -696,8 +696,8 @@ include 'includes/sidebar.php';
               <td><?= number_format($unitsSold); ?></td>
               <td>₱<?= number_format((float)$revenue, 2); ?></td>
               <td><?= number_format($product['order_count']); ?></td>
-              <td><?= $firstSale ? htmlspecialchars(date('M d, Y g:i A', $firstSale)) : '—'; ?></td>
-              <td><?= $lastSale ? htmlspecialchars(date('M d, Y g:i A', $lastSale)) : '—'; ?></td>
+              <td><?= htmlspecialchars($firstSaleDisplay); ?></td>
+              <td><?= htmlspecialchars($lastSaleDisplay); ?></td>
               <td><?= $unitsSold > 0 ? '₱' . number_format((float)$avgPrice, 2) : '—'; ?></td>
             </tr>
           <?php endforeach; ?>

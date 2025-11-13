@@ -76,15 +76,7 @@ include 'includes/sidebar.php';
               $sourceLabel = $sourceValue ? ucwords(str_replace(['-', '_'], [' ', ' '], $sourceValue)) : '—';
               $fulfillmentLabel = $order['Fulfillment_Type'] ?? '—';
               $itemSummary = $order['Item_Summary'] ?? 'No items recorded';
-              $formattedOrderDate = '—';
-              if (!empty($order['Order_Date'])) {
-                  try {
-                      $formattedOrderDate = (new \DateTime($order['Order_Date']))->format('F j, Y g:i A');
-                  } catch (\Exception $exception) {
-                      $timestamp = strtotime($order['Order_Date']);
-                      $formattedOrderDate = $timestamp ? date('F j, Y g:i A', $timestamp) : $order['Order_Date'];
-                  }
-              }
+              $formattedOrderDate = formatAdminDateTime($order['Order_Date'] ?? null, 'F j, Y g:i A', '—');
             ?>
             <tr data-order-id="<?= $order['Order_ID']; ?>"
                 data-status="<?= htmlspecialchars($order['Status']); ?>"
@@ -139,15 +131,7 @@ include 'includes/sidebar.php';
 
 <?php
 $ordersJson = json_encode(array_map(static function ($order) {
-    $formattedDate = '';
-    if (!empty($order['Order_Date'])) {
-        try {
-            $formattedDate = (new \DateTime($order['Order_Date']))->format('F j, Y g:i A');
-        } catch (\Exception $exception) {
-            $timestamp = strtotime($order['Order_Date']);
-            $formattedDate = $timestamp ? date('F j, Y g:i A', $timestamp) : $order['Order_Date'];
-        }
-    }
+    $formattedDate = formatAdminDateTime($order['Order_Date'] ?? null, 'F j, Y g:i A');
 
     return [
         'id' => (int)$order['Order_ID'],

@@ -114,13 +114,12 @@ if ($pdo) {
         }
 
         $formattedDate = null;
-        if ($rawDateTimestamp !== false) {
-            $formattedDate = date('M j, Y g:i A', $rawDateTimestamp);
-        } elseif ($normalizedLogDate !== null) {
-            $dateOnlyTimestamp = strtotime($normalizedLogDate);
-            if ($dateOnlyTimestamp !== false) {
-                $formattedDate = date('M j, Y', $dateOnlyTimestamp);
-            }
+        if (!empty($rawDate)) {
+            $formattedDate = formatAdminDateTime($rawDate, 'M j, Y g:i A');
+        }
+
+        if (($formattedDate === null || $formattedDate === '') && $normalizedLogDate !== null) {
+            $formattedDate = formatAdminDateTime($normalizedLogDate, 'M j, Y');
         }
 
         $source = $logRow['Change_Source'] ?? '';
@@ -516,7 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const reportMetadata = {
     companyName: "Cindy's Bakeshop",
-    generatedAt: <?= json_encode(date('F j, Y g:i A')); ?>,
+    generatedAt: <?= json_encode(formatAdminDateTime('now', 'F j, Y g:i A')); ?>,
     generatedBy: <?= json_encode($reportGeneratedBy); ?>,
     reportRange: <?= json_encode($reportRangeDescription); ?>,
     snapshotDescription: <?= json_encode($inventorySnapshotDescription); ?>,
