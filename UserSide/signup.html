@@ -292,13 +292,6 @@ nav ul li a:hover {
   background: #fff5f5;
 }
 
-.form-group.error-state .face-capture-wrapper {
-  border: 2px dashed rgba(220, 53, 69, 0.7);
-  border-radius: 12px;
-  padding: 0.75rem;
-  background: rgba(220, 53, 69, 0.05);
-}
-
 .form-group input::placeholder {
   color: rgba(139, 69, 19, 0.6);
   font-style: italic;
@@ -314,61 +307,6 @@ nav ul li a:hover {
   margin-top: 0.4rem;
   font-size: 0.75rem;
   color: rgba(139, 69, 19, 0.75);
-}
-
-.face-capture-wrapper {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 1rem;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.face-capture-wrapper video,
-.face-capture-wrapper img {
-  width: 100%;
-  min-height: 160px;
-  border-radius: 16px;
-  border: 2px dashed rgba(139, 69, 19, 0.25);
-  background: rgba(139, 69, 19, 0.05);
-  object-fit: cover;
-}
-
-.face-capture-wrapper img {
-  display: none;
-  background: #fff;
-}
-
-.capture-actions {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-}
-
-.capture-btn {
-  flex: 1;
-  padding: 0.85rem 1rem;
-  border-radius: 12px;
-  border: none;
-  font-weight: 600;
-  cursor: pointer;
-  background: linear-gradient(135deg, #8b4513, #a0522d);
-  color: #fff;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.capture-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(139, 69, 19, 0.2);
-}
-
-.capture-btn.secondary {
-  background: rgba(139, 69, 19, 0.15);
-  color: #8b4513;
-}
-
-.face-capture-group .error-message {
-  margin-top: 0.75rem;
 }
 
 .password-strength {
@@ -782,22 +720,6 @@ nav ul li a:hover {
         <div class="error-message" id="confirmPasswordError"></div>
       </div>
       
-      <div class="form-group face-capture-group">
-        <label for="video">Face Capture</label>
-        <div class="face-capture-wrapper">
-          <video id="video" playsinline autoplay muted style="display: none;"></video>
-          <img id="capturedImage" alt="Captured preview" />
-        </div>
-        <div class="capture-actions">
-          <button type="button" id="startCaptureBtn" class="capture-btn">Start Face Capture</button>
-          <button type="button" id="captureBtn" class="capture-btn" style="display: none;">Capture Face</button>
-          <button type="button" id="retakeBtn" class="capture-btn secondary" style="display: none;">Retake</button>
-        </div>
-        <div class="helper-text">Allow camera access and capture a clear photo of your face. We use this image to verify your identity for orders and set it as your default profile picture, which you can change later in your account.</div>
-        <div class="error-message" id="faceError"></div>
-        <input type="hidden" id="faceImage" name="faceImage">
-      </div>
-
       <div class="checkbox-group">
         <input type="checkbox" id="terms" name="terms" required>
         <label for="terms">I agree to the <a href="terms-and-conditions.html" target="_blank" rel="noopener">Terms and Conditions</a> and <a href="#" onclick="alert('Privacy Policy would be displayed here')">Privacy Policy</a></label>
@@ -831,14 +753,6 @@ const passwordInput = document.getElementById('password');
 const confirmPasswordInput = document.getElementById('confirmPassword');
 const termsCheckbox = document.getElementById('terms');
 const passwordStrength = document.getElementById('passwordStrength');
-const faceImageInput = document.getElementById('faceImage');
-const faceError = document.getElementById('faceError');
-const video = document.getElementById('video');
-const capturedImage = document.getElementById('capturedImage');
-const startCaptureBtn = document.getElementById('startCaptureBtn');
-const captureBtn = document.getElementById('captureBtn');
-const retakeBtn = document.getElementById('retakeBtn');
-
 const errors = {
   name: document.getElementById('nameError'),
   email: document.getElementById('emailError'),
@@ -846,148 +760,6 @@ const errors = {
   password: document.getElementById('passwordError'),
   confirmPassword: document.getElementById('confirmPasswordError'),
 };
-
-let mediaStream = null;
-let nativeFaceDetector = null;
-let fallbackDetectorPromise = null;
-let loadingFallbackDetector = false;
-
-const OPENCV_SCRIPT_URL = 'https://docs.opencv.org/4.x/opencv.js';
-const OPENCV_CASCADE_URL = 'https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml';
-const OPENCV_CASCADE_FILE = 'haarcascade_frontalface_default.xml';
-
-function loadScriptOnce(src) {
-  return new Promise((resolve, reject) => {
-    if (document.querySelector(`script[src="${src}"]`)) {
-      resolve();
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = src;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
-    document.head.appendChild(script);
-  });
-}
-
-async function waitForOpenCvReady() {
-  if (!window.cv) {
-    throw new Error('OpenCV.js failed to initialize.');
-  }
-
-  if (typeof cv.Mat !== 'function') {
-    await new Promise((resolve) => {
-      const previous = cv['onRuntimeInitialized'];
-      cv['onRuntimeInitialized'] = () => {
-        if (typeof previous === 'function') {
-          previous();
-        }
-        resolve();
-      };
-    });
-  }
-}
-
-async function loadCascadeFile() {
-  if (!cv || !cv.FS || typeof cv.FS_createDataFile !== 'function') {
-    throw new Error('OpenCV virtual file system is unavailable.');
-  }
-
-  const cascadeExists = (() => {
-    try {
-      return cv.FS.stat(`/${OPENCV_CASCADE_FILE}`).isFile();
-    } catch (error) {
-      return false;
-    }
-  })();
-
-  if (!cascadeExists) {
-    const response = await fetch(OPENCV_CASCADE_URL);
-    if (!response.ok) {
-      throw new Error('Failed to download OpenCV cascade for face detection.');
-    }
-    const buffer = await response.arrayBuffer();
-    const data = new Uint8Array(buffer);
-    cv.FS_createDataFile('/', OPENCV_CASCADE_FILE, data, true, false, false);
-  }
-}
-
-async function getFallbackFaceDetector() {
-  if (fallbackDetectorPromise) {
-    return fallbackDetectorPromise;
-  }
-
-  fallbackDetectorPromise = (async () => {
-    try {
-      loadingFallbackDetector = true;
-      await loadScriptOnce(OPENCV_SCRIPT_URL);
-      await waitForOpenCvReady();
-      await loadCascadeFile();
-
-      const classifier = new cv.CascadeClassifier();
-      const loaded = classifier.load(OPENCV_CASCADE_FILE);
-      if (!loaded) {
-        throw new Error('Failed to load OpenCV face detection cascade.');
-      }
-
-      return {
-        detect(canvas) {
-          const src = cv.imread(canvas);
-          const gray = new cv.Mat();
-          cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-
-          const faces = new cv.RectVector();
-          classifier.detectMultiScale(gray, faces, 1.2, 5, 0, new cv.Size(80, 80));
-          const hasFace = faces.size() > 0;
-
-          src.delete();
-          gray.delete();
-          faces.delete();
-
-          return hasFace;
-        }
-      };
-    } catch (error) {
-      fallbackDetectorPromise = null;
-      throw error;
-    } finally {
-      loadingFallbackDetector = false;
-    }
-  })();
-
-  return fallbackDetectorPromise;
-}
-
-async function detectFaceWithFallback(canvas) {
-  if (loadingFallbackDetector) {
-    setErrorMessage(
-      faceError,
-      'Loading face detection support. This may take a moment on your first attempt.'
-    );
-  }
-  try {
-    const detector = await getFallbackFaceDetector();
-    const hasFace = detector.detect(canvas);
-    if (!hasFace) {
-      setErrorMessage(
-        faceError,
-        'No face detected. Please ensure your face is clearly visible in the frame and try again.'
-      );
-      return false;
-    }
-    return true;
-  } catch (error) {
-    console.error('Fallback face detection failed:', error);
-    setErrorMessage(
-      faceError,
-      'We could not verify your face automatically. Please check your connection and lighting, then try again using a supported browser.'
-    );
-    return false;
-  }
-}
-
 function setErrorMessage(element, message) {
   if (!element) return;
   const fieldGroup = element.closest('.form-group');
@@ -1148,7 +920,6 @@ function setFormFeedback(message, type) {
 
 function clearErrors() {
   Object.values(errors).forEach((el) => setErrorMessage(el, ''));
-  setErrorMessage(faceError, '');
   setFormFeedback('', '');
 }
 
@@ -1190,221 +961,6 @@ async function getAuthInstance() {
   return getAuth();
 }
 
-async function startCamera(initiatedByUser = false) {
-  if (!video) return;
-
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    if (faceError) {
-      setErrorMessage(faceError, 'Camera access is not supported in this browser.');
-    }
-    if (startCaptureBtn) {
-      startCaptureBtn.disabled = true;
-    }
-    return;
-  }
-
-  if (initiatedByUser && startCaptureBtn) {
-    startCaptureBtn.disabled = true;
-    startCaptureBtn.textContent = 'Starting camera...';
-  }
-
-  try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-    video.srcObject = mediaStream;
-    video.play();
-    video.style.display = 'block';
-    if (captureBtn) {
-      captureBtn.style.display = 'inline-flex';
-      captureBtn.disabled = false;
-      captureBtn.textContent = 'Capture Face';
-    }
-    if (startCaptureBtn) {
-      startCaptureBtn.style.display = 'none';
-      startCaptureBtn.disabled = false;
-      startCaptureBtn.textContent = 'Start Face Capture';
-    }
-    if (capturedImage) {
-      capturedImage.style.display = 'none';
-    }
-    if (retakeBtn) {
-      retakeBtn.style.display = 'none';
-    }
-  } catch (error) {
-    console.error('Camera access denied:', error);
-    setErrorMessage(faceError, 'Unable to access camera. Please allow camera permissions or try a different device.');
-    if (startCaptureBtn) {
-      startCaptureBtn.disabled = false;
-      startCaptureBtn.textContent = 'Start Face Capture';
-    }
-  }
-}
-
-function stopCamera() {
-  if (mediaStream) {
-    mediaStream.getTracks().forEach((track) => track.stop());
-    mediaStream = null;
-  }
-  if (video) {
-    video.style.display = 'none';
-    video.srcObject = null;
-  }
-  if (captureBtn) {
-    captureBtn.style.display = 'none';
-    captureBtn.disabled = false;
-    captureBtn.textContent = 'Capture Face';
-  }
-  if (retakeBtn) {
-    retakeBtn.style.display = 'none';
-  }
-  if (startCaptureBtn) {
-    startCaptureBtn.style.display = 'inline-flex';
-    startCaptureBtn.disabled = false;
-    startCaptureBtn.textContent = 'Start Face Capture';
-  }
-}
-
-async function detectFaceFromCanvas(canvas) {
-  if ('FaceDetector' in window) {
-    try {
-      if (!nativeFaceDetector) {
-        nativeFaceDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
-      }
-      const faces = await nativeFaceDetector.detect(canvas);
-      if (!faces.length) {
-        setErrorMessage(
-          faceError,
-          'No face detected. Please ensure your face is clearly visible in the frame and try again.'
-        );
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.warn('Native face detection failed, attempting fallback:', error);
-      return detectFaceWithFallback(canvas);
-    }
-  }
-
-  if (!loadingFallbackDetector) {
-    setErrorMessage(
-      faceError,
-      'Face detection support is loading. This may take a moment on your first attempt.'
-    );
-  }
-
-  return detectFaceWithFallback(canvas);
-}
-
-async function captureFace() {
-  if (!video || !faceImageInput || !capturedImage) return false;
-  const canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth || 640;
-  canvas.height = video.videoHeight || 480;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-  const hasFace = await detectFaceFromCanvas(canvas);
-  if (!hasFace) {
-    if (capturedImage) {
-      capturedImage.src = '';
-      capturedImage.style.display = 'none';
-    }
-    if (video) {
-      video.style.display = 'block';
-    }
-    if (captureBtn) {
-      captureBtn.disabled = false;
-    }
-    return false;
-  }
-
-  const dataUrl = canvas.toDataURL('image/png');
-  faceImageInput.value = dataUrl;
-  capturedImage.src = dataUrl;
-  capturedImage.style.display = 'block';
-  video.style.display = 'none';
-  if (captureBtn) {
-    captureBtn.textContent = 'Face Captured';
-    captureBtn.disabled = true;
-  }
-  if (retakeBtn) {
-    retakeBtn.style.display = 'block';
-  }
-  setErrorMessage(faceError, '');
-  return true;
-}
-
-function resetCapture() {
-  if (faceImageInput) faceImageInput.value = '';
-  if (capturedImage) {
-    capturedImage.src = '';
-    capturedImage.style.display = 'none';
-  }
-  if (video) {
-    video.style.display = 'block';
-  }
-  if (captureBtn) {
-    captureBtn.textContent = 'Capture Face';
-    captureBtn.disabled = false;
-    captureBtn.style.display = mediaStream ? 'inline-flex' : 'none';
-  }
-  if (retakeBtn) {
-    retakeBtn.style.display = 'none';
-  }
-  if (!mediaStream && startCaptureBtn) {
-    startCaptureBtn.style.display = 'inline-flex';
-    startCaptureBtn.disabled = false;
-    startCaptureBtn.textContent = 'Start Face Capture';
-  }
-}
-
-if (startCaptureBtn) {
-  startCaptureBtn.addEventListener('click', async () => {
-    setErrorMessage(faceError, '');
-    await startCamera(true);
-  });
-}
-
-if (captureBtn) {
-  captureBtn.addEventListener('click', async () => {
-    captureBtn.disabled = true;
-    captureBtn.textContent = 'Detecting face...';
-
-    if (!mediaStream) {
-      await startCamera();
-      if (!mediaStream) {
-        captureBtn.disabled = false;
-        captureBtn.textContent = 'Capture Face';
-        return;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 300));
-    }
-
-    const captured = await captureFace();
-    if (!captured) {
-      captureBtn.textContent = 'Capture Face';
-      captureBtn.disabled = false;
-    }
-  });
-}
-
-if (retakeBtn) {
-  retakeBtn.addEventListener('click', () => {
-    resetCapture();
-    startCamera();
-  });
-}
-
-if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
-  if (faceError) {
-    setErrorMessage(faceError, 'Camera access is not supported in this browser.');
-  }
-  if (startCaptureBtn) {
-    startCaptureBtn.disabled = true;
-  }
-}
-
-window.addEventListener('beforeunload', stopCamera);
-
 if (signupForm) {
   signupForm.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -1415,7 +971,6 @@ if (signupForm) {
     const phone = phoneInput ? phoneInput.value.trim() : '';
     const password = passwordInput ? passwordInput.value : '';
     const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
-    const faceImage = faceImageInput ? faceImageInput.value : '';
 
     let valid = true;
 
@@ -1452,11 +1007,6 @@ if (signupForm) {
       setFormFeedback('Please agree to the terms and privacy policy to continue.', 'error');
     }
 
-    if (!faceImage) {
-      valid = false;
-      setErrorMessage(faceError, 'Please capture your face before creating an account.');
-    }
-
     if (!valid) {
       setFormFeedback('Please fix the highlighted fields before continuing.', 'error');
       return;
@@ -1471,7 +1021,7 @@ if (signupForm) {
       const response = await fetch('../../PHP/register_user.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName, email, password, faceImage })
+        body: JSON.stringify({ fullName, email, password })
       });
 
       const data = await response.json();

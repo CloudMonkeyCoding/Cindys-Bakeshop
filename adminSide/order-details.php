@@ -6,6 +6,24 @@ require_once '../PHP/order_item_functions.php';
 require_once '../PHP/transaction_functions.php';
 require_once '../PHP/user_functions.php';
 
+function formatLongDate(?string $value, string $emptyFallback = 'N/A'): string
+{
+    if (!$value) {
+        return $emptyFallback;
+    }
+
+    try {
+        return (new \DateTime($value))->format('F j, Y');
+    } catch (\Exception $exception) {
+        $timestamp = strtotime($value);
+        if ($timestamp) {
+            return date('F j, Y', $timestamp);
+        }
+    }
+
+    return $value;
+}
+
 $orderId = filter_input(INPUT_GET, 'order_id', FILTER_VALIDATE_INT);
 if (!$orderId) {
     header('Location: orders.php');
@@ -29,6 +47,9 @@ if ($pdo) {
         $transaction = $stmt->fetch(PDO::FETCH_ASSOC);
     }
 }
+
+$formattedOrderDate = $order ? formatLongDate($order['Order_Date'] ?? null, 'N/A') : 'N/A';
+$formattedPaymentDate = $transaction ? formatLongDate($transaction['Payment_Date'] ?? null, 'N/A') : 'N/A';
 
 $activePage = 'orders';
 $pageTitle = 'Order Details - Cindy\'s Bakeshop';
@@ -56,7 +77,7 @@ include 'includes/sidebar.php';
             <?= htmlspecialchars($order['Status']); ?>
           </span>
         </div>
-        <div class="meta">Last updated: <?= htmlspecialchars($order['Order_Date']); ?></div>
+        <div class="meta">Last updated: <?= htmlspecialchars($formattedOrderDate); ?></div>
       </div>
       <div class="stat-card">
         <h3>Total Amount</h3>
@@ -124,7 +145,7 @@ include 'includes/sidebar.php';
             </tr>
             <tr>
               <th>Payment Date</th>
-              <td><?= htmlspecialchars($transaction['Payment_Date'] ?? 'N/A'); ?></td>
+              <td><?= htmlspecialchars($formattedPaymentDate); ?></td>
             </tr>
           </tbody>
         </table>

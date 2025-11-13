@@ -15,7 +15,7 @@ $statusOptions = ['Pending', 'Confirmed', 'Shipped', 'Delivered'];
 if ($pdo) {
     $sql = "SELECT o.Order_ID, o.Order_Date, o.Status, o.Source, o.Fulfillment_Type, u.Name, 
                    COALESCE(SUM(oi.Quantity), 0) AS Item_Count,
-                   ROUND(COALESCE(SUM(oi.Subtotal), 0)) AS Total_Amount,
+                   COALESCE(SUM(oi.Subtotal), 0) AS Total_Amount,
                    GROUP_CONCAT(CONCAT(p.Name, ' x', oi.Quantity) SEPARATOR ', ') AS Item_Summary
             FROM `order` o
             LEFT JOIN user u ON o.User_ID = u.User_ID
@@ -76,6 +76,7 @@ include 'includes/sidebar.php';
               $sourceLabel = $sourceValue ? ucwords(str_replace(['-', '_'], [' ', ' '], $sourceValue)) : '—';
               $fulfillmentLabel = $order['Fulfillment_Type'] ?? '—';
               $itemSummary = $order['Item_Summary'] ?? 'No items recorded';
+              $formattedOrderDate = formatAdminDateTime($order['Order_Date'] ?? null, 'F j, Y g:i A', '—');
             ?>
             <tr data-order-id="<?= $order['Order_ID']; ?>"
                 data-status="<?= htmlspecialchars($order['Status']); ?>"
@@ -87,13 +88,13 @@ include 'includes/sidebar.php';
               <td><?= htmlspecialchars($itemSummary); ?></td>
               <td><?= htmlspecialchars($sourceLabel); ?></td>
               <td><?= htmlspecialchars($fulfillmentLabel); ?></td>
-              <td>₱<?= number_format((float)($order['Total_Amount'] ?? 0), 0); ?></td>
+              <td>₱<?= number_format((float)($order['Total_Amount'] ?? 0), 2); ?></td>
               <td>
                 <span class="status-pill status-<?= strtolower($order['Status']); ?>">
                   <?= htmlspecialchars($order['Status']); ?>
                 </span>
               </td>
-              <td><?= htmlspecialchars($order['Order_Date']); ?></td>
+              <td><?= htmlspecialchars($formattedOrderDate); ?></td>
               <td style="display:flex;gap:8px;flex-wrap:wrap;">
                 <button class="btn btn-primary btn-view" data-order="<?= $order['Order_ID']; ?>">View</button>
                 <button class="btn btn-secondary btn-edit" data-order="<?= $order['Order_ID']; ?>">Update</button>
@@ -130,11 +131,13 @@ include 'includes/sidebar.php';
 
 <?php
 $ordersJson = json_encode(array_map(static function ($order) {
+    $formattedDate = formatAdminDateTime($order['Order_Date'] ?? null, 'F j, Y g:i A');
+
     return [
         'id' => (int)$order['Order_ID'],
         'status' => $order['Status'],
         'summary' => $order['Item_Summary'] ?? '',
-        'date' => $order['Order_Date'] ?? '',
+        'date' => $formattedDate,
         'source' => $order['Source'] ?? '',
         'fulfillment' => $order['Fulfillment_Type'] ?? '',
     ];

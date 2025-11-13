@@ -577,7 +577,13 @@
       ['bread', 'bread'],
       ['breads', 'bread'],
       ['cake', 'cakes'],
-      ['cakes', 'cakes'],
+      ['cakes', 'cakes']
+    ]);
+    const categoryAliasMap = new Map([
+      ['pastry', 'bread'],
+      ['pastries', 'bread']
+    ]);
+    const legacyCategoryDirMap = new Map([
       ['pastry', 'pastry'],
       ['pastries', 'pastry']
     ]);
@@ -829,9 +835,14 @@
 
       const categoryKey = typeof category === 'string' ? category.trim().toLowerCase() : '';
       if (categoryKey) {
-        const mappedDir = categoryDirMap.get(categoryKey);
+        const normalizedCategory = categoryAliasMap.get(categoryKey) || categoryKey;
+        const mappedDir = categoryDirMap.get(normalizedCategory);
         if (mappedDir) {
           return `${imagesBase}${mappedDir}/${fileName}`;
+        }
+        const legacyDir = legacyCategoryDirMap.get(categoryKey);
+        if (legacyDir) {
+          return `${imagesBase}${legacyDir}/${fileName}`;
         }
       }
 

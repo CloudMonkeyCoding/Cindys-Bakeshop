@@ -27,6 +27,14 @@ if (!array_key_exists($revenueTrendDefaultRange, $timeRanges)) {
 }
 
 $revenueTrendDefaultLabel = $timeRanges[$revenueTrendDefaultRange]['label'] ?? 'Selected Range';
+if (!function_exists('formatPesoAmount')) {
+    function formatPesoAmount($value, int $decimals = 2): string
+    {
+        $numericValue = is_numeric($value) ? (float)$value : 0.0;
+        $formatted = number_format($numericValue, $decimals, '.', ',');
+        return '₱' . $formatted;
+    }
+}
 $dailyRevenueMap = [];
 $hourlyRevenueMap = array_fill(0, 24, 0.0);
 $revenueTrendByRange = [];
@@ -334,7 +342,11 @@ foreach ($dailySnapshotsByDate as $dateKey => $dailyTotals) {
     }
 
     $dateTimestamp = strtotime($dateKey);
-    $formattedLabel = $dateTimestamp ? date('M d, Y', $dateTimestamp) : $dateKey;
+    if ($dateTimestamp !== false) {
+        $formattedLabel = date('F j, Y', $dateTimestamp);
+    } else {
+        $formattedLabel = $dateKey;
+    }
 
     $dailySnapshotsOutput[$dateKey] = [
         'label' => $formattedLabel,
@@ -513,7 +525,15 @@ if ($revenueTrendDefaultRangeJson === false) {
     $revenueTrendDefaultRangeJson = 'null';
 }
 
-$lastPaymentDisplay = $lastPaymentDate ? date('M d, Y', strtotime($lastPaymentDate)) : 'No payments recorded yet';
+$lastPaymentDisplay = 'No payments recorded yet';
+if (!empty($lastPaymentDate)) {
+    $formattedLastPayment = formatAdminDateTime($lastPaymentDate, 'F j, Y');
+    if ($formattedLastPayment !== '') {
+        $lastPaymentDisplay = $formattedLastPayment;
+    } else {
+        $lastPaymentDisplay = $lastPaymentDate;
+    }
+}
 
 $extraHead = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>';
 
@@ -532,17 +552,17 @@ include 'includes/sidebar.php';
   <section class="stats-grid columns-4" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
     <div class="stat-card">
       <h3>Total Revenue</h3>
-      <div class="value" id="statTotalRevenueValue">₱<?= number_format($defaultTotalRevenue, 0); ?></div>
+      <div class="value" id="statTotalRevenueValue"><?= htmlspecialchars(formatPesoAmount($defaultTotalRevenue)); ?></div>
       <div class="meta" id="statTotalRevenueMeta"><?= htmlspecialchars($defaultTotalRevenueMeta); ?></div>
     </div>
     <div class="stat-card">
       <h3>Daily Avg Revenue</h3>
-      <div class="value" id="statDailyAverageValue">₱<?= number_format($defaultDailyAverage, 0); ?></div>
+      <div class="value" id="statDailyAverageValue"><?= htmlspecialchars(formatPesoAmount($defaultDailyAverage)); ?></div>
       <div class="meta" id="statDailyAverageMeta"><?= htmlspecialchars($defaultDailyAverageMeta); ?></div>
     </div>
     <div class="stat-card">
       <h3>Average Order Value</h3>
-      <div class="value" id="statAverageOrderValue">₱<?= number_format($defaultAverageOrderValue, 0); ?></div>
+      <div class="value" id="statAverageOrderValue"><?= htmlspecialchars(formatPesoAmount($defaultAverageOrderValue)); ?></div>
       <div class="meta" id="statAverageOrderMeta"><?= htmlspecialchars($defaultAverageOrderMeta); ?></div>
     </div>
   </section>
@@ -644,18 +664,27 @@ include 'includes/sidebar.php';
                 if ($transactionTimestamp !== false && $transactionTimestamp !== null) {
                   $transactionDayAttr = date('Y-m-d', $transactionTimestamp);
                 }
+                $formattedPaymentDate = formatAdminDateTime($rawPaymentDate, 'F j, Y', '—');
+                $formattedOrderDate = formatAdminDateTime($rawOrderDate, 'F j, Y', '—');
+
+                $productTotalValue = (float)($row['Product_Total'] ?? 0);
+                $amountPaidValue = (float)($row['Amount_Paid'] ?? 0);
+                $productTotalAttr = number_format($productTotalValue, 2, '.', '');
+                $amountPaidAttr = number_format($amountPaidValue, 2, '.', '');
               ?>
               <tr
                 data-transaction-ts="<?= htmlspecialchars($transactionTimestampAttr); ?>"
                 data-transaction-day="<?= htmlspecialchars($transactionDayAttr); ?>"
+                data-product-total="<?= htmlspecialchars($productTotalAttr); ?>"
+                data-amount-paid="<?= htmlspecialchars($amountPaidAttr); ?>"
               >
                 <td>#<?= str_pad((int)$row['Transaction_ID'], 5, '0', STR_PAD_LEFT); ?></td>
                 <td><?= $row['Order_ID'] ? '#' . str_pad((int)$row['Order_ID'], 5, '0', STR_PAD_LEFT) : '—'; ?></td>
-                <td><?= htmlspecialchars($row['Order_Date'] ?? '—'); ?></td>
-                <td><?= htmlspecialchars($row['Payment_Date'] ?? '—'); ?></td>
+                <td><?= htmlspecialchars($formattedOrderDate); ?></td>
+                <td><?= htmlspecialchars($formattedPaymentDate); ?></td>
                 <td><?= htmlspecialchars($row['Customer'] ?? 'Walk-in'); ?></td>
-                <td>₱<?= number_format((float)($row['Product_Total'] ?? 0), 0); ?></td>
-                <td>₱<?= number_format((float)($row['Amount_Paid'] ?? 0), 0); ?></td>
+                <td class="currency-cell"><?= htmlspecialchars(formatPesoAmount($row['Product_Total'] ?? 0)); ?></td>
+                <td class="currency-cell"><?= htmlspecialchars(formatPesoAmount($row['Amount_Paid'] ?? 0)); ?></td>
                 <td><?= htmlspecialchars($row['Payment_Method'] ?? 'Unknown'); ?></td>
                 <td>
                   <span class="status-pill status-<?= strtolower(str_replace(' ', '-', $row['Payment_Status'] ?? 'unknown')); ?>">
@@ -683,6 +712,18 @@ ob_start();
   const dailyTrendByDate = <?= $dailyTrendByDateJson; ?>;
   const availableSpecificDayKeys = <?= $specificDayKeysJson; ?>;
   const MANILA_TIME_ZONE = 'Asia/Manila';
+  const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
+
+  const addEightHours = (date) => {
+    if (!(date instanceof Date)) {
+      return null;
+    }
+    const timestamp = date.getTime();
+    if (!Number.isFinite(timestamp)) {
+      return null;
+    }
+    return new Date(timestamp + EIGHT_HOURS_MS);
+  };
 
   const trendRangeOptions = (revenueTrendDataByRange && typeof revenueTrendDataByRange === 'object' && !Array.isArray(revenueTrendDataByRange))
     ? revenueTrendDataByRange
@@ -778,10 +819,11 @@ ob_start();
     try {
       const date = new Date(`${dayKey}T00:00:00`);
       if (!Number.isNaN(date.getTime())) {
-        return date.toLocaleDateString(undefined, {
+        const adjusted = addEightHours(date) || date;
+        return adjusted.toLocaleDateString(undefined, {
           timeZone: MANILA_TIME_ZONE,
           year: 'numeric',
-          month: 'short',
+          month: 'long',
           day: 'numeric',
         });
       }
@@ -793,8 +835,11 @@ ob_start();
 
   function formatCurrency(value) {
     const numericValue = Number.parseFloat(value);
-    const safeValue = Number.isFinite(numericValue) ? Math.round(numericValue) : 0;
-    return `₱${safeValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+    if (!Number.isFinite(numericValue)) {
+      return '₱0.00';
+    }
+    const safeValue = Math.max(0, numericValue);
+    return `₱${safeValue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
   function formatRangeContext(label) {
@@ -914,7 +959,7 @@ ob_start();
             y: {
               beginAtZero: true,
               ticks: {
-                callback: value => `₱${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                callback: value => `₱${Number(value).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
               }
             }
           }
@@ -1030,7 +1075,7 @@ ob_start();
             callbacks: {
               label: context => {
                 const value = context.parsed.y ?? 0;
-                return 'Revenue: ₱' + Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 });
+                return 'Revenue: ₱' + Number(value).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
               }
             }
           }
@@ -1046,7 +1091,7 @@ ob_start();
           y: {
             beginAtZero: true,
             ticks: {
-              callback: value => '₱' + Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })
+              callback: value => '₱' + Number(value).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
             }
           }
         }
@@ -1421,6 +1466,40 @@ ob_start();
 
   const warnOnEmptyFilteredExport = true;
   const exportBtn = document.getElementById('exportFinance');
+
+  const normalizeWhitespace = value => {
+    if (typeof value !== 'string') {
+      return '';
+    }
+    return value.replace(/\s+/g, ' ').trim();
+  };
+
+  const parseNumericString = rawValue => {
+    if (typeof rawValue === 'number') {
+      return Number.isFinite(rawValue) ? rawValue : null;
+    }
+    if (typeof rawValue !== 'string') {
+      return null;
+    }
+    const cleaned = rawValue.replace(/[^0-9.\-]/g, '');
+    const parsed = Number.parseFloat(cleaned);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const formatPesoForPdf = rawValue => {
+    const numeric = parseNumericString(rawValue);
+    if (!Number.isFinite(numeric)) {
+      const fallback = typeof rawValue === 'string' ? normalizeWhitespace(rawValue) : '';
+      return fallback || '₱0.00';
+    }
+    const isNegative = numeric < 0;
+    const absolute = Math.abs(numeric);
+    const formattedNumber = absolute
+      .toFixed(2)
+      .replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return `${isNegative ? '-₱' : '₱'}${formattedNumber}`;
+  };
+
   if (exportBtn) {
     exportBtn.addEventListener('click', () => {
       if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
@@ -1436,7 +1515,17 @@ ob_start();
         if (rowIsHidden(tr)) {
           return;
         }
-        const cells = Array.from(tr.cells).map(td => td.textContent.trim());
+        const productTotalRaw = tr.dataset ? tr.dataset.productTotal : tr.getAttribute('data-product-total');
+        const amountPaidRaw = tr.dataset ? tr.dataset.amountPaid : tr.getAttribute('data-amount-paid');
+        const cells = Array.from(tr.cells).map((td, cellIndex) => {
+          if (cellIndex === 5) {
+            return formatPesoForPdf(productTotalRaw ?? td.textContent);
+          }
+          if (cellIndex === 6) {
+            return formatPesoForPdf(amountPaidRaw ?? td.textContent);
+          }
+          return normalizeWhitespace(td.textContent || '');
+        });
         rows.push(cells);
         const tsAttr = tr.getAttribute('data-transaction-ts');
         const tsSeconds = tsAttr ? Number.parseInt(tsAttr, 10) : NaN;
@@ -1458,10 +1547,11 @@ ob_start();
         if (Number.isNaN(date.getTime())) {
           return null;
         }
-        return date.toLocaleDateString(undefined, {
+        const adjusted = addEightHours(date) || date;
+        return adjusted.toLocaleDateString(undefined, {
           timeZone: MANILA_TIME_ZONE,
           year: 'numeric',
-          month: 'short',
+          month: 'long',
           day: 'numeric',
         });
       };

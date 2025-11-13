@@ -71,7 +71,7 @@ if (isset($topbarContext) && is_array($topbarContext)) {
 unset($topbarContext);
 $currentScript = basename($_SERVER['SCRIPT_NAME'] ?? '');
 
-$menuScripts = array('MENU.php', 'bread.php', 'cakes.php', 'pastry.php', 'product.php');
+$menuScripts = array('MENU.php', 'bread.php', 'cakes.php', 'product.php');
 $favoriteScripts = array('my favorite.php');
 $profileScripts = array('EditProfile.php');
 $purchasesScripts = array('MyPurchase.php');

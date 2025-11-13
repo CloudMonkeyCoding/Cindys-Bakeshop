@@ -25,6 +25,37 @@
       gap: 2rem;
     }
 
+    .invoice-wrapper.pdf-export {
+      border: none;
+      box-shadow: none;
+      background: #fff;
+      padding: 1.8rem;
+      gap: 1.5rem;
+      font-size: 0.92rem;
+    }
+
+    .invoice-wrapper.pdf-export .invoice-header h1 {
+      font-size: 2rem;
+    }
+
+    .invoice-wrapper.pdf-export .invoice-meta {
+      font-size: 0.85rem;
+      gap: 0.45rem;
+    }
+
+    .invoice-wrapper.pdf-export .detail-card {
+      padding: 0.85rem 1rem;
+      gap: 0.25rem;
+    }
+
+    .invoice-wrapper.pdf-export .detail-card span {
+      font-size: 0.78rem;
+    }
+
+    .invoice-wrapper.pdf-export .detail-card strong {
+      font-size: 0.95rem;
+    }
+
     .invoice-header {
       display: flex;
       flex-wrap: wrap;
@@ -36,6 +67,10 @@
       font-size: clamp(2rem, 3vw, 2.6rem);
       font-weight: 700;
       color: var(--primary-brown);
+    }
+
+    .invoice-wrapper.pdf-export .invoice-header p {
+      font-size: 0.85rem;
     }
 
     .invoice-meta {
@@ -86,6 +121,21 @@
       box-shadow: 0 18px 36px rgba(139, 69, 19, 0.12);
     }
 
+    .invoice-wrapper.pdf-export table {
+      box-shadow: none;
+      border-radius: 0;
+      font-size: 0.9rem;
+    }
+
+    #invoice-items-section {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .invoice-wrapper.pdf-export #invoice-items-section {
+      gap: 0.8rem;
+    }
+
     thead {
       background: linear-gradient(135deg, var(--primary-brown), var(--primary-brown-dark));
       color: #fff;
@@ -94,6 +144,11 @@
     th, td {
       padding: 1rem 1.2rem;
       text-align: left;
+    }
+
+    .invoice-wrapper.pdf-export th,
+    .invoice-wrapper.pdf-export td {
+      padding: 0.7rem 0.9rem;
     }
 
     tbody tr:nth-child(odd) {
@@ -110,6 +165,11 @@
       padding: 1rem 1.2rem;
       font-size: 1.15rem;
       color: var(--primary-brown);
+    }
+
+    .invoice-wrapper.pdf-export .total-row {
+      padding: 0.7rem 0.9rem;
+      font-size: 1rem;
     }
 
     .action-row {
@@ -182,19 +242,21 @@
         </div>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th style="text-align:right;">Subtotal</th>
-          </tr>
-        </thead>
-        <tbody id="items-list"></tbody>
-      </table>
+      <section id="invoice-items-section">
+        <table id="invoice-items-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th style="text-align:right;">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody id="items-list"></tbody>
+        </table>
 
-      <div class="total-row">Total: ₱<span id="total">0.00</span></div>
+        <div class="total-row">Total: ₱<span id="total">0.00</span></div>
+      </section>
 
-      <div class="action-row">
+      <div class="action-row no-print">
         <a href="../PRODUCT/MENU.php">← Back to menu</a>
         <button id="download-btn">⬇ Download PDF</button>
       </div>
@@ -287,14 +349,25 @@
     }
 
     document.getElementById('download-btn').addEventListener('click', () => {
+      invoiceEl.classList.add('pdf-export');
+
       const opt = {
-        margin: 0.5,
+        margin: 0.35,
         filename: 'CindysBakeshop_Invoice.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
+        html2canvas: {
+          scale: 1.8,
+          scrollY: 0,
+          windowWidth: invoiceEl.scrollWidth,
+          windowHeight: invoiceEl.scrollHeight,
+          ignoreElements: element => element.classList && element.classList.contains('no-print')
+        },
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
       };
-      html2pdf().set(opt).from(invoiceEl).save();
+      const worker = html2pdf().set(opt).from(invoiceEl);
+      worker.save().finally(() => {
+        invoiceEl.classList.remove('pdf-export');
+      });
     });
   </script>
   <script type="module" src="../firebase-init.js"></script>
