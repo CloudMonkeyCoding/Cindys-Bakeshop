@@ -523,6 +523,18 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const MANILA_TIME_ZONE = 'Asia/Manila';
+  const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
+
+  const addEightHours = (date) => {
+    if (!(date instanceof Date)) {
+      return null;
+    }
+    const timestamp = date.getTime();
+    if (!Number.isFinite(timestamp)) {
+      return null;
+    }
+    return new Date(timestamp + EIGHT_HOURS_MS);
+  };
   const numberFormatter = new Intl.NumberFormat();
   const parseNullableInteger = (value) => {
     if (value === null || typeof value === 'undefined' || value === '') {
@@ -1831,12 +1843,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const parsed = new Date(dateString);
     if (!Number.isNaN(parsed.getTime())) {
+      const adjusted = addEightHours(parsed) || parsed;
       return new Intl.DateTimeFormat(undefined, {
         timeZone: MANILA_TIME_ZONE,
         year: 'numeric',
         month: 'short',
         day: 'numeric',
-      }).format(parsed);
+      }).format(adjusted);
     }
     return dateString;
   }
@@ -2001,12 +2014,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getTodayIso() {
+    const manilaNow = addEightHours(new Date()) || new Date();
     return new Intl.DateTimeFormat('en-CA', {
       timeZone: MANILA_TIME_ZONE,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
-    }).format(new Date());
+    }).format(manilaNow);
   }
 
   function initializeInventoryCalendar() {
@@ -2031,13 +2045,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!focusDate) {
+      const manilaNow = addEightHours(new Date()) || new Date();
       const todayIso = new Intl.DateTimeFormat('en-CA', {
         timeZone: MANILA_TIME_ZONE,
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
-      }).format(new Date());
-      focusDate = createDateFromISO(todayIso) || new Date();
+      }).format(manilaNow);
+      focusDate = createDateFromISO(todayIso) || manilaNow;
     }
 
     calendarFocusYear = focusDate.getUTCFullYear();

@@ -712,6 +712,18 @@ ob_start();
   const dailyTrendByDate = <?= $dailyTrendByDateJson; ?>;
   const availableSpecificDayKeys = <?= $specificDayKeysJson; ?>;
   const MANILA_TIME_ZONE = 'Asia/Manila';
+  const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
+
+  const addEightHours = (date) => {
+    if (!(date instanceof Date)) {
+      return null;
+    }
+    const timestamp = date.getTime();
+    if (!Number.isFinite(timestamp)) {
+      return null;
+    }
+    return new Date(timestamp + EIGHT_HOURS_MS);
+  };
 
   const trendRangeOptions = (revenueTrendDataByRange && typeof revenueTrendDataByRange === 'object' && !Array.isArray(revenueTrendDataByRange))
     ? revenueTrendDataByRange
@@ -807,7 +819,8 @@ ob_start();
     try {
       const date = new Date(`${dayKey}T00:00:00`);
       if (!Number.isNaN(date.getTime())) {
-        return date.toLocaleDateString(undefined, {
+        const adjusted = addEightHours(date) || date;
+        return adjusted.toLocaleDateString(undefined, {
           timeZone: MANILA_TIME_ZONE,
           year: 'numeric',
           month: 'long',
@@ -1534,7 +1547,8 @@ ob_start();
         if (Number.isNaN(date.getTime())) {
           return null;
         }
-        return date.toLocaleDateString(undefined, {
+        const adjusted = addEightHours(date) || date;
+        return adjusted.toLocaleDateString(undefined, {
           timeZone: MANILA_TIME_ZONE,
           year: 'numeric',
           month: 'long',

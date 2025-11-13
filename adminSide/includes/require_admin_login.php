@@ -41,6 +41,13 @@ if (!function_exists('formatAdminDateTime')) {
 
         $date = $date->setTimezone(getManilaTimezone());
 
+        static $eightHourOffset = null;
+        if ($eightHourOffset === null) {
+            $eightHourOffset = new DateInterval('PT8H');
+        }
+
+        $date = $date->add($eightHourOffset);
+
         return $date->format($format);
     }
 }
