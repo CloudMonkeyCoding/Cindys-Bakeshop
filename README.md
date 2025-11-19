@@ -128,6 +128,56 @@ Client-side pages such as `userSide/LOGIN_SIGNUP/user_login.html` and
 `userSide/LOGIN_SIGNUP/signup.html` fetch this endpoint to obtain the Firebase
 configuration at runtime.
 
+## Calling the PHP APIs from Mobile Apps
+The `/PHP` directory exposes JSON APIs that are already consumed by the web
+front end and can be called from native clients. Each endpoint expects an
+`action` query or form parameter and responds with JSON encoded payloads. For
+example, `PHP/user_api.php` provides account operations (`get_profile`,
+`update_profile`, etc.) and `PHP/cart_api.php` covers cart management
+(`list`, `add`, `update`, `remove`).【F:PHP/user_api.php†L7-L111】【F:PHP/cart_api.php†L1-L104】
+
+To call these APIs from an Android app hosted on Hostinger:
+
+1. **Deploy the repository under your public web root** (e.g. `public_html/`)
+   so the scripts are reachable via HTTPS, such as
+   `https://example.com/PHP/user_api.php`.
+2. **Send standard HTTP requests** from Android using a client such as
+   Retrofit, Volley, or `HttpURLConnection`. Set the URL to the deployed
+   endpoint and include the `action` parameter plus any required fields in the
+   query string or POST body.
+3. **Parse the JSON responses** returned by the PHP scripts to render data or
+   confirm success. The APIs already emit appropriate HTTP status codes and
+   JSON objects describing results or validation errors.【F:PHP/user_api.php†L16-L152】【F:PHP/cart_api.php†L12-L110】
+4. **Secure the connection** by enabling Hostinger's SSL certificate and, when
+   possible, sending authentication tokens or credentials via HTTPS-only POST
+   requests. Consider implementing token-based authentication before shipping a
+   production mobile client.
+
+For staff rostering features, deploy the new `PHP/shift_api.php` endpoint and
+point your app's `SHIFT_SCHEDULE_PATH` (or similar build property) to the full
+HTTPS URL, for example `https://example.com/PHP/shift_api.php`. The endpoint
+accepts the following actions:
+
+- `action=list` – returns scheduled shifts. Optional query parameters include
+  `user_id`, `start_date`, and `end_date` (all dates in `YYYY-MM-DD` format).
+- `action=start_shift` – marks a shift as in progress. Pass `shift_id` in the
+  POST body or query string.
+- `action=end_shift` – completes a shift and records the end timestamp. Pass
+  `shift_id` like above.
+
+To show upcoming shifts in your Android UI, make a GET request similar to:
+
+```
+https://example.com/PHP/shift_api.php?action=list&user_id=42&start_date=2024-05-01
+```
+
+If you receive an HTTP 404 like *"Shift endpoint was not found"*, double-check
+that the build constant points to the deployed `shift_api.php` script and that
+the file is uploaded under your Hostinger `public_html/PHP/` directory.
+
+Once the Android app uses the hosted HTTPS URLs, no additional PHP changes are
+required—your app and the existing web interface can share the same endpoints.
+
 ## Contributing
 Pull requests are welcome. Please ensure that any modified PHP files pass
 `php -l` for syntax errors before submitting changes.
