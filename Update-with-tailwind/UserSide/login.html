@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Login - Cindy's Bakeshop Hagonoy</title>
+<meta name="description" content="Sign in to your Cindy's Bakeshop account to access exclusive offers and easy ordering">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          'inter': ['Inter', 'sans-serif'],
+          'poppins': ['Poppins', 'sans-serif'],
+        },
+        colors: {
+          'brown': {
+            50: '#faf8f5',
+            100: '#f5f3f0',
+            200: '#e6ddd4',
+            300: '#d4c4b0',
+            400: '#c2ab8c',
+            500: '#b08b68',
+            600: '#8b4513',
+            700: '#a0522d',
+            800: '#6b3410',
+            900: '#4a240c',
+          }
+        },
+        animation: {
+          'fadeIn': 'fadeIn 0.6s ease-out',
+          'slideInUp': 'slideInUp 0.6s ease-out',
+          'bounce': 'bounce 1s infinite',
+          'bounce-subtle': 'bounceSubtle 0.6s ease-out',
+        },
+        keyframes: {
+          fadeIn: {
+            'from': { opacity: '0' },
+            'to': { opacity: '1' }
+          },
+          slideInUp: {
+            'from': { opacity: '0', transform: 'translateY(30px)' },
+            'to': { opacity: '1', transform: 'translateY(0)' }
+          },
+          bounceSubtle: {
+            '0%, 20%, 53%, 80%, 100%': { transform: 'translate3d(0,0,0)' },
+            '40%, 43%': { transform: 'translate3d(0,-8px,0)' },
+            '70%': { transform: 'translate3d(0,-4px,0)' },
+            '90%': { transform: 'translate3d(0,-2px,0)' }
+          }
+        },
+        screens: {
+          'xs': '475px',
+          '3xl': '1600px',
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #f5f3f0;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #d4c4b0;
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #b08b68;
+  }
+  
+  /* Focus styles */
+  .focus-ring:focus {
+    outline: 2px solid #8b4513;
+    outline-offset: 2px;
+  }
+  
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    .mobile-padding {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+</style>
+</head>
+<body class="font-inter bg-gradient-to-br from-brown-50 to-brown-100 text-brown-700 min-h-screen flex flex-col relative antialiased">
+  <!-- Header -->
+  <header id="header" class="bg-white/95 backdrop-blur-xl px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between border-b border-brown-200/50 fixed top-0 left-0 right-0 z-50 transition-all duration-300 shadow-lg shadow-brown-600/5">
+    <div class="flex items-center justify-between w-full max-w-7xl mx-auto">
+      <!-- Logo -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <img src="https://via.placeholder.com/40x40/8b4513/ffffff?text=CB" alt="Cindy's Bakeshop Logo" class="w-8 h-8 sm:w-10 sm:h-10 transition-transform duration-300 drop-shadow-md hover:scale-110 hover:rotate-12 rounded-lg">
+        <a href="home-tailwind.html" class="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-brown-600 to-brown-700 bg-clip-text text-transparent no-underline tracking-tight focus-ring rounded-md">Cindy's Bakeshop</a>
+      </div>
+
+      <!-- Center - Desktop Navigation -->
+      <nav class="hidden lg:flex flex-1 justify-center">
+        <ul class="list-none flex gap-6 xl:gap-8 items-center justify-center">
+          <li><a href="home-tailwind.html" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm hover:bg-brown-50 hover:text-brown-700 focus-ring">Home</a></li>
+          <li><a href="Menu-tailwind.html" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm hover:bg-brown-50 hover:text-brown-700 focus-ring">Menu</a></li>
+          <li><a href="home-tailwind.html#about" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm hover:bg-brown-50 hover:text-brown-700 focus-ring">About</a></li>
+          <li><a href="home-tailwind.html#visit" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm hover:bg-brown-50 hover:text-brown-700 focus-ring">Contact</a></li>
+        </ul>
+      </nav>
+
+      <!-- Right Side - Sign Up, Profile Dropdown, and Mobile Menu -->
+      <div class="flex items-center gap-3 sm:gap-4 lg:gap-6">
+        <!-- Sign Up Button -->
+        <a href="signup-tailwind.html" class="bg-gradient-to-r from-brown-600 to-brown-700 text-white px-3 sm:px-4 py-2 rounded-lg font-semibold transition-all duration-300 shadow-lg shadow-brown-600/30 no-underline hover:-translate-y-0.5 hover:shadow-xl hover:shadow-brown-600/40 focus-ring text-sm sm:text-base">
+      Sign Up
+    </a>
+
+        <!-- Profile Dropdown -->
+        <div class="relative">
+          <button onclick="toggleProfile()" class="flex items-center gap-2 text-brown-600 hover:text-brown-700 transition-colors duration-300 focus-ring rounded-lg p-1">
+            <img src="https://via.placeholder.com/32x32/8b4513/ffffff?text=👤" alt="Profile" class="w-8 h-8 border-2 border-brown-600 rounded-full object-cover">
+            <span class="hidden sm:inline font-medium" id="userNameDisplay">Profile</span>
+            <i class="fas fa-chevron-down text-xs hidden sm:block"></i>
+          </button>
+          
+          <div id="profileDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-brown-200/50 hidden z-50">
+            <!-- Authenticated User Options -->
+            <div id="authenticatedOptions" class="hidden">
+              <a href="profile-tailwind.html" class="block px-4 py-3 text-brown-600 hover:bg-brown-50 transition-colors duration-200 rounded-t-xl">
+                <i class="fas fa-user mr-2"></i>View Profile
+              </a>
+              <a href="order-history-tailwind.html" class="block px-4 py-3 text-brown-600 hover:bg-brown-50 transition-colors duration-200">
+                <i class="fas fa-history mr-2"></i>Order History
+              </a>
+              <button onclick="logout()" class="block w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 transition-colors duration-200 rounded-b-xl">
+                <i class="fas fa-sign-out-alt mr-2"></i>Logout
+              </button>
+            </div>
+            
+            <!-- Unauthenticated User Options -->
+            <div id="unauthenticatedOptions" class="hidden">
+              <a href="login-tailwind.html" class="block px-4 py-3 text-brown-600 hover:bg-brown-50 transition-colors duration-200 rounded-t-xl bg-brown-50">
+                <i class="fas fa-sign-in-alt mr-2"></i>Login
+              </a>
+              <a href="signup-tailwind.html" class="block px-4 py-3 text-brown-600 hover:bg-brown-50 transition-colors duration-200 rounded-b-xl">
+                <i class="fas fa-user-plus mr-2"></i>Sign Up
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Mobile Menu Button -->
+        <button id="mobileMenuBtn" class="lg:hidden p-2 text-brown-600 hover:bg-brown-50 rounded-lg transition-colors duration-300 focus-ring">
+          <i class="fas fa-bars text-lg"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Menu -->
+    <div id="mobileMenu" class="lg:hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-xl border-b border-brown-200/50 shadow-lg hidden">
+      <nav class="px-4 py-4">
+        <ul class="space-y-2">
+          <li><a href="home-tailwind.html" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Home</a></li>
+          <li><a href="Menu-tailwind.html" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Menu</a></li>
+          <li><a href="home-tailwind.html#about" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">About</a></li>
+          <li><a href="home-tailwind.html#visit" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Contact</a></li>
+          <li><a href="profile-tailwind.html" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Profile</a></li>
+          <li><a href="order-history-tailwind.html" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Order History</a></li>
+          <li><button onclick="logout()" class="block w-full text-left px-4 py-3 text-red-600 font-medium rounded-lg hover:bg-red-50 transition-colors duration-200">Logout</button></li>
+          <li><a href="signup-tailwind.html" class="block px-4 py-3 bg-gradient-to-r from-brown-600 to-brown-700 text-white rounded-lg font-medium transition-all duration-300 hover:from-brown-700 hover:to-brown-600">Sign Up</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12 sm:py-16 pt-20 sm:pt-24">
+    <div class="w-full max-w-md">
+      <!-- Login Box -->
+      <div class="bg-white/90 backdrop-blur-xl rounded-2xl lg:rounded-3xl shadow-xl shadow-brown-600/10 p-6 sm:p-8 border border-brown-200/50 animate-fadeIn">
+        <div class="text-center mb-8">
+          <div class="w-20 h-20 bg-gradient-to-r from-brown-600 to-brown-700 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brown-600/30">
+            <i class="fas fa-user text-3xl text-white"></i>
+          </div>
+          <h1 class="text-3xl font-bold text-brown-600 mb-2">Welcome Back</h1>
+          <p class="text-brown-600">Sign in to your account to continue</p>
+        </div>
+
+        <form id="loginForm" class="space-y-6">
+          <div>
+            <label for="email" class="block text-sm font-semibold text-brown-600 mb-2">Email Address</label>
+            <div class="relative">
+              <input type="email" id="email" name="email" required 
+                     class="w-full px-4 py-3 pl-12 bg-white/50 backdrop-blur-sm border-2 border-brown-600/20 rounded-xl focus:border-brown-600 focus:outline-none transition-all duration-300 text-brown-600 placeholder-brown-400"
+                     placeholder="Enter your email">
+              <i class="fas fa-envelope absolute left-4 top-1/2 transform -translate-y-1/2 text-brown-400"></i>
+            </div>
+          </div>
+
+          <div>
+            <label for="password" class="block text-sm font-semibold text-brown-600 mb-2">Password</label>
+            <div class="relative">
+              <input type="password" id="password" name="password" required 
+                     class="w-full px-4 py-3 pl-12 pr-12 bg-white/50 backdrop-blur-sm border-2 border-brown-600/20 rounded-xl focus:border-brown-600 focus:outline-none transition-all duration-300 text-brown-600 placeholder-brown-400"
+                     placeholder="Enter your password">
+              <i class="fas fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-brown-400"></i>
+              <button type="button" onclick="togglePassword()" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-brown-400 hover:text-brown-600 transition-colors duration-300">
+                <i class="fas fa-eye" id="passwordToggle"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <label class="flex items-center">
+              <input type="checkbox" class="w-4 h-4 text-brown-600 border-brown-600/30 rounded focus:ring-brown-600 focus:ring-2">
+              <span class="ml-2 text-sm text-brown-600">Remember me</span>
+            </label>
+            <a href="#" class="text-sm text-brown-600 hover:text-brown-700 transition-colors duration-300">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="w-full bg-gradient-to-r from-brown-600 to-brown-700 text-white py-3 rounded-xl font-semibold transition-all duration-300 hover:from-brown-700 hover:to-brown-600 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-brown-600/30">
+            Sign In
+          </button>
+        </form>
+
+        <div class="mt-8 text-center">
+          <p class="text-brown-600">
+            Don't have an account? 
+            <a href="signup-tailwind.html" class="text-brown-600 font-semibold hover:text-brown-700 transition-colors duration-300">Sign up here</a>
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-brown-600 text-brown-50 py-8 px-8">
+    <div class="max-w-6xl mx-auto text-center">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        <div>
+          <h3 class="text-xl font-semibold mb-4 text-brown-50">Cindy's Bakeshop</h3>
+          <p class="text-brown-100 leading-relaxed">
+            Creating exceptional baked goods with love, tradition, and the finest ingredients 
+            since 2008. Your local family bakery.
+          </p>
+        </div>
+        <div>
+          <h3 class="text-xl font-semibold mb-4 text-brown-50">Quick Links</h3>
+          <div class="space-y-2">
+            <a href="home-tailwind.html" class="block text-brown-100 no-underline transition-colors duration-300 hover:text-brown-50">Home</a>
+            <a href="Menu-tailwind.html" class="block text-brown-100 no-underline transition-colors duration-300 hover:text-brown-50">Menu</a>
+            <a href="home-tailwind.html#about" class="block text-brown-100 no-underline transition-colors duration-300 hover:text-brown-50">About</a>
+            <a href="home-tailwind.html#visit" class="block text-brown-100 no-underline transition-colors duration-300 hover:text-brown-50">Contact</a>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-xl font-semibold mb-4 text-brown-50">Contact Info</h3>
+          <div class="space-y-2 text-brown-100">
+            <p><i class="fas fa-map-marker-alt mr-2"></i>123 Main Street, Hagonoy, Bulacan</p>
+            <p><i class="fas fa-phone mr-2"></i>(044) 123-4567</p>
+            <p><i class="fas fa-envelope mr-2"></i>info@cindysbakeshop.com</p>
+          </div>
+        </div>
+      </div>
+      <div class="border-t border-brown-500/20 pt-8">
+        <p class="text-brown-100">&copy; 2024 Cindy's Bakeshop Hagonoy. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Success Modal -->
+  <div id="successModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-3xl p-8 max-w-md mx-auto shadow-2xl animate-slideInUp">
+      <div class="text-center">
+        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <i class="fas fa-check text-2xl text-green-600"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-800 mb-2">Login Successful!</h3>
+        <p class="text-gray-600 mb-6">Welcome back to Cindy's Bakeshop!</p>
+        <button onclick="closeSuccessModal()" class="bg-gradient-to-r from-brown-600 to-brown-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:from-brown-700 hover:to-brown-600 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brown-600/30">
+          Continue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // DOM elements
+    const elements = {
+      mobileMenu: document.getElementById('mobileMenu'),
+      mobileMenuBtn: document.getElementById('mobileMenuBtn')
+    };
+
+    // Load user name and handle authentication state
+    function loadUserName() {
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      const userNameDisplay = document.getElementById('userNameDisplay');
+      const authenticatedOptions = document.getElementById('authenticatedOptions');
+      const unauthenticatedOptions = document.getElementById('unauthenticatedOptions');
+      
+      if (userData && userData.firstName) {
+        // User is authenticated
+        if (userNameDisplay) {
+          userNameDisplay.textContent = userData.firstName;
+        }
+        if (authenticatedOptions) {
+          authenticatedOptions.classList.remove('hidden');
+        }
+        if (unauthenticatedOptions) {
+          unauthenticatedOptions.classList.add('hidden');
+        }
+      } else {
+        // User is not authenticated
+        if (userNameDisplay) {
+          userNameDisplay.textContent = 'Profile';
+        }
+        if (authenticatedOptions) {
+          authenticatedOptions.classList.add('hidden');
+        }
+        if (unauthenticatedOptions) {
+          unauthenticatedOptions.classList.remove('hidden');
+        }
+      }
+    }
+
+    // Initialize app
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeEventListeners();
+      loadUserName();
+    });
+
+    // Event listeners
+    function initializeEventListeners() {
+      // Mobile menu toggle
+      elements.mobileMenuBtn.addEventListener('click', function() {
+        elements.mobileMenu.classList.toggle('hidden');
+        const icon = this.querySelector('i');
+        icon.classList.toggle('fa-bars');
+        icon.classList.toggle('fa-times');
+      });
+
+      // Close mobile menu when clicking outside
+      document.addEventListener('click', function(event) {
+        if (!elements.mobileMenu.contains(event.target) && !elements.mobileMenuBtn.contains(event.target)) {
+          elements.mobileMenu.classList.add('hidden');
+          const icon = elements.mobileMenuBtn.querySelector('i');
+          icon.classList.add('fa-bars');
+          icon.classList.remove('fa-times');
+        }
+      });
+
+      // Header scroll effect
+      window.addEventListener('scroll', handleScroll);
+
+      // Form submission
+      document.getElementById('loginForm').addEventListener('submit', handleFormSubmission);
+    }
+
+    // Password toggle functionality
+    function togglePassword() {
+      const passwordInput = document.getElementById('password');
+      const passwordToggle = document.getElementById('passwordToggle');
+      
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        passwordToggle.classList.remove('fa-eye');
+        passwordToggle.classList.add('fa-eye-slash');
+      } else {
+        passwordInput.type = 'password';
+        passwordToggle.classList.remove('fa-eye-slash');
+        passwordToggle.classList.add('fa-eye');
+      }
+    }
+
+    // Form submission
+    function handleFormSubmission(e) {
+      e.preventDefault();
+      
+      // Get form data
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      // Simple validation
+      if (!email || !password) {
+        alert('Please fill in all fields');
+        return;
+      }
+      
+      // Simulate login process
+      setTimeout(() => {
+        showSuccessModal();
+      }, 1000);
+    }
+
+    // Show success modal
+    function showSuccessModal() {
+      document.getElementById('successModal').classList.remove('hidden');
+    }
+
+    // Close success modal
+    function closeSuccessModal() {
+      document.getElementById('successModal').classList.add('hidden');
+      // Redirect to home page
+      window.location.href = 'home-tailwind.html';
+    }
+
+    // Scroll handling
+    function handleScroll() {
+      const header = document.getElementById('header');
+      if (window.scrollY > 100) {
+        header.classList.add('scrolled');
+      } else {
+        header.classList.remove('scrolled');
+      }
+    }
+
+    // Profile dropdown functionality
+    function toggleProfile() {
+      const dropdown = document.getElementById('profileDropdown');
+      dropdown.classList.toggle('hidden');
+    }
+
+    // Close profile dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+      const profileDropdown = document.getElementById('profileDropdown');
+      const profileButton = event.target.closest('button[onclick="toggleProfile()"]');
+      
+      if (!profileButton && !profileDropdown.contains(event.target)) {
+        profileDropdown.classList.add('hidden');
+      }
+    });
+
+    // Logout function
+    function logout() {
+      // Clear user data from localStorage
+      localStorage.removeItem('userData');
+      localStorage.removeItem('cart');
+      localStorage.removeItem('favorites');
+      
+      // Show logout message
+      alert('You have been logged out successfully!');
+      
+      // Close dropdown
+      document.getElementById('profileDropdown').classList.add('hidden');
+      
+      // Redirect to login page
+      window.location.href = 'login-tailwind.html';
+    }
+
+    // Global functions for onclick handlers
+    window.togglePassword = togglePassword;
+    window.closeSuccessModal = closeSuccessModal;
+    window.toggleProfile = toggleProfile;
+    window.logout = logout;
+
+    // Add scrolled class styles
+    const style = document.createElement('style');
+    style.textContent = `
+      .scrolled {
+        background: rgba(255, 255, 255, 0.98) !important;
+        box-shadow: 0 4px 20px rgba(139, 69, 19, 0.1) !important;
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>

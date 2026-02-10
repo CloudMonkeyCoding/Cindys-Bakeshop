@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Cindy's Bakeshop Hagonoy - Fresh Baked Delights</title>
+    <meta name="description" content="Welcome to Cindy's Bakeshop Hagonoy - Fresh baked goods crafted with love and tradition since 2008">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+            'inter': ['Inter', 'sans-serif'],
+              'poppins': ['Poppins', 'sans-serif'],
+            },
+            colors: {
+              'brown': {
+                50: '#faf8f5',
+                100: '#f5f3f0',
+                200: '#e6ddd4',
+                300: '#d4c4b0',
+                400: '#c2ab8c',
+                500: '#b08b68',
+                600: '#8b4513',
+                700: '#a0522d',
+                800: '#6b3410',
+                900: '#4a240c',
+              }
+            },
+            animation: {
+              'slideInLeft': 'slideInLeft 1s ease-out',
+            'slideInUp': 'slideInUp 0.6s ease-out',
+              'float': 'float 6s ease-in-out infinite',
+              'pulse': 'pulse 2s infinite',
+            'bounce-subtle': 'bounceSubtle 0.6s ease-out',
+            },
+            keyframes: {
+              slideInLeft: {
+                'from': { opacity: '0', transform: 'translateX(-50px)' },
+                'to': { opacity: '1', transform: 'translateX(0)' }
+              },
+            slideInUp: {
+              'from': { opacity: '0', transform: 'translateY(30px)' },
+              'to': { opacity: '1', transform: 'translateY(0)' }
+              },
+              float: {
+                '0%, 100%': { transform: 'translateY(0px)' },
+                '50%': { transform: 'translateY(-20px)' }
+            },
+            bounceSubtle: {
+              '0%, 20%, 53%, 80%, 100%': { transform: 'translate3d(0,0,0)' },
+              '40%, 43%': { transform: 'translate3d(0,-8px,0)' },
+              '70%': { transform: 'translate3d(0,-4px,0)' },
+              '90%': { transform: 'translate3d(0,-2px,0)' }
+            }
+          },
+          screens: {
+            'xs': '475px',
+            '3xl': '1600px',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      html {
+        scroll-behavior: smooth;
+      }
+    
+      .text-shadow-lg {
+        text-shadow: 0 4px 20px rgba(139, 69, 19, 0.2);
+      }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #f5f3f0;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #d4c4b0;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #b08b68;
+    }
+    
+    /* Focus styles */
+    .focus-ring:focus {
+      outline: 2px solid #8b4513;
+      outline-offset: 2px;
+    }
+    
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+      .mobile-padding {
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+      }
+    </style>
+  </head>
+<body class="font-inter bg-gradient-to-br from-brown-50 to-brown-100 text-brown-700 leading-relaxed overflow-x-hidden antialiased">
+    <!-- Header -->
+  <header id="header" class="bg-white/95 backdrop-blur-xl px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between border-b border-brown-200/50 fixed top-0 left-0 right-0 z-50 transition-all duration-300 shadow-lg shadow-brown-600/5">
+    <div class="flex items-center justify-between w-full max-w-7xl mx-auto">
+      <!-- Logo -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <img src="https://via.placeholder.com/40x40/8b4513/ffffff?text=CB" alt="Cindy's Bakeshop Logo" class="w-8 h-8 sm:w-10 sm:h-10 transition-transform duration-300 drop-shadow-md hover:scale-110 hover:rotate-12 rounded-lg">
+        <a href="home-tailwind.html" class="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-brown-600 to-brown-700 bg-clip-text text-transparent no-underline tracking-tight focus-ring rounded-md">Cindy's Bakeshop</a>
+      </div>
+
+      <!-- Center - Desktop Navigation -->
+      <nav class="hidden lg:flex flex-1 justify-center">
+        <ul class="list-none flex gap-6 xl:gap-8 items-center justify-center">
+          <li><a href="home-tailwind.html" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm bg-brown-50 text-brown-700">Home</a></li>
+          <li><a href="Menu-tailwind.html" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm hover:bg-brown-50 hover:text-brown-700 focus-ring">Menu</a></li>
+          <li><a href="home-tailwind.html#about" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm hover:bg-brown-50 hover:text-brown-700 focus-ring">About</a></li>
+          <li><a href="home-tailwind.html#visit" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm hover:bg-brown-50 hover:text-brown-700 focus-ring">Contact</a></li>
+          <li><a href="login-tailwind.html" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm hover:bg-brown-50 hover:text-brown-700 focus-ring">Login</a></li>
+          <li><a href="signup-tailwind.html" class="text-brown-600 no-underline font-medium relative transition-all duration-300 px-4 py-2 rounded-lg text-sm hover:bg-brown-50 hover:text-brown-700 focus-ring">Signup</a></li>
+        </ul>
+      </nav>
+
+      <!-- Right Side - Download App, Profile Dropdown, and Mobile Menu -->
+      <div class="flex items-center gap-3 sm:gap-4 lg:gap-6">
+        <!-- Download App Button (Desktop) -->
+        <a href="download-app.html" class="hidden lg:flex bg-gradient-to-r from-brown-600 to-brown-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300 shadow-lg shadow-brown-600/30 no-underline items-center gap-2 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-brown-600/40 focus-ring">
+          <i class="fas fa-download"></i>
+          <span>Download App</span>
+        </a>
+
+        <!-- Profile Dropdown -->
+        <div class="relative">
+          <button onclick="toggleProfile()" class="flex items-center gap-2 text-brown-600 hover:text-brown-700 transition-colors duration-300 focus-ring rounded-lg p-1">
+            <img src="https://via.placeholder.com/32x32/8b4513/ffffff?text=👤" alt="Profile" class="w-8 h-8 border-2 border-brown-600 rounded-full object-cover">
+            <span class="hidden sm:inline font-medium" id="userNameDisplay">Profile</span>
+            <i class="fas fa-chevron-down text-xs hidden sm:block"></i>
+          </button>
+          
+          <div id="profileDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-brown-200/50 hidden z-50">
+            <!-- Authenticated User Options -->
+            <div id="authenticatedOptions" class="hidden">
+              <a href="profile-tailwind.html" class="block px-4 py-3 text-brown-600 hover:bg-brown-50 transition-colors duration-200 rounded-t-xl">
+                <i class="fas fa-user mr-2"></i>View Profile
+              </a>
+              <a href="order-history-tailwind.html" class="block px-4 py-3 text-brown-600 hover:bg-brown-50 transition-colors duration-200">
+                <i class="fas fa-history mr-2"></i>Order History
+              </a>
+              <button onclick="logout()" class="block w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 transition-colors duration-200 rounded-b-xl">
+                <i class="fas fa-sign-out-alt mr-2"></i>Logout
+              </button>
+            </div>
+            
+            <!-- Unauthenticated User Options -->
+            <div id="unauthenticatedOptions" class="hidden">
+              <a href="login-tailwind.html" class="block px-4 py-3 text-brown-600 hover:bg-brown-50 transition-colors duration-200 rounded-t-xl">
+                <i class="fas fa-sign-in-alt mr-2"></i>Login
+              </a>
+              <a href="signup-tailwind.html" class="block px-4 py-3 text-brown-600 hover:bg-brown-50 transition-colors duration-200 rounded-b-xl">
+                <i class="fas fa-user-plus mr-2"></i>Sign Up
+              </a>
+            </div>
+          </div>
+      </div>
+
+        <!-- Mobile Menu Button -->
+        <button id="mobileMenuBtn" class="lg:hidden p-2 text-brown-600 hover:bg-brown-50 rounded-lg transition-colors duration-300 focus-ring">
+          <i class="fas fa-bars text-lg"></i>
+        </button>
+      </div>
+      </div>
+
+      <!-- Mobile Navigation Menu -->
+      <div id="mobileMenu" class="lg:hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-xl border-b border-brown-200/50 shadow-lg hidden">
+        <nav class="px-4 py-4">
+          <ul class="space-y-2">
+            <li><a href="#" class="block px-4 py-3 text-brown-600 font-medium rounded-lg bg-brown-50 text-brown-700">Home</a></li>
+            <li><a href="Menu-tailwind.html" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Menu</a></li>
+            <li><a href="#about" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">About</a></li>
+            <li><a href="#visit" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Contact</a></li>
+            <li><a href="profile-tailwind.html" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Profile</a></li>
+            <li><a href="order-history-tailwind.html" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Order History</a></li>
+            <li><a href="login-tailwind.html" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Login</a></li>
+            <li><a href="signup-tailwind.html" class="block px-4 py-3 text-brown-600 font-medium rounded-lg hover:bg-brown-50 transition-colors duration-200">Signup</a></li>
+            <li><button onclick="logout()" class="block w-full text-left px-4 py-3 text-red-600 font-medium rounded-lg hover:bg-red-50 transition-colors duration-200">Logout</button></li>
+            <li class="pt-2 border-t border-brown-200">
+              <a href="download-app.html" class="block px-4 py-3 bg-gradient-to-r from-brown-600 to-brown-700 text-white rounded-lg font-medium transition-all duration-300 hover:from-brown-700 hover:to-brown-600">
+                <i class="fas fa-download mr-2"></i>Download App
+            </a>
+          </li>
+        </ul>
+      </nav>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="min-h-screen flex flex-col lg:flex-row items-center justify-between px-4 sm:px-6 lg:px-8 xl:px-32 py-16 sm:py-20 lg:py-24 pt-20 sm:pt-24 lg:pt-28 bg-gradient-to-br from-brown-50 to-brown-100 relative overflow-hidden">
+      <!-- Background decorative elements -->
+      <div class="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-brown-600/5 to-brown-700/2 transform rotate-12 -translate-y-48 translate-x-24 hidden lg:block"></div>
+      <div class="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-brown-600/3 to-brown-700/1 transform -rotate-12 translate-y-40 -translate-x-20 hidden lg:block"></div>
+      
+      <div class="flex-1 max-w-2xl z-10 relative mb-8 lg:mb-0">
+        <div class="inline-block bg-gradient-to-r from-brown-600 to-brown-700 text-white px-4 sm:px-5 py-2 sm:py-3 rounded-md text-xs sm:text-sm font-semibold mb-4 sm:mb-6 animate-pulse shadow-lg shadow-brown-600/20 border border-brown-600/20">
+          <i class="fas fa-star"></i> Fresh Daily • Family Owned Since 2008
+        </div>
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black mb-6 sm:mb-8 text-brown-700 leading-tight animate-slideInLeft text-shadow-lg">
+          Where Every Bite Tells a Story
+        </h1>
+        <p class="text-lg sm:text-xl lg:text-2xl text-brown-600 mb-8 sm:mb-10 leading-relaxed animate-slideInLeft" style="animation-delay: 0.2s;">
+          Welcome to Cindy's Bakeshop Hagonoy, where tradition meets innovation. 
+          Our master bakers craft exceptional breads, exquisite cakes, and delightful 
+          pastries using time-honored recipes and the finest ingredients. 
+          Experience the authentic taste of home-baked perfection.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 sm:gap-6 animate-slideInLeft" style="animation-delay: 0.4s;">
+          <a href="#" id="exploreMenuBtn" class="bg-gradient-to-r from-brown-600 to-brown-700 text-white border-2 border-brown-600 px-6 py-3 rounded-lg text-base font-semibold cursor-pointer transition-all duration-300 shadow-lg shadow-brown-600/20 no-underline inline-flex items-center justify-center gap-2 hover:bg-gradient-to-r hover:from-brown-700 hover:to-brown-600 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-brown-600/30 focus-ring">
+            <i class="fas fa-utensils"></i>
+            Explore Menu
+          </a>
+          <a href="#about" class="bg-transparent text-brown-600 border-2 border-brown-600 px-6 py-3 rounded-lg text-base font-semibold cursor-pointer transition-all duration-300 no-underline inline-flex items-center justify-center gap-2 hover:bg-brown-600 hover:text-white hover:-translate-y-0.5 hover:shadow-xl hover:shadow-brown-600/30 focus-ring">
+            <i class="fas fa-info-circle"></i>
+            Learn More
+          </a>
+        </div>
+      </div>
+      <div class="flex-1 flex justify-center items-center z-10 relative w-full lg:w-auto">
+        <img id="heroImage" src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&h=400&fit=crop&crop=center" alt="Delicious Chocolate Cake" class="max-w-sm sm:max-w-md lg:max-w-2xl w-full rounded-2xl lg:rounded-3xl shadow-2xl shadow-black/40 animate-float border-4 border-white/30 backdrop-blur-sm transition-all duration-300" />
+      </div>
+    </section>
+
+    <!-- Categories -->
+    <section class="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 xl:px-32 bg-white">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-brown-800 mb-4">
+          Our Specialties
+        </h2>
+        <p class="text-lg text-brown-600 max-w-2xl mx-auto">
+          Three categories of exceptional baked goods, crafted with love and tradition.
+        </p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Signature Cakes -->
+        <div class="text-center">
+          <div class="w-20 h-20 bg-brown-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-birthday-cake text-2xl text-white"></i>
+          </div>
+          <h3 class="text-xl font-bold text-brown-800 mb-3">Signature Cakes</h3>
+          <p class="text-brown-600">
+            Custom cakes for every celebration, made with premium ingredients and artistic decoration.
+          </p>
+        </div>
+
+        <!-- Artisan Breads -->
+        <div class="text-center">
+          <div class="w-20 h-20 bg-brown-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-bread-slice text-2xl text-white"></i>
+          </div>
+          <h3 class="text-xl font-bold text-brown-800 mb-3">Artisan Breads</h3>
+          <p class="text-brown-600">
+            Traditional breads crafted with time-honored methods and the finest ingredients.
+          </p>
+        </div>
+
+        <!-- Gourmet Pastries -->
+        <div class="text-center">
+          <div class="w-20 h-20 bg-brown-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-cookie-bite text-2xl text-white"></i>
+          </div>
+          <h3 class="text-xl font-bold text-brown-800 mb-3">Gourmet Pastries</h3>
+          <p class="text-brown-600">
+            Delicate pastries combining French techniques with local flavors.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Products -->
+    <section class="py-32 px-32 bg-gradient-to-br from-brown-50 to-brown-100 relative overflow-hidden">
+      <div class="text-center mb-16">
+        <h2 class="text-5xl font-bold text-brown-600 mb-4 relative inline-block">
+          Customer Favorites
+        </h2>
+        <div class="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-gradient-to-r from-brown-600 to-brown-700 rounded-sm shadow-lg shadow-brown-600/30"></div>
+        <p class="text-xl text-brown-600 max-w-2xl mx-auto mt-8">
+          Discover our most beloved creations, handpicked by our customers and crafted 
+          with the same passion and attention to detail that has made us a local favorite.
+        </p>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mt-12">
+        <div class="bg-gradient-to-br from-brown-50 to-brown-100 rounded-3xl overflow-hidden shadow-2xl shadow-brown-600/10 transition-all duration-500 relative border-3 border-brown-600/8 backdrop-blur-sm hover:-translate-y-5 hover:scale-105 hover:shadow-3xl hover:shadow-brown-600/25 hover:border-brown-600/20 flex flex-col">
+          <div class="relative overflow-hidden h-56 rounded-t-3xl">
+            <img src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=300&h=200&fit=crop&crop=center" alt="Chocolate Fudge Cake" class="w-full h-full object-cover transition-transform duration-500 hover:scale-115 rounded-t-3xl">
+            <div class="absolute top-5 right-5 bg-gradient-to-r from-brown-600 to-brown-700 text-white px-3 py-2 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg shadow-brown-600/30 border-2 border-white/20 backdrop-blur-sm z-10 transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-brown-600/40">
+              Best Seller
+            </div>
+          </div>
+          <div class="p-6 bg-gradient-to-br from-brown-50/80 to-brown-100/90 backdrop-blur-sm flex flex-col flex-grow">
+            <h4 class="text-xl font-bold text-brown-600 mb-2 text-center leading-tight">Chocolate Fudge Cake</h4>
+            <p class="text-brown-600 text-sm mb-4 text-center leading-relaxed opacity-90 flex-grow">Rich, moist chocolate cake with decadent fudge frosting</p>
+            <div class="text-2xl font-extrabold text-brown-600 text-center bg-gradient-to-r from-brown-600 to-brown-700 bg-clip-text text-transparent relative py-2">
+              ₱450
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-brown-50 to-brown-100 rounded-3xl overflow-hidden shadow-2xl shadow-brown-600/10 transition-all duration-500 relative border-3 border-brown-600/8 backdrop-blur-sm hover:-translate-y-5 hover:scale-105 hover:shadow-3xl hover:shadow-brown-600/25 hover:border-brown-600/20 flex flex-col">
+          <div class="relative overflow-hidden h-56 rounded-t-3xl">
+            <img src="https://images.unsplash.com/photo-1509440159596-0249088772ff?w=300&h=200&fit=crop&crop=center" alt="Sourdough Bread" class="w-full h-full object-cover transition-transform duration-500 hover:scale-115 rounded-t-3xl">
+            <div class="absolute top-5 right-5 bg-gradient-to-r from-brown-600 to-brown-700 text-white px-3 py-2 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg shadow-brown-600/30 border-2 border-white/20 backdrop-blur-sm z-10 transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-brown-600/40">
+              Fresh Daily
+            </div>
+          </div>
+          <div class="p-6 bg-gradient-to-br from-brown-50/80 to-brown-100/90 backdrop-blur-sm flex flex-col flex-grow">
+            <h4 class="text-xl font-bold text-brown-600 mb-2 text-center leading-tight">Artisan Sourdough</h4>
+            <p class="text-brown-600 text-sm mb-4 text-center leading-relaxed opacity-90 flex-grow">Traditional sourdough with perfect crust and tangy flavor</p>
+            <div class="text-2xl font-extrabold text-brown-600 text-center bg-gradient-to-r from-brown-600 to-brown-700 bg-clip-text text-transparent relative py-2">
+              ₱180
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-brown-50 to-brown-100 rounded-3xl overflow-hidden shadow-2xl shadow-brown-600/10 transition-all duration-500 relative border-3 border-brown-600/8 backdrop-blur-sm hover:-translate-y-5 hover:scale-105 hover:shadow-3xl hover:shadow-brown-600/25 hover:border-brown-600/20 flex flex-col">
+          <div class="relative overflow-hidden h-56 rounded-t-3xl">
+            <img src="https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=300&h=200&fit=crop&crop=center" alt="Croissant" class="w-full h-full object-cover transition-transform duration-500 hover:scale-115 rounded-t-3xl">
+            <div class="absolute top-5 right-5 bg-gradient-to-r from-brown-600 to-brown-700 text-white px-3 py-2 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg shadow-brown-600/30 border-2 border-white/20 backdrop-blur-sm z-10 transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-brown-600/40">
+              New
+            </div>
+          </div>
+          <div class="p-6 bg-gradient-to-br from-brown-50/80 to-brown-100/90 backdrop-blur-sm flex flex-col flex-grow">
+            <h4 class="text-xl font-bold text-brown-600 mb-2 text-center leading-tight">Butter Croissant</h4>
+            <p class="text-brown-600 text-sm mb-4 text-center leading-relaxed opacity-90 flex-grow">Flaky, buttery croissant with perfect layers</p>
+            <div class="text-2xl font-extrabold text-brown-600 text-center bg-gradient-to-r from-brown-600 to-brown-700 bg-clip-text text-transparent relative py-2">
+              ₱85
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-brown-50 to-brown-100 rounded-3xl overflow-hidden shadow-2xl shadow-brown-600/10 transition-all duration-500 relative border-3 border-brown-600/8 backdrop-blur-sm hover:-translate-y-5 hover:scale-105 hover:shadow-3xl hover:shadow-brown-600/25 hover:border-brown-600/20 flex flex-col">
+          <div class="relative overflow-hidden h-56 rounded-t-3xl">
+            <img src="https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=300&h=200&fit=crop&crop=center" alt="Red Velvet Cupcake" class="w-full h-full object-cover transition-transform duration-500 hover:scale-115 rounded-t-3xl">
+            <div class="absolute top-5 right-5 bg-gradient-to-r from-brown-600 to-brown-700 text-white px-3 py-2 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg shadow-brown-600/30 border-2 border-white/20 backdrop-blur-sm z-10 transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-brown-600/40">
+              Popular
+            </div>
+          </div>
+          <div class="p-6 bg-gradient-to-br from-brown-50/80 to-brown-100/90 backdrop-blur-sm flex flex-col flex-grow">
+            <h4 class="text-xl font-bold text-brown-600 mb-2 text-center leading-tight">Red Velvet Cupcake</h4>
+            <p class="text-brown-600 text-sm mb-4 text-center leading-relaxed opacity-90 flex-grow">Classic red velvet with cream cheese frosting</p>
+            <div class="text-2xl font-extrabold text-brown-600 text-center bg-gradient-to-r from-brown-600 to-brown-700 bg-clip-text text-transparent relative py-2">
+              ₱65
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-brown-50 to-brown-100 rounded-3xl overflow-hidden shadow-2xl shadow-brown-600/10 transition-all duration-500 relative border-3 border-brown-600/8 backdrop-blur-sm hover:-translate-y-5 hover:scale-105 hover:shadow-3xl hover:shadow-brown-600/25 hover:border-brown-600/20 flex flex-col">
+          <div class="relative overflow-hidden h-56 rounded-t-3xl">
+            <img src="https://images.unsplash.com/photo-1517433670267-08bbd4be890f?w=300&h=200&fit=crop&crop=center" alt="Cinnamon Roll" class="w-full h-full object-cover transition-transform duration-500 hover:scale-115 rounded-t-3xl">
+            <div class="absolute top-5 right-5 bg-gradient-to-r from-brown-600 to-brown-700 text-white px-3 py-2 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg shadow-brown-600/30 border-2 border-white/20 backdrop-blur-sm z-10 transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-brown-600/40">
+              Limited
+            </div>
+          </div>
+          <div class="p-6 bg-gradient-to-br from-brown-50/80 to-brown-100/90 backdrop-blur-sm flex flex-col flex-grow">
+            <h4 class="text-xl font-bold text-brown-600 mb-2 text-center leading-tight">Cinnamon Roll</h4>
+            <p class="text-brown-600 text-sm mb-4 text-center leading-relaxed opacity-90 flex-grow">Warm cinnamon roll with cream cheese glaze</p>
+            <div class="text-2xl font-extrabold text-brown-600 text-center bg-gradient-to-r from-brown-600 to-brown-700 bg-clip-text text-transparent relative py-2">
+              ₱120
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- About Us -->
+    <section id="about" class="py-24 px-4 sm:px-6 lg:px-8 xl:px-32 bg-brown-50 flex flex-col lg:flex-row items-center gap-16">
+      <div class="flex-1">
+        <h2 class="text-4xl sm:text-5xl font-bold text-brown-600 mb-6 relative">
+          Our Story of Passion & Tradition
+          <div class="absolute -bottom-2 left-0 w-16 h-1 bg-gradient-to-r from-brown-600 to-brown-700 rounded-sm"></div>
+        </h2>
+        <p class="text-lg text-brown-600 leading-relaxed mb-6">
+          For over 15 years, Cindy's Bakeshop Hagonoy has been more than just a bakery – 
+          we're a cornerstone of our community. Founded on the principles of family, 
+          tradition, and uncompromising quality, we've grown from a small neighborhood 
+          bakery into a beloved local institution that serves the entire Hagonoy area.
+        </p>
+        <p class="text-lg text-brown-600 leading-relaxed mb-8">
+          Our journey began with a simple dream: to bring the warmth of home-baked goodness 
+          to every family in our community. Today, our master bakers continue this legacy, 
+          rising before dawn to create the perfect symphony of flavors that greet you 
+          each morning. Every product we create carries the love, care, and expertise 
+          that only comes from generations of baking tradition.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-8">
+          <div class="flex items-center gap-4 p-4 bg-brown-50 rounded-lg transition-all duration-300 hover:bg-brown-100 hover:translate-x-1">
+            <div class="w-12 h-12 bg-gradient-to-r from-brown-600 to-brown-700 rounded-full flex items-center justify-center text-white text-lg">
+              <i class="fas fa-heart"></i>
+            </div>
+            <div>
+              <h3 class="font-semibold text-brown-600 mb-1">Handcrafted Excellence</h3>
+              <p class="text-sm text-brown-600">Every creation is meticulously crafted by our skilled artisans</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-4 p-4 bg-brown-50 rounded-lg transition-all duration-300 hover:bg-brown-100 hover:translate-x-1">
+            <div class="w-12 h-12 bg-gradient-to-r from-brown-600 to-brown-700 rounded-full flex items-center justify-center text-white text-lg">
+              <i class="fas fa-leaf"></i>
+            </div>
+            <div>
+              <h3 class="font-semibold text-brown-600 mb-1">Premium Quality</h3>
+              <p class="text-sm text-brown-600">We source only the finest ingredients from trusted suppliers</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-4 p-4 bg-brown-50 rounded-lg transition-all duration-300 hover:bg-brown-100 hover:translate-x-1">
+            <div class="w-12 h-12 bg-gradient-to-r from-brown-600 to-brown-700 rounded-full flex items-center justify-center text-white text-lg">
+              <i class="fas fa-users"></i>
+            </div>
+            <div>
+              <h3 class="font-semibold text-brown-600 mb-1">Community First</h3>
+              <p class="text-sm text-brown-600">Proudly serving and supporting Hagonoy for over 15 years</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-4 p-4 bg-brown-50 rounded-lg transition-all duration-300 hover:bg-brown-100 hover:translate-x-1">
+            <div class="w-12 h-12 bg-gradient-to-r from-brown-600 to-brown-700 rounded-full flex items-center justify-center text-white text-lg">
+              <i class="fas fa-award"></i>
+            </div>
+            <div>
+              <h3 class="font-semibold text-brown-600 mb-1">Award Winning</h3>
+              <p class="text-sm text-brown-600">Recognized for excellence in baking and customer service</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex-1 text-center">
+        <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500&h=400&fit=crop&crop=center" alt="Cindy's Bakeshop Interior" class="max-w-full rounded-2xl shadow-2xl shadow-black/20">
+      </div>
+    </section>
+
+    <!-- Visit Us -->
+    <section id="visit" class="py-24 px-4 sm:px-6 lg:px-8 xl:px-32 bg-gradient-to-br from-brown-50 to-brown-100 text-center">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl sm:text-5xl font-bold text-brown-600 mb-4 relative inline-block">
+          Visit Our Hagonoy Branch
+          <div class="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-gradient-to-r from-brown-600 to-brown-700 rounded-sm shadow-lg shadow-brown-600/30"></div>
+        </h2>
+        <p class="text-lg sm:text-xl text-brown-600 max-w-3xl mx-auto mt-8">
+          Step into our welcoming space where the aroma of fresh baking fills the air. 
+          Experience the warmth of our community and taste the difference that passion makes.
+        </p>
+        </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-12">
+        <div class="bg-white/80 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-xl shadow-brown-600/10 transition-all duration-300 border border-brown-200/50 hover:shadow-2xl hover:shadow-brown-600/20 hover:-translate-y-1">
+          <h3 class="text-lg sm:text-xl font-semibold text-brown-600 mb-4 flex items-center justify-center gap-2">
+            <i class="fas fa-map-marker-alt"></i>
+            Location
+          </h3>
+          <p class="text-brown-600">Halang, Purok 5 San Pedro<br>Hagonoy, Bulacan 3002</p>
+        </div>
+        <div class="bg-white/80 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-xl shadow-brown-600/10 transition-all duration-300 border border-brown-200/50 hover:shadow-2xl hover:shadow-brown-600/20 hover:-translate-y-1">
+          <h3 class="text-lg sm:text-xl font-semibold text-brown-600 mb-4 flex items-center justify-center gap-2">
+            <i class="fas fa-clock"></i>
+            Hours
+          </h3>
+          <p class="text-brown-600">Monday - Sunday<br>7:00 AM - 9:00 PM</p>
+        </div>
+        <div class="bg-white/80 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-xl shadow-brown-600/10 transition-all duration-300 border border-brown-200/50 hover:shadow-2xl hover:shadow-brown-600/20 hover:-translate-y-1">
+          <h3 class="text-lg sm:text-xl font-semibold text-brown-600 mb-4 flex items-center justify-center gap-2">
+            <i class="fas fa-phone"></i>
+            Contact
+          </h3>
+          <p class="text-brown-600">(+63) 912-345-6789<br>hagonoy@cindysbakeshop.com</p>
+        </div>
+      </div>
+      <div class="rounded-2xl overflow-hidden shadow-2xl shadow-black/20">
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3856.7508485268168!2d120.75319130000001!3d14.839235000000002!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3396510044be4d05%3A0xe79baf55cfd3c53b!2sCindy&#39;s%20Bakeshop%20Hagonoy%20Branch!5e0!3m2!1sfil!2sph!4v1757486725570!5m2!1sfil!2sph"
+          width="100%"
+          height="400"
+          style="border:0;"
+          allowfullscreen=""
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="bg-gradient-to-r from-brown-600 to-brown-700 text-brown-50 py-24 px-4 sm:px-6 lg:px-8 xl:px-32 text-center relative overflow-hidden">
+      <div class="absolute top-0 left-0 w-full h-full bg-white/5 transform -skew-y-1"></div>
+      <div class="relative z-10">
+        <h2 class="text-4xl sm:text-5xl font-bold mb-4">Experience Cindy's Anywhere, Anytime</h2>
+        <p class="text-lg sm:text-xl mb-10 opacity-90 max-w-3xl mx-auto">
+          Join thousands of satisfied customers who enjoy the convenience of ordering 
+          our fresh baked goods through our mobile app. Skip the lines, customize your orders, 
+          and have your favorites delivered straight to your door.
+        </p>
+        <a href="download-app.html" class="bg-brown-50 text-brown-600 px-6 sm:px-8 py-3 sm:py-4 rounded-lg text-base sm:text-lg font-semibold transition-all duration-300 shadow-lg shadow-brown-600/30 no-underline inline-flex items-center gap-2 hover:bg-brown-100 hover:-translate-y-1 hover:shadow-xl hover:shadow-brown-600/40 focus-ring">
+          <i class="fas fa-mobile-alt"></i>
+          Download Our App
+        </a>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-brown-600 text-brown-50 py-12 px-4 sm:px-6 lg:px-8 xl:px-32">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+        <div>
+          <h3 class="text-xl font-semibold mb-4 text-brown-50">Cindy's Bakeshop Hagonoy</h3>
+          <p class="text-brown-100 leading-relaxed">
+            Where tradition meets innovation. We've been crafting exceptional baked goods 
+            with love, passion, and the finest ingredients for over 15 years. 
+            Your neighborhood bakery, your family's favorite.
+          </p>
+        </div>
+        <div>
+          <h3 class="text-xl font-semibold mb-4 text-brown-50">Quick Links</h3>
+          <div class="space-y-2">
+            <a href="#" id="footerMenuLink" class="block text-brown-100 no-underline transition-colors duration-300 hover:text-brown-50">Our Menu</a>
+            <a href="#about" class="block text-brown-100 no-underline transition-colors duration-300 hover:text-brown-50">Our Story</a>
+            <a href="#visit" class="block text-brown-100 no-underline transition-colors duration-300 hover:text-brown-50">Visit Us</a>
+            <a href="download-app.html" class="block text-brown-100 no-underline transition-colors duration-300 hover:text-brown-50">Download App</a>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-xl font-semibold mb-4 text-brown-50">Contact Info</h3>
+          <div class="space-y-2 text-brown-100">
+            <p><i class="fas fa-map-marker-alt mr-2"></i>Halang, Purok 5 San Pedro</p>
+            <p><i class="fas fa-map-marker-alt mr-2"></i>Hagonoy, Bulacan 3002</p>
+            <p><i class="fas fa-phone mr-2"></i>(+63) 912-345-6789</p>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-xl font-semibold mb-4 text-brown-50">Follow Us</h3>
+          <div class="space-y-2">
+            <a href="#" class="block text-brown-100 no-underline transition-colors duration-300 hover:text-brown-50">Facebook</a>
+            <a href="#" class="block text-brown-100 no-underline transition-colors duration-300 hover:text-brown-50">Instagram</a>
+            <a href="#" class="block text-brown-100 no-underline transition-colors duration-300 hover:text-brown-50">Twitter</a>
+          </div>
+        </div>
+      </div>
+      <div class="border-t border-brown-500/20 pt-8 mt-8 text-center">
+        <p class="text-brown-100">&copy; 2025 Cindy's Bakeshop Hagonoy. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script>
+      // DOM elements
+      const elements = {
+        mobileMenu: document.getElementById('mobileMenu'),
+        mobileMenuBtn: document.getElementById('mobileMenuBtn')
+      };
+
+      // Load user name and handle authentication state
+      function loadUserName() {
+        const userData = JSON.parse(localStorage.getItem('userData'));
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        const authenticatedOptions = document.getElementById('authenticatedOptions');
+        const unauthenticatedOptions = document.getElementById('unauthenticatedOptions');
+        
+        if (userData && userData.firstName) {
+          // User is authenticated
+          if (userNameDisplay) {
+            userNameDisplay.textContent = userData.firstName;
+          }
+          if (authenticatedOptions) {
+            authenticatedOptions.classList.remove('hidden');
+          }
+          if (unauthenticatedOptions) {
+            unauthenticatedOptions.classList.add('hidden');
+          }
+        } else {
+          // User is not authenticated
+          if (userNameDisplay) {
+            userNameDisplay.textContent = 'Profile';
+          }
+          if (authenticatedOptions) {
+            authenticatedOptions.classList.add('hidden');
+          }
+          if (unauthenticatedOptions) {
+            unauthenticatedOptions.classList.remove('hidden');
+          }
+        }
+      }
+
+      // Initialize app
+      document.addEventListener('DOMContentLoaded', function() {
+        initializeEventListeners();
+        initializeAnimations();
+        loadUserName();
+      });
+
+      // Event listeners
+      function initializeEventListeners() {
+      // Mobile menu toggle
+        elements.mobileMenuBtn.addEventListener('click', function() {
+          elements.mobileMenu.classList.toggle('hidden');
+          const icon = this.querySelector('i');
+          icon.classList.toggle('fa-bars');
+          icon.classList.toggle('fa-times');
+        });
+
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(event) {
+          if (!elements.mobileMenu.contains(event.target) && !elements.mobileMenuBtn.contains(event.target)) {
+            elements.mobileMenu.classList.add('hidden');
+            const icon = elements.mobileMenuBtn.querySelector('i');
+            icon.classList.add('fa-bars');
+            icon.classList.remove('fa-times');
+          }
+        });
+
+      // Header scroll effect
+        window.addEventListener('scroll', handleScroll);
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+          anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+              target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+              });
+              // Close mobile menu if open
+              elements.mobileMenu.classList.add('hidden');
+              const icon = elements.mobileMenuBtn.querySelector('i');
+              icon.classList.add('fa-bars');
+              icon.classList.remove('fa-times');
+            }
+          });
+        });
+
+        // Menu link authentication check
+        document.getElementById('exploreMenuBtn').addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          // Check if user is logged in by looking for user data in localStorage
+          const userData = localStorage.getItem('userData');
+          const isLoggedIn = userData !== null;
+          
+          if (isLoggedIn) {
+            // User is logged in, go to Menu page
+            window.location.href = 'Menu-tailwind.html';
+          } else {
+            // User is not logged in, go to login page
+            window.location.href = 'login-tailwind.html';
+          }
+        });
+
+        // Footer Menu link authentication check
+        document.getElementById('footerMenuLink').addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          // Check if user is logged in by looking for user data in localStorage
+          const userData = localStorage.getItem('userData');
+          const isLoggedIn = userData !== null;
+          
+          if (isLoggedIn) {
+            // User is logged in, go to Menu page
+            window.location.href = 'Menu-tailwind.html';
+          } else {
+            // User is not logged in, go to login page
+            window.location.href = 'login-tailwind.html';
+          }
+        });
+      }
+
+      // Scroll handling
+      function handleScroll() {
+        const header = document.getElementById('header');
+        if (window.scrollY > 100) {
+          header.classList.add('scrolled');
+        } else {
+          header.classList.remove('scrolled');
+        }
+      }
+
+      // Initialize animations
+      function initializeAnimations() {
+        // Animate elements on scroll
+        const observerOptions = {
+          threshold: 0.1,
+          rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver(function(entries) {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.style.opacity = '1';
+              entry.target.style.transform = 'translateY(0)';
+            }
+          });
+        }, observerOptions);
+
+        // Observe elements for animation
+        document.querySelectorAll('.category-card, .product-card, .info-card').forEach(el => {
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(30px)';
+          el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+          observer.observe(el);
+        });
+      }
+
+      // Hero image rotation
+      const heroImages = [
+        {
+          src: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&h=400&fit=crop&crop=center',
+          alt: 'Delicious Chocolate Cake'
+        },
+        {
+          src: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=500&h=400&fit=crop&crop=center',
+          alt: 'Fresh Artisan Bread'
+        },
+        {
+          src: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=500&h=400&fit=crop&crop=center',
+          alt: 'Gourmet Pastries'
+        },
+        {
+          src: 'https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=500&h=400&fit=crop&crop=center',
+          alt: 'Fresh Baked Donuts'
+        },
+        {
+          src: 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?w=500&h=400&fit=crop&crop=center',
+          alt: 'Beautiful Wedding Cake'
+        },
+        {
+          src: 'https://images.unsplash.com/photo-1517433670267-08bbd4be890f?w=500&h=400&fit=crop&crop=center',
+          alt: 'Fresh Croissants'
+        }
+      ];
+      
+      let currentImageIndex = 0;
+      const heroImage = document.getElementById('heroImage');
+      
+      function rotateHeroImage() {
+        if (!heroImage) return;
+        
+        currentImageIndex = (currentImageIndex + 1) % heroImages.length;
+        const nextImage = heroImages[currentImageIndex];
+        
+        // Add fade effect
+        heroImage.style.opacity = '0.7';
+        heroImage.style.transform = 'scale(0.95)';
+        
+        setTimeout(() => {
+          heroImage.src = nextImage.src;
+          heroImage.alt = nextImage.alt;
+          heroImage.style.opacity = '1';
+          heroImage.style.transform = 'scale(1)';
+        }, 300);
+      }
+
+      // Start image rotation every 5 seconds
+      if (heroImage) {
+        setInterval(rotateHeroImage, 5000);
+      }
+
+      // Profile dropdown toggle
+      function toggleProfile() {
+        console.log('toggleProfile called on home page');
+        const dropdown = document.getElementById('profileDropdown');
+        console.log('Dropdown element:', dropdown);
+        if (dropdown) {
+          dropdown.classList.toggle('hidden');
+          console.log('Dropdown toggled, hidden class:', dropdown.classList.contains('hidden'));
+        } else {
+          console.error('Profile dropdown element not found!');
+        }
+      }
+
+      // Logout function
+      function logout() {
+        // Clear user data from localStorage
+        localStorage.removeItem('userData');
+        localStorage.removeItem('cart');
+        localStorage.removeItem('favorites');
+        
+        // Show logout confirmation
+        alert("Logged out successfully!");
+        
+        // Close dropdown
+        const dropdown = document.getElementById('profileDropdown');
+        dropdown.classList.add('hidden');
+        
+        // Redirect to login page
+        window.location.href = 'login-tailwind.html';
+      }
+
+      // Make functions globally accessible
+      window.toggleProfile = toggleProfile;
+      window.logout = logout;
+
+      // Close profile dropdown when clicking outside
+      document.addEventListener('click', function(event) {
+        const profileDropdown = document.getElementById('profileDropdown');
+        const profileButton = event.target.closest('button[onclick="toggleProfile()"]');
+        
+        if (!profileButton && !profileDropdown.contains(event.target)) {
+          profileDropdown.classList.add('hidden');
+        }
+      });
+
+      // Add scrolled class styles
+      const style = document.createElement('style');
+      style.textContent = `
+        .scrolled {
+          background: rgba(255, 255, 255, 0.98) !important;
+          box-shadow: 0 4px 20px rgba(139, 69, 19, 0.1) !important;
+        }
+      `;
+      document.head.appendChild(style);
+    </script>
+  </body>
+</html>

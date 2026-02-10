@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign Up - Cindy’s Bakeshop Hagonoy</title>
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',sans-serif; }
+body, html { height:100%; width:100%; }
+body {
+  background: url('bakery-bg.jpg') no-repeat center center/cover;
+  display:flex; flex-direction:column; min-height:100vh; position:relative;
+}
+body::before { content:""; position:absolute; inset:0; background:rgba(0,0,0,0.5); z-index:0; }
+
+/* Header/Nav like home page */
+header {
+  background: #fff;
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 2;
+  border-bottom: 1px solid #eee;
+}
+header .logo img { height:50px; }
+nav { flex: 1; display: flex; justify-content: center; }
+nav ul { list-style: none; display: flex; gap: 2rem; align-items: center; }
+nav ul li a {
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+  padding: 6px 10px;
+  border-radius: 18px;
+}
+nav ul li a.active,
+nav ul li a:hover {
+  background: #fcbf49;
+  color: #333;
+}
+
+/* Hamburger menu for mobile */
+.hamburger { display:none; font-size:1.8rem; cursor:pointer; }
+@media (max-width:768px){
+  nav { position:absolute; top:70px; left:0; right:0; background:#fff; display:none; flex-direction:column; text-align:center; border-bottom:1px solid #eee; padding:1rem 0; }
+  nav.active { display:flex; }
+  nav ul { flex-direction: column; gap:1.5rem; }
+  .hamburger { display:block; }
+}
+
+/* Signup Box */
+.main { position:relative; z-index:2; flex:1; display:flex; justify-content:center; align-items:center; padding:2rem; }
+.signup-box {
+  background: rgba(255,255,255,0.98);
+  padding:2.5rem;
+  border-radius:12px;
+  box-shadow:0 6px 20px rgba(0,0,0,0.2);
+  max-width:400px;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+.signup-box h2 { color:#d62828; text-align:center; margin-bottom:1rem; font-size:1.5rem; }
+
+.input-group { position:relative; display:flex; flex-direction:column; gap:6px; }
+.input-group input { padding:12px; border-radius:8px; border:1px solid #ccc; font-size:1rem; width:100%; transition:border-color 0.2s; }
+.input-group input:focus { border-color:#d62828; outline:none; }
+
+.password-wrapper { position:relative; display:flex; align-items:center; }
+.password-wrapper input { flex:1; padding-right:40px; }
+.eye-icon { position:absolute; right:10px; cursor:pointer; width:24px; height:24px; fill:#666; transition:0.2s; }
+.eye-icon:hover { fill:#d62828; }
+
+button { width:100%; padding:12px; background:#d62828; color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:1rem; margin-top:8px; }
+.note { font-size:0.85rem; color:#666; margin-top:8px; text-align:center; }
+.note a { color:#d62828; font-weight:600; text-decoration:none; }
+.small-btn { background:#fcbf49; color:#333; padding:6px 10px; font-size:0.9rem; border-radius:6px; margin-top:5px; width:auto; cursor:pointer; border:none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><img src="Cindys.png" alt="Cindy's Logo"></div>
+  <div class="hamburger" onclick="toggleMenu()">☰</div>
+  <nav id="navMenu">
+    <ul>
+      <li><a href="home.html">Home</a></li>
+      <li><a href="login.html">Login</a></li>
+      <li><a href="home.html#about">About</a></li>
+      <li><a href="home.html#visit">Contacts</a></li>
+      <li><a href="signup.html" class="active">Signup</a></li>
+    </ul>
+  </nav>
+</header>
+
+<div class="main">
+  <div class="signup-box">
+    <h2>Sign Up</h2>
+    <form id="signupForm" action="signup-process.php" method="post">
+      <div class="input-group">
+        <label>First Name</label>
+        <input id="fname" name="fname" required>
+      </div>
+      <div class="input-group">
+        <label>Last Name</label>
+        <input id="lname" name="lname" required>
+      </div>
+      <div class="input-group">
+        <label>Email</label>
+        <input id="email" name="email" type="email" required>
+        <button type="button" class="small-btn" id="sendCodeBtn">Send Verification Code</button>
+        <input id="emailCode" name="emailCode" type="text" placeholder="Enter verification code" style="display:none;" required>
+      </div>
+      <div class="input-group">
+        <label>Password</label>
+        <div class="password-wrapper">
+          <input id="password" name="password" type="password" required>
+          <svg id="eyeIcon" class="eye-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M12 5C7 5 2.73 8.11 1 12c1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>Confirm Password</label>
+        <div class="password-wrapper">
+          <input id="confirmPassword" name="confirmPassword" type="password" required>
+          <svg id="eyeIcon2" class="eye-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M12 5C7 5 2.73 8.11 1 12c1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>
+          </svg>
+        </div>
+      </div>
+      <button type="submit">Register</button>
+    </form>
+    <div class="note">Please verify your email and confirm your password before registering.</div>
+  </div>
+</div>
+
+<script>
+const sendCodeBtn = document.getElementById('sendCodeBtn');
+const emailInput = document.getElementById('email');
+const emailCodeInput = document.getElementById('emailCode');
+let generatedCode = null;
+
+// Email verification demo
+sendCodeBtn.addEventListener('click', () => {
+  if (!emailInput.value) { alert('Enter your email first'); return; }
+  generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+  emailCodeInput.style.display = 'block';
+  alert("Demo verification code for " + emailInput.value + " is: " + generatedCode);
+});
+
+// Password confirm check
+document.getElementById('signupForm').addEventListener('submit', e => {
+  const pass = document.getElementById('password').value;
+  const confirmPass = document.getElementById('confirmPassword').value;
+  const enteredCode = emailCodeInput.value;
+  if (pass !== confirmPass) { e.preventDefault(); alert("Passwords do not match!"); return; }
+  if (!generatedCode || enteredCode !== generatedCode) { e.preventDefault(); alert("Invalid or missing email verification code!"); return; }
+  alert("✅ Demo signup successful with verified email!");
+});
+
+// Show/hide passwords
+const passwordInput = document.getElementById("password");
+const eyeIcon = document.getElementById("eyeIcon");
+eyeIcon.addEventListener("click", () => {
+  const type = passwordInput.type === "password" ? "text" : "password";
+  passwordInput.type = type;
+  eyeIcon.style.fill = type === "text" ? "#d62828" : "#666";
+});
+
+const confirmInput = document.getElementById("confirmPassword");
+const eyeIcon2 = document.getElementById("eyeIcon2");
+eyeIcon2.addEventListener("click", () => {
+  const type = confirmInput.type === "password" ? "text" : "password";
+  confirmInput.type = type;
+  eyeIcon2.style.fill = type === "text" ? "#d62828" : "#666";
+});
+
+// Hamburger toggle
+function toggleMenu() { document.getElementById("navMenu").classList.toggle("active"); }
+</script>
+
+</body>
+</html>
